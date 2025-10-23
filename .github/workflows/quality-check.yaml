@@ -1,0 +1,37 @@
+name: Code Quality
+on: [push]
+jobs:
+  linters:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install the project
+        run: uv sync
+
+      - name: pyright
+        run: uv run pyright --warnings
+
+      - name: ruff check
+        run: uv run ruff check
+
+      - name: ruff format
+        run: uv run ruff format --check
+
+      - name: Install Ansible dependencies
+        run:
+          uv run ansible-galaxy collection install
+            -r services/proxmox/ansible/ansible-requirements.yaml
+
+      - name: Run Ansible Lint
+        run: uv run --directory services/proxmox/ansible ansible-lint -v inventory playbooks roles

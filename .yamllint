@@ -1,0 +1,12 @@
+extends: default
+ignore: |
+  .git
+  .venv
+  services/monitoring/assets/snmp/snmp.yml
+
+rules:
+  document-start:
+    level: error
+    present: false
+  line-length: disable
+  truthy: disable
