@@ -27,14 +27,9 @@ The homelab appears to be centered around:
 - Operational preference for simple, understandable components
 - Explicit attention to DHCP, DNS, and VPN behavior at the network edge
 
-## Notable constraints
-
-- No HA requirement for the current DHCP design
-- Less than 20 VLANs expected
-- Fritz!Box dependency for VoIP and legacy clients in one VLAN
-
 ## Related notes
 
+- [[Environment Facts]] — scale and HA constraints
 - [[Network Segmentation]]
 - [[DNS and DHCP Architecture]]
 - [[Ingress and Remote Access]]

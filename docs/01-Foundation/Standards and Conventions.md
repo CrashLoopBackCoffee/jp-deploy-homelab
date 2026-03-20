@@ -44,11 +44,6 @@ updated: 2026-03-20
 - Cloudflare
 - Hetzner
 
-## Infrastructure scale constraints
-
-- No HA firewall or HA DHCP requirement
-- Fewer than 20 VLANs expected
-
 ## Hardware procurement criteria
 
 For low-cost managed switches, technical evaluation must include:

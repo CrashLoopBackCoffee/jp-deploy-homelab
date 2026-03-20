@@ -15,7 +15,7 @@ updated: 2026-03-20
 
 VLAN-based segmentation with OPNsense as the L3 boundary. Core routing and policy remain in OPNsense; VLAN boundaries are explicit; legacy dependencies stay isolated.
 
-Local services hosted under `4jp.de`.
+> Domain and addressing baseline: see [[Addressing and Domains]]
 
 ## VLAN Schema
 

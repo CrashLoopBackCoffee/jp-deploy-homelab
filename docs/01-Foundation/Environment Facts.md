@@ -26,7 +26,6 @@ updated: 2026-03-20
 - VLAN count is expected to stay below 20.
 - One VLAN contains a Fritz!Box for VoIP and some legacy WLAN clients.
 
-## Tooling preferences relevant to the homelab
+## Tooling preferences
 
-- Open-source solutions are preferred first.
-- Primary working environment is centered around Python, AWS, Hetzner, macOS, VS Code, and Obsidian.
+See [[Standards and Conventions]].

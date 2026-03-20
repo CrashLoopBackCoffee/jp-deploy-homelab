@@ -15,9 +15,10 @@ updated: 2026-03-20
 ## Known design characteristics
 
 - VLAN-based segmentation is in use.
-- Expected scale is below 20 VLANs.
 - At least one VLAN contains a Fritz!Box for VoIP and legacy WLAN clients.
 - Proxmox host networking and Linux bridge VLAN handling are operationally relevant.
+
+> Scale and HA assumptions: see [[Environment Facts]]
 
 ## Architectural implications
 

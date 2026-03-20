@@ -20,10 +20,9 @@ OPNsense is the key control point. The main design question has been how to comb
 - [[Unbound]] for recursive DNS
 - [[AdGuard]] for filtering
 
-## Recorded decision trend
+## Recorded decision
 
-- The current direction favors [[dnsmasq]] over Kea for DHCP on OPNsense.
-- This choice appears driven by simplicity, scale fit, and lack of HA requirements.
+[[dnsmasq]] is accepted over Kea for DHCP on OPNsense. See [[ADR-0001 - Use dnsmasq instead of Kea on OPNsense]].
 
 ## Open architecture question
 

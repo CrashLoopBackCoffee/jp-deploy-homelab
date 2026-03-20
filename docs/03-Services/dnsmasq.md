@@ -15,16 +15,10 @@ updated: 2026-03-20
 
 Candidate DHCP service on OPNsense after ISC DHCP deprecation, with optional support for local hostname handling.
 
-## Why it matters here
-
-- Fits the current expected scale.
-- No HA requirement is present.
-- Simplicity is preferred over feature surplus.
-
 ## Current decision status
 
-dnsmasq is the preferred direction over Kea for this homelab.
+dnsmasq is the accepted direction. See [[ADR-0001 - Use dnsmasq instead of Kea on OPNsense]].
 
 ## Open question
 
-Exact integration with [[Unbound]] and [[AdGuard]] still needs final architecture definition.
+Exact integration with [[Unbound]] and [[AdGuard]] still needs final architecture definition. See [[dnsmasq Unbound AdGuard Integration Notes]].
