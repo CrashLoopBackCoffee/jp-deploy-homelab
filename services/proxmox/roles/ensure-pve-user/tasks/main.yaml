@@ -24,6 +24,7 @@
     --password={{ ensure_pve_user_password }}
     --comment "Prometheus exporter service account."
   when: matching_users_result | length == 0
+  no_log: true
 
 - name: Query ACLs
   ansible.builtin.command: pveum acl list --output-format=json

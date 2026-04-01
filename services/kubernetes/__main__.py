@@ -17,10 +17,13 @@ cloudflare_provider = cloudflare.Provider(
     email=component_config.cloudflare.email,
 )
 
-# kubeconfig is stored as a Pulumi secret set via:
-#   k0sctl kubeconfig -c services/k0s/k0sctl/cluster.yaml \
-#     | (cd services/kubernetes && pulumi config set --secret kubernetes:config.k0s.kubeconfig -)
-k8s_provider = k8s.Provider('k0s', kubeconfig=component_config.k0s.kubeconfig)
+# kubeconfig is stored as a Pulumi secret. Store after k0sctl bootstrap via:
+#   (cd services/kubernetes && \
+#    pulumi config set --path --secret kubernetes:config.k0s.kubeconfig \
+#      "$(k0sctl kubeconfig -c ../k0s/k0sctl/cluster.yaml)")
+# This causes Pulumi to store it as { secure: "enc:v1:..." } in the stack YAML,
+# which maps to the PulumiSecret model (with a `secure` field).
+k8s_provider = k8s.Provider('k0s', kubeconfig=component_config.k0s.kubeconfig.value)
 
 create_metallb(component_config, k8s_provider)
 

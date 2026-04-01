@@ -91,25 +91,48 @@ def ensure_port_forward(
             **extra_args,
         )
 
+        def _terminate_process() -> None:
+            """Terminate the kubectl process and drain its pipes."""
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+            if process.stderr:
+                process.stderr.close()
+            if process.stdout:
+                process.stdout.close()
+
         # Wait for the port forward to be established.
         start = time.monotonic()
-        while True:
-            process.poll()
-            if process.returncode is not None:
-                stderr_raw = process.stderr.read() if process.stderr else b''
-                stderr_output = stderr_raw if isinstance(stderr_raw, str) else stderr_raw.decode(errors='replace')
-                raise PortForwardError(
-                    f'Port forward process exited unexpectedly (rc={process.returncode}): {stderr_output.strip()}'
-                )
-            try:
-                s = socket.socket()
-                s.connect(('localhost', local_port))
-                s.close()
-                break
-            except Exception:
-                if time.monotonic() - start > 30:
-                    raise PortForwardError('Timed out waiting for port forward to be established')
-                time.sleep(0.1)
+        try:
+            while True:
+                process.poll()
+                if process.returncode is not None:
+                    stderr_raw = process.stderr.read() if process.stderr else b''
+                    stderr_output = (
+                        stderr_raw
+                        if isinstance(stderr_raw, str)
+                        else stderr_raw.decode(errors='replace')
+                    )
+                    raise PortForwardError(
+                        f'Port forward process exited unexpectedly'
+                        f' (rc={process.returncode}): {stderr_output.strip()}'
+                    )
+                try:
+                    with socket.create_connection(('localhost', local_port), timeout=1.0):
+                        pass
+                    break
+                except OSError:
+                    if time.monotonic() - start > 30:
+                        raise PortForwardError(
+                            'Timed out waiting for port forward to be established'
+                        )
+                    time.sleep(0.1)
+        except Exception:
+            _terminate_process()
+            raise
 
         # Note: We don't handle termination of the process because the pulumi-language-python
         # process will be terminated before resource deletion is done by pulumi. Therefore we need

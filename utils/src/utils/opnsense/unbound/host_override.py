@@ -9,7 +9,7 @@ from utils.opnsense.base import OpnSenseBaseProvider
 def _unbound_override_payload(props: dict[str, t.Any]) -> dict[str, t.Any]:
     return {
         'host': {
-            'description': props.get('description', ''),
+            'description': props.get('description') or '',
             'domain': props['domain'],
             'enabled': '1',
             'hostname': props['host'],

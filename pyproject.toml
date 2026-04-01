@@ -69,7 +69,7 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py313"
 extend-exclude = ["docs/examples"]
 extend-include = ["scripts/generate-config-schema"]
 

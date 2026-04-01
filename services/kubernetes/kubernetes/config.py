@@ -18,7 +18,7 @@ class TraefikConfig(utils.model.LocalBaseModel):
 
 
 class K0sConfig(utils.model.LocalBaseModel):
-    kubeconfig: str
+    kubeconfig: utils.model.PulumiSecret
     metallb: MetallbConfig
 
 

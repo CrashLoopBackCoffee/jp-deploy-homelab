@@ -1,3 +1,4 @@
-- name: Export API token {{ ensure_api_token_userid }} {{ ensure_api_token_name }}
+- name: export-api-token-stub
   ansible.builtin.debug:
-    msg: "Export API token."
+    msg: "No-op stub: export_api_token handler not overridden by playbook."
+  listen: export_api_token

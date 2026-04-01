@@ -16,10 +16,14 @@ config:
       # renovate: datasource=github-releases packageName=kubernetes-csi/csi-driver-nfs versioning=semver
       version: v4.12.1
     k0s:
-      # kubeconfig is a Pulumi secret — set via:
-      # k0sctl kubeconfig -c services/k0s/k0sctl/cluster.yaml \
-      #   | (cd services/kubernetes && pulumi config set --secret kubernetes:config.k0s.kubeconfig -)
-      kubeconfig: ""
+      # kubeconfig is stored as a Pulumi secret (PulumiSecret model, secure: field).
+      # Set after k0sctl bootstrap via:
+      #   (cd services/kubernetes && \
+      #    pulumi config set --path --secret kubernetes:config.k0s.kubeconfig \
+      #      "$(k0sctl kubeconfig -c ../k0s/k0sctl/cluster.yaml)")
+      # Pulumi then writes:  kubeconfig: {secure: "enc:v1:..."}  in this file.
+      kubeconfig:
+        secure: ""
       metallb:
         # renovate: datasource=github-releases packageName=metallb/metallb versioning=semver
         version: 0.15.2

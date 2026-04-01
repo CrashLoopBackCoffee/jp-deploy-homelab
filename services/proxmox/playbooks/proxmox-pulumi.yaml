@@ -17,7 +17,7 @@
       ensure_api_token_name: "{{ pulumi_token_name }}"
 
   handlers:
-    - name: Export API token {{ pulumi_user }}@pve {{ pulumi_token_name }}
+    - name: Export API token to 1Password
       ansible.builtin.shell: |
         set -eu
 
@@ -33,4 +33,6 @@
           op item template get Password | op item create --vault "{{ vault }}" --title "${TITLE}" password="${PASSWORD}"
         fi
 
+      listen: export_api_token
+      no_log: true
       delegate_to: localhost
