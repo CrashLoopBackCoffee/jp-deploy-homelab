@@ -12,10 +12,10 @@ EXPORTER_PORT = 9641
 
 class Mqtt2Prometheus(p.ComponentResource):
     def __init__(self, name: str, component_config: ComponentConfig, k8s_provider: k8s.Provider):
+        super().__init__(f'lab:mqtt2prometheus:{name}', name)
+
         if not component_config.mqtt2prometheus or not component_config.mqtt2prometheus.instances:
             return
-
-        super().__init__(f'lab:mqtt2prometheus:{name}', name)
 
         namespace = k8s.core.v1.Namespace(
             'mqtt2prometheus',
@@ -144,7 +144,10 @@ class Mqtt2Prometheus(p.ComponentResource):
 
             service = k8s.core.v1.Service(
                 f'mqtt2prometheus-{instance.name}',
-                metadata={'name': f'mqtt2promehteus-{instance.name}'},
+                metadata={
+                    'name': f'mqtt2prometheus-{instance.name}',
+                    'namespace': namespace.metadata['name'],
+                },
                 spec={
                     'selector': deployment.spec.selector['match_labels'],
                     'ports': [{'port': EXPORTER_PORT, 'target_port': 'exporter'}],

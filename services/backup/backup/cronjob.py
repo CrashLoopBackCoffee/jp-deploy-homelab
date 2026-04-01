@@ -168,7 +168,7 @@ def create_backup_cronjob(
                                 {
                                     'name': 'backup',
                                     'image': f'restic/restic:{component_config.restic.version}',
-                                    'command': ['/bin/sh'],
+                                    'command': ['/bin/bash'],
                                     'args': ['/scripts/backup.sh'],
                                     'env': env_vars,
                                     'volume_mounts': volume_mounts,

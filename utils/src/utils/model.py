@@ -8,8 +8,8 @@ def get_pulumi_project(model_dir: str):
     search_dir = pathlib.Path(model_dir).parent
 
     while not (search_dir / 'Pulumi.yaml').exists():
-        if not search_dir.parents:
-            raise ValueError('Could not find repo root')
+        if search_dir == search_dir.parent:
+            raise ValueError('Could not find Pulumi.yaml: reached filesystem root')
 
         search_dir = search_dir.parent
     return search_dir.name
@@ -23,13 +23,17 @@ class LocalBaseModel(pydantic.BaseModel):
     model_config = {
         'extra': 'forbid',
         'alias_generator': _to_kebap_case,
-        # Allow instanciation also with original names
+        # Allow instantiation also with original names
         'populate_by_name': True,
     }
 
 
 class PulumiSecret(LocalBaseModel):
     secure: pydantic.SecretStr
+
+    @property
+    def value(self) -> str:
+        return self.secure.get_secret_value()
 
     def __str__(self):
         return str(self.secure)

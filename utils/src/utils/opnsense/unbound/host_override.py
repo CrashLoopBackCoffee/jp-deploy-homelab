@@ -28,7 +28,8 @@ class HostOverrideProvider(OpnSenseBaseProvider):
         response = client.post(self.get_api_path('unbound', 'service', 'reconfigure'), json={})
         response.raise_for_status()
         data = response.json()
-        assert data.get('status') == 'ok', 'Failed to reconfigure unbound'
+        if data.get('status') != 'ok':
+            raise RuntimeError(f'Failed to reconfigure unbound: {data}')
 
     def create(self, props: dict[str, t.Any]) -> p.dynamic.CreateResult:
         """
@@ -41,7 +42,8 @@ class HostOverrideProvider(OpnSenseBaseProvider):
         )
         response.raise_for_status()
         data = response.json()
-        assert data.get('result') == 'saved', 'Failed to create unbound override'
+        if data.get('result') != 'saved':
+            raise RuntimeError(f'Failed to create unbound override: {data}')
         uuid = data['uuid']
 
         # Reconfigure unbound to apply the changes
@@ -65,7 +67,8 @@ class HostOverrideProvider(OpnSenseBaseProvider):
         )
         response.raise_for_status()
         data = response.json()
-        assert data.get('result') == 'saved', 'Failed to update unbound override'
+        if data.get('result') != 'saved':
+            raise RuntimeError(f'Failed to update unbound override: {data}')
 
         # Reconfigure unbound to apply the changes
         self._reconfigure_unbound(client)
@@ -83,7 +86,8 @@ class HostOverrideProvider(OpnSenseBaseProvider):
         )
         response.raise_for_status()
         data = response.json()
-        assert data.get('result') == 'deleted', 'Failed to delete unbound override'
+        if data.get('result') != 'deleted':
+            raise RuntimeError(f'Failed to delete unbound override: {data}')
 
         # Reconfigure unbound to apply the changes
         self._reconfigure_unbound(client)

@@ -24,7 +24,7 @@ class OnePasswordItem(t.NamedTuple):
 def _parse_op_ref(secret_ref: str):
     """Parses a 1Password secret reference
 
-    E.g. op://Pulumi/Test Login New/password becomed
+    E.g. op://Pulumi/Test Login New/password becomes
     vault: Pulumi
     item: Test Login New
     field: password

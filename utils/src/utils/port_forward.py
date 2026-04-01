@@ -67,12 +67,15 @@ def ensure_port_forward(
         tmp_kubeconfig_file = tempfile.NamedTemporaryFile(delete=False)
         atexit.register(os.unlink, tmp_kubeconfig_file.name)
 
-        # Write the kubeconfig file to the temporary file.
+        # Write the kubeconfig file, then close so kubectl can read it on all
+        # platforms (avoids locked-handle issues on Windows-like environments).
         tmp_kubeconfig_file.write(kubeconfig.encode())
         tmp_kubeconfig_file.flush()
+        tmp_kubeconfig_file.close()
 
-        # Perform the port forward.
-        extra_args = {}
+        # Perform the port forward. Always capture stderr so we can include it
+        # in error messages even when stdout is suppressed.
+        extra_args: dict = {'stderr': subprocess.PIPE}
         if silent:
             extra_args['stdout'] = subprocess.DEVNULL
         process = subprocess.Popen(
@@ -93,7 +96,11 @@ def ensure_port_forward(
         while True:
             process.poll()
             if process.returncode is not None:
-                raise PortForwardError('Port forward process exited unexpectedly')
+                stderr_raw = process.stderr.read() if process.stderr else b''
+                stderr_output = stderr_raw if isinstance(stderr_raw, str) else stderr_raw.decode(errors='replace')
+                raise PortForwardError(
+                    f'Port forward process exited unexpectedly (rc={process.returncode}): {stderr_output.strip()}'
+                )
             try:
                 s = socket.socket()
                 s.connect(('localhost', local_port))

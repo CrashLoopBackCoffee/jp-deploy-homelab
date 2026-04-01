@@ -5,10 +5,10 @@ import pulumi as p
 
 def directory_content(path: pathlib.Path) -> list[str]:
     """
-    Hashes the contents of a directory.
+    Returns the contents of all files in a directory, sorted by path for determinism.
     """
     contents = []
-    for file in path.rglob('*'):
+    for file in sorted(path.rglob('*')):
         if file.is_file():
             contents.append(file.read_text())
     return contents
