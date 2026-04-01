@@ -1,0 +1,177 @@
+[project]
+name = "homelab"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.13"
+
+dependencies = [
+    # Fixed pulumi deps for global pinning
+    "pulumi-cloudflare==6.10.0",
+    "pulumi-command==1.1.3",
+    "pulumi-docker==4.9.0",
+    "pulumi-kubernetes==4.23.0",
+    "pulumi-minio==0.16.6",
+    "pulumi-onepassword==1.1.3",
+    "pulumi-proxmoxve==7.7.0",
+    "pulumi-random==4.18.4",
+    "pulumi==3.203.0",
+
+    # Workspaces
+    "backup",
+    "ingress",
+    "iot",
+    "k0s",
+    "kubernetes",
+    "monitoring",
+    "n8n",
+    "paperless",
+    "proxmox",
+    "s3",
+]
+
+[dependency-groups]
+dev = [
+    "distlib>=0.3.9",
+    "filelock>=3.16.1",
+    "platformdirs>=4.3.6",
+    "pre-commit>=4.0.1",
+    "pyright>=1.1.390",
+    "ruff>=0.8.2",
+    "yamllint>=1.35.1",
+]
+
+[tool.uv.sources]
+backup = { workspace = true }
+ingress = { workspace = true }
+iot = { workspace = true }
+k0s = { workspace = true }
+kubernetes = { workspace = true }
+monitoring = { workspace = true }
+n8n = { workspace = true }
+obsidian = { workspace = true }
+ollama = { workspace = true }
+paperless = { workspace = true }
+proxmox = { workspace = true }
+s3 = { workspace = true }
+svn = { workspace = true }
+unifi = { workspace = true }
+utils = { workspace = true }
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["services/*", "utils"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["docs/examples"]
+extend-include = ["scripts/generate-config-schema"]
+
+[tool.ruff.lint]
+extend-select = [
+    "A",      # flake8-builtins
+    "C4",     # flake8-comprehensions
+    "ERA",    # flake8-eradicate (commented out code)
+    "G",      # flake8-logging-format
+    "I",      # isort
+    "ISC",    # flake8-implicit-str-concat
+    "PL",     # Pylint
+    "RET",    # flake8-return
+    "RUF100", # unused noqa
+    "SLF",    # flake8-self
+]
+ignore = [
+    "ISC001",  # single line string concat
+    "PLR0912", # too many branches
+    "PLR0913", # too many arguments
+    "PLR0915", # too many statements
+    "PLR2004", # magic value used in comparison
+    "PLR1711", # useless return
+]
+
+[tool.ruff.lint.isort]
+lines-between-types = 1
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "SLF001", # allow access to private members in tests
+]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.pyright]
+deprecateTypingAliases = true
+useLibraryCodeForTypes = true
+include = ["scripts", "services", "utils", "*.py"]
+exclude = [
+    "__pycache__",
+    ".venv",
+    ".vscode",
+    "build",
+    "dist",
+    "docs/examples",
+    "node_modules",
+    "venv",
+]
+reportUnnecessaryTypeIgnoreComment = true
+venv = ".venv"
+venvPath = "."
+
+[tool.config-models.backup]
+root = "services/backup"
+model = "backup.config:PulumiConfigRoot"
+
+[tool.config-models.ingress]
+root = "services/ingress"
+model = "ingress.config:PulumiConfigRoot"
+
+[tool.config-models.iot]
+root = "services/iot"
+model = "iot.config:PulumiConfigRoot"
+
+[tool.config-models.kubernetes]
+root = "services/kubernetes"
+model = "kubernetes.config:PulumiConfigRoot"
+
+[tool.config-models.monitoring]
+root = "services/monitoring"
+model = "monitoring.config:PulumiConfigRoot"
+
+[tool.config-models.n8n]
+root = "services/n8n"
+model = "n8n.config:PulumiConfigRoot"
+
+[tool.config-models.obsidian]
+root = "services/obsidian"
+model = "obsidian.config:PulumiConfigRoot"
+
+[tool.config-models.ollama]
+root = "services/ollama"
+model = "ollama.config:PulumiConfigRoot"
+
+[tool.config-models.paperless]
+root = "services/paperless"
+model = "paperless.config:PulumiConfigRoot"
+
+[tool.config-models.proxmox]
+root = "services/proxmox"
+model = "proxmox.config:PulumiConfigRoot"
+
+[tool.config-models.s3]
+root = "services/s3"
+model = "s3.config:PulumiConfigRoot"
+
+[tool.config-models.unifi]
+root = "services/unifi"
+model = "unifi.config:PulumiConfigRoot"
+
+[tool.config-models.svn]
+root = "services/svn"
+model = "svn.config:PulumiConfigRoot"

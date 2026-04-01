@@ -1,0 +1,4 @@
+- name: export-api-token-stub
+  ansible.builtin.debug:
+    msg: "No-op stub: export_api_token handler not overridden by playbook."
+  listen: export_api_token

@@ -1,0 +1,34 @@
+config:
+  kubernetes:config:
+    cert-manager:
+      # renovate: datasource=github-releases packageName=cert-manager/cert-manager versioning=semver
+      version: v1.19.1
+      use-staging: false
+    cloudnative-pg:
+      # renovate: datasource=github-releases packageName=cloudnative-pg/charts versioning=semver
+      version: 0.26.0
+    cloudflare:
+      api-key:
+        ref: op://Pulumi/Cloudflare Global API Key/password
+      email: tobias_henkel@gmx.de
+      zone: 4jp.de
+    csi-nfs-driver:
+      # renovate: datasource=github-releases packageName=kubernetes-csi/csi-driver-nfs versioning=semver
+      version: v4.12.1
+    k0s:
+      # kubeconfig is stored as a Pulumi secret (PulumiSecret model, secure: field).
+      # Set after k0sctl bootstrap via:
+      #   (cd services/kubernetes && \
+      #    pulumi config set --path --secret kubernetes:config.k0s.kubeconfig \
+      #      "$(k0sctl kubeconfig -c ../k0s/k0sctl/cluster.yaml)")
+      # Pulumi then writes:  kubeconfig: {secure: "enc:v1:..."}  in this file.
+      kubeconfig:
+        secure: ""
+      metallb:
+        # renovate: datasource=github-releases packageName=metallb/metallb versioning=semver
+        version: 0.15.2
+        start: 10.10.88.1
+        end: 10.10.88.250
+    traefik:
+      # renovate: datasource=github-releases packageName=traefik/traefik versioning=semver
+      version: v34.3.0
