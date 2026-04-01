@@ -1,0 +1,12 @@
+proxmox_api_host: pve.4jp.de
+proxmox_api_user: root@pam
+# Token stored in a vault or environment variable: PROXMOX_API_TOKEN_SECRET
+proxmox_api_token_id: ansible@pam!ansible
+proxmox_storage: local-lvm
+proxmox_iso_storage: local
+
+cloud_image_url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+cloud_image_filename: noble-server-cloudimg-amd64.img
+
+# SSH public key to inject into the VM via cloud-init
+vm_ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFLGX6Nw50R8EGcDgR69SkvAgX/NR71vLHlYuB7lkyoJ"

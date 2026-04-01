@@ -1,0 +1,4 @@
+collections:
+  - name: community.general
+    # renovate: datasource=galaxy-collection packageName=community.general versioning=semver
+    version: "10.6.0"

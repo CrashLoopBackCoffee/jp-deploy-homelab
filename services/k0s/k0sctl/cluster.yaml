@@ -1,0 +1,23 @@
+apiVersion: k0sctl.k0sproject.io/v1beta1
+kind: Cluster
+metadata:
+  name: k0s-prod
+spec:
+  hosts:
+    - ssh:
+        address: 192.168.40.10
+        user: ubuntu
+        port: 22
+        keyPath: ~/.ssh/id_ed25519
+      role: controller+worker
+  k0s:
+    # renovate: datasource=github-releases packageName=k0sproject/k0s versioning=semver
+    version: v1.32.3+k0s.0
+    config:
+      apiVersion: k0s.k0sproject.io/v1beta1
+      kind: ClusterConfig
+      spec:
+        network:
+          provider: kuberouter
+        storage:
+          type: etcd

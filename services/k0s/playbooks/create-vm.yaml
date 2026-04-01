@@ -1,0 +1,87 @@
+- name: Create k0s master VM on Proxmox
+  hosts: k0s_masters
+  gather_facts: false
+  vars:
+    proxmox_api_token_secret: "{{ lookup('env', 'PROXMOX_API_TOKEN_SECRET') }}"
+    # Derive a deterministic VMID from the host position in the inventory (offset from 200)
+    vmid: "{{ 200 + groups['k0s_masters'].index(inventory_hostname) }}"
+    cloud_image_local_path: "/var/lib/vz/template/iso/{{ cloud_image_filename }}"
+  tasks:
+    - name: Download Ubuntu Noble cloud image to Proxmox host
+      ansible.builtin.get_url:
+        url: "{{ cloud_image_url }}"
+        dest: "{{ cloud_image_local_path }}"
+        mode: "0644"
+      delegate_to: "{{ proxmox_node }}"
+      run_once: true  # one image shared by all VMs on same node
+
+    - name: Create VM
+      community.general.proxmox_kvm:
+        api_host: "{{ proxmox_api_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_token_id: "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node: "{{ proxmox_node }}"
+        vmid: "{{ vmid }}"
+        name: "{{ inventory_hostname }}"
+        state: present
+        cores: "{{ vm_cores }}"
+        memory: "{{ vm_memory_max }}"
+        balloon: "{{ vm_memory_min }}"
+        machine: q35
+        ostype: l26
+        agent: enabled=1
+        # Networking: VLAN-tagged virtio NIC
+        net:
+          net0: "virtio,bridge=vmbr0,tag={{ vm_vlan }}"
+        # Disks defined here are created as empty; OS disk is imported below
+        scsi:
+          scsi1: "{{ proxmox_storage }}:{{ vm_disk_data }},format=raw"
+        scsihw: virtio-scsi-pci
+        # Cloud-init drive
+        ide:
+          ide2: "{{ proxmox_storage }}:cloudinit"
+        # Cloud-init network/auth config
+        ipconfig:
+          ipconfig0: "ip={{ vm_ip }},gw={{ vm_gateway }}"
+        sshkeys: "{{ vm_ssh_public_key }}"
+        citype: nocloud
+        boot: order=scsi0
+      delegate_to: localhost
+
+    - name: Import cloud image as OS disk (scsi0)
+      ansible.builtin.command:
+        cmd: >-
+          qm importdisk {{ vmid }} {{ cloud_image_local_path }}
+          {{ proxmox_storage }} --format raw
+      register: import_result
+      changed_when: import_result.rc == 0
+      failed_when: import_result.rc != 0 and 'already exists' not in import_result.stderr
+      delegate_to: "{{ proxmox_node }}"
+
+    - name: Attach imported disk as scsi0
+      ansible.builtin.command:
+        cmd: >-
+          qm set {{ vmid }} --scsi0 {{ proxmox_storage }}:vm-{{ vmid }}-disk-0,ssd=1
+          --resize scsi0 {{ vm_disk_os }}G
+      register: attach_result
+      changed_when: attach_result.rc == 0
+      delegate_to: "{{ proxmox_node }}"
+
+    - name: Start VM
+      community.general.proxmox_kvm:
+        api_host: "{{ proxmox_api_host }}"
+        api_user: "{{ proxmox_api_user }}"
+        api_token_id: "{{ proxmox_api_token_id }}"
+        api_token_secret: "{{ proxmox_api_token_secret }}"
+        node: "{{ proxmox_node }}"
+        vmid: "{{ vmid }}"
+        state: started
+      delegate_to: localhost
+
+    - name: Wait for SSH to become available
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 22
+        timeout: 180
+      delegate_to: localhost

@@ -1,0 +1,14 @@
+k0s_masters:
+  hosts:
+    k0s-prod-master-0:
+      ansible_host: 192.168.40.10
+      ansible_user: ubuntu
+      proxmox_node: pve
+      vm_cores: 16
+      vm_memory_min: 4096
+      vm_memory_max: 32768
+      vm_disk_os: 20
+      vm_disk_data: 20
+      vm_vlan: 10
+      vm_ip: 192.168.40.10/24
+      vm_gateway: 192.168.40.1
