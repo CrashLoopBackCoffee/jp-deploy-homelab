@@ -24,7 +24,7 @@ Last session: 2026-10-11. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 
 ## Open items
 
-1. Push `feature/track-k0s-services` (commit `4766a01`, plus the Longhorn changes if committed) and open the PR. `services/paperless` and `services/monitoring` `Pulumi.prod.yaml` are intentionally untracked (donor-encrypted values).
+1. Push `feature/track-k0s-services` (commits `4766a01`, `9d58b68`) and open the PR. `services/paperless` and `services/monitoring` `Pulumi.prod.yaml` are intentionally untracked (donor-encrypted values).
 2. Remove the trial "Services: Unbound" privilege from the OPNsense API user in the UI (System > Access > Users). On 2026-10-11 the API key still read Unbound settings (HTTP 200); the key cannot read users, so this cannot be verified through the API.
 3. Other stacks still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints); none has been previewed. Each needs a JP mapping first.
 4. ACME contact email is `support@jaypee.solutions` in `services/kubernetes/Pulumi.prod.yaml` (earlier notes said `github@jaypee.solutions`); confirm or change it.
