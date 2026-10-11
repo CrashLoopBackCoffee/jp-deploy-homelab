@@ -5,6 +5,7 @@ import pulumi as p
 import pulumi_kubernetes as k8s
 import pulumi_postgresql as postgresql
 import pulumi_random as random
+import utils.model
 import utils.opnsense.dnsmasq.host
 
 from paperless.backup import create_backup_cronjob
@@ -199,7 +200,11 @@ class Paperless(p.ComponentResource):
                     }
                 ),
                 'PAPERLESS_DBPASS': postgres_password.result,
-                'PAPERLESS_GMAIL_OAUTH_CLIENT_SECRET': str(component_config.mail.client_secret),
+                'PAPERLESS_GMAIL_OAUTH_CLIENT_SECRET': (
+                    p.Output.secret(component_config.mail.client_secret.secure.get_secret_value())
+                    if isinstance(component_config.mail.client_secret, utils.model.PulumiSecret)
+                    else component_config.mail.client_secret
+                ),
             },
             opts=k8s_opts,
         )

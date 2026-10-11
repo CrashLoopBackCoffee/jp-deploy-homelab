@@ -86,15 +86,12 @@ check_dependencies() {
 load_credentials_from_1password() {
     echo -e "${BLUE}Loading credentials from 1Password...${NC}"
 
-    # Use op inject to batch load all credentials in one operation
-    # This is much more efficient than multiple op read calls
-    eval $(cat <<EOF | op inject
-export AWS_S3_ENDPOINT="{{ op://Pulumi/IDrive E2 Backup/Endpoint }}"
-export AWS_ACCESS_KEY_ID="{{ op://Pulumi/IDrive E2 Backup/Access Key ID }}"
-export AWS_SECRET_ACCESS_KEY="{{ op://Pulumi/IDrive E2 Backup/Secret Access Key }}"
-export RESTIC_PASSWORD="{{ op://Pulumi/Restic Backup/password }}"
-EOF
-)
+    # Each value goes into a quoted assignment, so secret text is never parsed as shell code
+    AWS_S3_ENDPOINT="$(op read 'op://Pulumi/IDrive E2 Backup/Endpoint')"
+    AWS_ACCESS_KEY_ID="$(op read 'op://Pulumi/IDrive E2 Backup/Access Key ID')"
+    AWS_SECRET_ACCESS_KEY="$(op read 'op://Pulumi/IDrive E2 Backup/Secret Access Key')"
+    RESTIC_PASSWORD="$(op read 'op://Pulumi/Restic Backup/password')"
+    export AWS_S3_ENDPOINT AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY RESTIC_PASSWORD
 
     echo -e "${GREEN}Credentials loaded successfully!${NC}"
 }
