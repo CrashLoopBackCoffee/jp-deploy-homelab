@@ -1,5 +1,12 @@
 # Update Log
 
+## 2026-10-11
+* **Update**: Committed `services/`, tooling, docs, OKF notes, and APM skills on `feature/track-k0s-services` (`4766a01`); paperless and monitoring `Pulumi.prod.yaml` stay untracked (donor ciphertext). Linters now skip APM-managed paths and nested Claude worktrees; `alloy` was installed with brew for the format hook.
+* **Observation**: The OPNsense API key still reads Unbound settings (HTTP 200), so the trial "Services: Unbound" privilege is still granted; the key cannot read users, so removal needs the OPNsense UI.
+* **Decision**: Longhorn runs on the whole Kingston NVMe as ext4 at `/var/lib/longhorn` with one replica, installed as a Helm Release (ADR-0014).
+* **Update**: Applied `prepare-longhorn-storage.yaml` on `k0s0` (idempotent re-run: 0 changes) and Longhorn 1.13.0 through the kubernetes `prod` stack (+3 resources, 112 total, preview clean). A 1 GiB `longhorn` volume bound, attached, wrote data, and was removed; the Longhorn disk reports about 916 GiB schedulable.
+* **Observation**: The chart also created the StorageClass `longhorn-static`. The notes record the ACME email as `github@jaypee.solutions`, but `Pulumi.prod.yaml` holds `support@jaypee.solutions`; the config value is authoritative and still needs user confirmation.
+
 ## 2026-10-10
 * **Decision**: Accepted Ubuntu Server 24.04 LTS as the k0s host OS (ADR-0006). Node 1 already runs Ubuntu, installed outside this repository; hostname, address, disk layout, and SSH access are not yet recorded.
 * **Update**: Recorded Node 1 as `k0s0`, `10.10.8.1`, VLAN 10, no DNS yet. Prefix/gateway, SSH access, and disk assignment remain open.

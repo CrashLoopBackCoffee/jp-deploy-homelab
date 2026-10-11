@@ -26,3 +26,4 @@ updated: 2026-10-10
 | [[ADR-0011 - LAN-first ingress and service cleanup]] | accepted | Cloudflare for DNS only; LAN-first, later Caddy on OPNsense; removed svn, obsidian, ollama, ingress |
 | [[ADR-0012 - Local DNS records through dnsmasq on OPNsense]] | accepted | Pulumi creates local DNS records as dnsmasq host records, not Unbound overrides |
 | [[ADR-0013 - 1Password service account for Pulumi]] | accepted | Read-only service account token loaded by `.envrc` replaces per-run biometric approval |
+| [[ADR-0014 - Longhorn on a dedicated ext4 data disk]] | accepted | Longhorn on the whole Kingston NVMe (ext4, `/var/lib/longhorn`), one replica until node 2, installed as a Helm Release |

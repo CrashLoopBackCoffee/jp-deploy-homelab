@@ -2,7 +2,7 @@
 type: Runbook
 title: Operational lessons from the first k0s and Pulumi rollout
 description: Pitfalls hit while bringing up k0s0 and the Kubernetes stack, with the fix or rule for each, plus suggested standing instructions for agents.
-timestamp: 2026-10-10T20:00:00Z
+timestamp: 2026-10-11T15:00:00Z
 tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 ---
 
@@ -27,6 +27,11 @@ tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 | Pulumi | Interrupting `pulumi up` left a pending create | Wait for runs; clear leftovers with `pulumi refresh --clear-pending-creates` |
 | Pulumi | Dynamic OPNsense resources read credentials at apply time only | Previews can use placeholders; applies cannot |
 | Cloudflare | The token could read the zone but not manage tokens | Verify DNS Edit with a temporary TXT record before relying on DNS-01 |
+| Longhorn | `multipathd` is active on Ubuntu and claims Longhorn's `/dev/sdX` devices | Blacklist `^sd[a-z0-9]+` in `/etc/multipath.conf` and restart `multipathd` before installing |
+| Longhorn | The chart ships pre-upgrade, post-upgrade, and pre-delete hook jobs | Use `helm.v3.Release`, not `helm.v4.Chart` |
+| Longhorn | The default replica count of 3 leaves every volume degraded on one node | Set replica count 1 until a second node exists |
+| Pulumi | A preview failed with a timeout fetching the chart tgz from `github.com` while the apply had worked | Retry the preview; it is network flakiness, not drift |
+| OPNsense | The API key can read Unbound settings (HTTP 200) but not users (404) or system status (403), so its privileges cannot be audited through its own key | Check and edit privileges in the OPNsense UI (System > Access > Users) |
 
 # Suggested standing instructions for agents
 
@@ -35,5 +40,6 @@ tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 - Node-level changes belong in `services/k0s` (k0sctl, Ansible); cluster add-ons belong in Pulumi.
 - Pulumi must only read secrets from 1Password; writes use the interactive `op` session.
 - Dry-run or preview first; credentials are tested against the exact endpoints the code calls.
+- Warn before any step that needs a 1Password biometric approval: `direnv` loading `.envrc` once, and the first SSH use of the `k0s` key through the 1Password agent.
 
 See also [k0s0 node](./k0s0-node.md) and [Kubernetes platform stack](./kubernetes-platform-stack.md).

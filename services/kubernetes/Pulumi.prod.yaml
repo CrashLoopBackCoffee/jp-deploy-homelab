@@ -17,6 +17,13 @@ config:
       version: v4.12.1
     kubeconfig:
       ref: op://Homelab/Kubeconfig prod/password
+    longhorn:
+      # renovate: datasource=github-releases packageName=longhorn/longhorn versioning=semver
+      version: 1.13.0
+      # Mount point of the Kingston NVMe, prepared by services/k0s/ansible/prepare-longhorn-storage.yaml
+      data-path: /var/lib/longhorn
+      # Phase 1 has a single node, so a replica count above 1 would leave every volume degraded
+      replica-count: 1
     metallb:
       # renovate: datasource=github-releases packageName=metallb/metallb versioning=semver
       version: 0.15.2

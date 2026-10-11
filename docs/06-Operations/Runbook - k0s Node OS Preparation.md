@@ -47,7 +47,7 @@ Installing Ubuntu erases the selected system disk. Back up anything that must be
 
 - Ubuntu Server 24.04.4 LTS, 12 CPU threads, 31 GiB RAM, NIC `enp6s0`, `10.10.8.1/16`, gateway `10.10.0.1`. The node uses DHCP; OPNsense has a static mapping for the address.
 - OS disk: `sda`, Samsung SSD 750 (SATA), serial `S33SNWBH885401A`, 232.9 GiB. LVM layout with a 100 GiB root volume (12% used); about 130 GiB of the volume group is unallocated and can be added to root if needed.
-- `nvme0n1`: Kingston SA2000M8, serial `50026B7685019679`, 931.5 GiB. A former Proxmox install (an empty experiment) was wiped on 2026-10-10; the disk is blank and reserved for Longhorn.
+- `nvme0n1`: Kingston SA2000M8, serial `50026B7685019679`, 931.5 GiB. A former Proxmox install (an empty experiment) was wiped on 2026-10-10. Since 2026-10-11 it is the Longhorn data disk, formatted ext4 and mounted at `/var/lib/longhorn` by `services/k0s/ansible/prepare-longhorn-storage.yaml` ([[ADR-0014 - Longhorn on a dedicated ext4 data disk]]).
 - `nvme1n1`: WDC PC SN520, serial `1904D9802882`, 238.5 GiB. A leftover Windows install was wiped on 2026-10-10. It is now the single physical volume of the LVM volume group `postgres` (238.47 GiB free, no logical volumes), created by `services/k0s/ansible/prepare-postgres-storage.yaml` ([[ADR-0009 - LVM-backed local volumes for PostgreSQL]]).
 - Administration uses the `k0sctl` account from [[ADR-0007 - Dedicated k0sctl automation account]]; `open-iscsi` is installed and `iscsid.socket` is active.
 - Swap is disabled (`/swap.img` is commented out in `/etc/fstab`) because kubelet does not start with swap enabled by default.

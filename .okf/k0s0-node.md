@@ -2,7 +2,7 @@
 type: Host
 title: k0s0 (Node 1 of the bare-metal k0s cluster)
 description: Identity, access, disks, and preparation state of the first k0s node, including how it was bootstrapped.
-timestamp: 2026-10-10T20:00:00Z
+timestamp: 2026-10-11T15:00:00Z
 tags: [homelab, k0s, node, storage, ansible]
 ---
 
@@ -29,7 +29,7 @@ tags: [homelab, k0s, node, storage, ansible]
 | --- | --- | --- | --- |
 | `sda` | Samsung SSD 750, `S33SNWBH885401A` | 232.9 GiB | OS, k0s, etcd. LVM `ubuntu-vg`; root volume 100 GiB, about 130 GiB free in the VG |
 | `nvme1n1` | WDC PC SN520, `1904D9802882` | 238.5 GiB | Node-local PostgreSQL: LVM volume group `postgres`, managed by OpenEBS LVM LocalPV (`docs/08-Decisions/ADR-0009 - LVM-backed local volumes for PostgreSQL.md`) |
-| `nvme0n1` | Kingston SA2000M8, `50026B7685019679` | 931.5 GiB | Blank; reserved for Longhorn, not yet prepared |
+| `nvme0n1` | Kingston SA2000M8, `50026B7685019679` (by-id `nvme-KINGSTON_SA2000M81000G_50026B7685019679`) | 931.5 GiB | Longhorn data disk: whole-disk ext4 labelled `longhorn`, mounted at `/var/lib/longhorn` (`docs/08-Decisions/ADR-0014 - Longhorn on a dedicated ext4 data disk.md`) |
 
 Both NVMe drives previously held a throwaway Proxmox install and a Windows install; the user approved wiping them on 2026-10-10. Never address disks by `/dev/sdX` or `/dev/nvmeX`: use by-id paths and check serials.
 
@@ -38,10 +38,11 @@ Both NVMe drives previously held a throwaway Proxmox install and a Windows insta
 - Swap is disabled (`/swap.img` commented out in `/etc/fstab`), because kubelet does not start with swap by default.
 - `open-iscsi` is installed and `iscsid.socket` is active (Longhorn prerequisite).
 - The `postgres` volume group is created by `services/k0s/ansible/prepare-postgres-storage.yaml`, which resolves the disk by by-id path, asserts its serial, and uses `community.general.lvg` (idempotent, refuses disks with existing signatures).
+- The Kingston disk is prepared by `services/k0s/ansible/prepare-longhorn-storage.yaml` (applied 2026-10-11): serial assert, ext4 label `longhorn`, `fstab` mount by by-id path with `nofail`, `nfs-common`, and an `sd*` blacklist in `/etc/multipath.conf` so `multipathd` (active by default) leaves Longhorn devices alone.
 - k0s was installed by `k0sctl apply` from `services/k0s/k0sctl/cluster.yaml`; `k0sctl apply --dry-run` is a useful preview.
 
 # Open items
 
 - No DNS record for `k0s0`; tools use the IP.
-- Nodes 2 and 3 are unmapped; the Kingston disk preparation for Longhorn is not done.
+- Nodes 2 and 3 are unmapped. If `/var/lib/longhorn` is ever unmounted, Longhorn would write replicas to the root volume; check `findmnt /var/lib/longhorn` after disk incidents.
 - See [the cluster plan](./k0s-cluster-plan.md) for phases and HA gates.

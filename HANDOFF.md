@@ -1,6 +1,6 @@
 # Handoff: bare-metal k0s homelab
 
-Last session: 2026-10-10. Knowledge lives in `.okf/` (start at `.okf/index.md`) and decisions in `docs/08-Decisions/` (ADR-0004 to ADR-0013). Read `AGENTS.md` first.
+Last session: 2026-10-11. Knowledge lives in `.okf/` (start at `.okf/index.md`) and decisions in `docs/08-Decisions/` (ADR-0004 to ADR-0014). Read `AGENTS.md` first.
 
 ## Where things stand
 
@@ -8,10 +8,10 @@ Last session: 2026-10-10. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 | --- | --- |
 | Cluster | k0s `v1.36.4+k0s.1` on `k0s0` (`10.10.8.1/16`, VLAN 10), one controller+worker, no taints, API `https://10.10.8.1:6443` |
 | Node access | `k0sctl@10.10.8.1` with the agent-held `k0s` key and passwordless sudo; `alten` is for humans only |
-| Kubernetes stack | `jaypee-solutions/kubernetes/prod` applied, 109 resources, `pulumi preview --expect-no-changes` clean |
-| Add-ons | MetalLB (`10.10.88.1`-`.250`), NFS CSI, cert-manager (DNS-01 via Cloudflare), Traefik at `10.10.88.1`, CloudNativePG operator, OpenEBS LVM LocalPV |
+| Kubernetes stack | `jaypee-solutions/kubernetes/prod` applied, 112 resources, `pulumi preview --expect-no-changes` clean |
+| Add-ons | MetalLB (`10.10.88.1`-`.250`), NFS CSI, cert-manager (DNS-01 via Cloudflare), Traefik at `10.10.88.1`, CloudNativePG operator, OpenEBS LVM LocalPV, Longhorn 1.13.0 (1 replica, default StorageClass `longhorn`) |
 | TLS / DNS | Wildcard `*.4jp.de` issued by Let's Encrypt; dnsmasq record `k8s-ingress-prod.4jp.de` via the OPNsense API |
-| Storage | `postgres` VG on the WDC 256 GB NVMe (StorageClass `openebs-lvm-postgres`); Kingston 1 TB NVMe is blank and reserved for Longhorn |
+| Storage | `postgres` VG on the WDC 256 GB NVMe (StorageClass `openebs-lvm-postgres`); Kingston 1 TB NVMe is ext4 at `/var/lib/longhorn` for Longhorn (ADR-0014), no backup target yet |
 | Repo | `svn`, `obsidian`, `ollama`, `ingress` workspaces removed; `s3`, `monitoring`, `backup`, `iot`, `n8n`, `paperless` remain |
 
 ## Working in this repo
@@ -24,11 +24,11 @@ Last session: 2026-10-10. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 
 ## Open items
 
-1. Commit the repository. `services/` has never been tracked by git, so nothing there is recoverable.
-2. Remove the trial "Services: Unbound" privilege from the OPNsense API user (only "Services: Dnsmasq DNS/DHCP: Settings" is needed).
+1. Push `feature/track-k0s-services` (commit `4766a01`, plus the Longhorn changes if committed) and open the PR. `services/paperless` and `services/monitoring` `Pulumi.prod.yaml` are intentionally untracked (donor-encrypted values).
+2. Remove the trial "Services: Unbound" privilege from the OPNsense API user in the UI (System > Access > Users). On 2026-10-11 the API key still read Unbound settings (HTTP 200); the key cannot read users, so this cannot be verified through the API.
 3. Other stacks still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints); none has been previewed. Each needs a JP mapping first.
-4. ACME contact email is `github@jaypee.solutions` (the git identity); confirm or change it in `services/kubernetes/Pulumi.prod.yaml`.
-5. Longhorn: prepare the Kingston disk with Ansible, then add the chart to the Kubernetes stack. Do not add a second snapshot controller; OpenEBS already installs one.
+4. ACME contact email is `support@jaypee.solutions` in `services/kubernetes/Pulumi.prod.yaml` (earlier notes said `github@jaypee.solutions`); confirm or change it.
+5. Longhorn is running; remaining work is a backup target and schedule, then a second replica once node 2 joins (raise `replica-count` in `Pulumi.prod.yaml`). Do not add a second snapshot controller; OpenEBS already installs one.
 6. First CloudNativePG database on `openebs-lvm-postgres`, then the Paperless database migration.
 7. Backups for Longhorn and PostgreSQL; decide whether `s3` (MinIO) is kept.
 8. Nodes 2 and 3 are unmapped; Phase 1 is explicitly non-HA. The API endpoint `10.10.8.1` must become a load-balanced VIP before Phase 3 (ADR-0008).

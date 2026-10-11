@@ -46,7 +46,7 @@ k0s control-plane HA requires a stable external TCP load balancer configured as 
 
 ## Storage and PostgreSQL
 
-Planned per-node storage is a 250–500 GB SATA SSD for OS/k0s/etcd/runtime/images/logs, an optional separate 250–500 GB SSD for a node-local PostgreSQL persistent volume, and about 1 TB NVMe for Longhorn. On `k0s0` these are the Samsung SATA SSD, the WDC 256 GB NVMe, and the Kingston 1 TB NVMe; the other nodes are unverified. Longhorn is not currently deployed; a single-node volume is not redundant, and two physical hosts cannot restore host-diverse replica placement while one remains unavailable.
+Planned per-node storage is a 250–500 GB SATA SSD for OS/k0s/etcd/runtime/images/logs, an optional separate 250–500 GB SSD for a node-local PostgreSQL persistent volume, and about 1 TB NVMe for Longhorn. On `k0s0` these are the Samsung SATA SSD, the WDC 256 GB NVMe, and the Kingston 1 TB NVMe; the other nodes are unverified. Longhorn runs on `k0s0` with one replica ([[ADR-0014 - Longhorn on a dedicated ext4 data disk]]), so volumes are not redundant, and two physical hosts cannot restore host-diverse replica placement while one remains unavailable.
 
 The Kubernetes stack currently installs the CloudNativePG operator but no database cluster. Paperless uses a Bitnami PostgreSQL Helm release today. CloudNativePG is the planned replication path; migrating Paperless and selecting storage classes, replication policy, and backup/restore behavior require a separate tested change.
 

@@ -13,6 +13,12 @@ class NfsCsiDriverConfig(utils.model.LocalBaseModel):
     version: str
 
 
+class LonghornConfig(utils.model.LocalBaseModel):
+    version: str
+    data_path: str
+    replica_count: int
+
+
 class OpenEbsLvmConfig(utils.model.LocalBaseModel):
     version: str
     volume_group: str
@@ -51,6 +57,7 @@ class ComponentConfig(utils.model.LocalBaseModel):
     cloudnative_pg: CloudNativePgConfig
     csi_nfs_driver: NfsCsiDriverConfig
     kubeconfig: utils.model.OnePasswordRef
+    longhorn: LonghornConfig
     metallb: MetallbConfig
     openebs_lvm: OpenEbsLvmConfig
     traefik: TraefikConfig
