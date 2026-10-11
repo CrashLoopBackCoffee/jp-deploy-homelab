@@ -13,6 +13,7 @@ Last session: 2026-10-11. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 | TLS / DNS | Wildcard `*.4jp.de` issued by Let's Encrypt; dnsmasq record `k8s-ingress-prod.4jp.de` via the OPNsense API |
 | Storage | `postgres` VG on the WDC 256 GB NVMe (StorageClass `openebs-lvm-postgres`); Kingston 1 TB NVMe is ext4 at `/var/lib/longhorn` for Longhorn (ADR-0014), no backup target yet |
 | Repo | `svn`, `obsidian`, `ollama`, `ingress`, `s3` (MinIO) workspaces removed; `monitoring`, `backup`, `iot`, `n8n`, `paperless` remain |
+| Inventory | `k0s0` is documented in NetBox (device, `enp6s0` with MAC, `10.10.8.1/16`, platform Ubuntu 24.04), verified 2026-10-11; nodes 2 and 3 need the same records once mapped |
 
 ## Working in this repo
 
