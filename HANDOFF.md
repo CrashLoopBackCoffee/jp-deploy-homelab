@@ -12,7 +12,7 @@ Last session: 2026-10-11. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 | Add-ons | MetalLB (`10.10.88.1`-`.250`), NFS CSI, cert-manager (DNS-01 via Cloudflare), Traefik at `10.10.88.1`, CloudNativePG operator, OpenEBS LVM LocalPV, Longhorn 1.13.0 (1 replica, default StorageClass `longhorn`) |
 | TLS / DNS | Wildcard `*.4jp.de` issued by Let's Encrypt; dnsmasq record `k8s-ingress-prod.4jp.de` via the OPNsense API |
 | Storage | `postgres` VG on the WDC 256 GB NVMe (StorageClass `openebs-lvm-postgres`); Kingston 1 TB NVMe is ext4 at `/var/lib/longhorn` for Longhorn (ADR-0014), no backup target yet |
-| Repo | `svn`, `obsidian`, `ollama`, `ingress` workspaces removed; `s3`, `monitoring`, `backup`, `iot`, `n8n`, `paperless` remain |
+| Repo | `svn`, `obsidian`, `ollama`, `ingress`, `s3` (MinIO) workspaces removed; `monitoring`, `backup`, `iot`, `n8n`, `paperless` remain |
 
 ## Working in this repo
 
@@ -29,7 +29,7 @@ Last session: 2026-10-11. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 3. ACME contact email is `support@jaypee.solutions` in `services/kubernetes/Pulumi.prod.yaml` (earlier notes said `github@jaypee.solutions`); confirm or change it.
 4. Longhorn is running; remaining work is a backup target and schedule, then a second replica once node 2 joins (raise `replica-count` in `Pulumi.prod.yaml`). Do not add a second snapshot controller; OpenEBS already installs one.
 5. First CloudNativePG database on `openebs-lvm-postgres`, then the Paperless database migration.
-6. Backups for Longhorn and PostgreSQL; decide whether `s3` (MinIO) is kept.
+6. Backups for Longhorn and PostgreSQL: choose the target (MinIO is removed, ADR-0015; IDrive E2 is already used by `backup` and `paperless`, NFS is another option).
 7. Nodes 2 and 3 are unmapped; Phase 1 is explicitly non-HA. The API endpoint `10.10.8.1` must become a load-balanced VIP before Phase 3 (ADR-0008).
 8. Public exposure: static IPv4 with Caddy on OPNsense. If Caddy can run the DNS challenge, certificates stay in the cluster; otherwise TLS terminates in Caddy (ADR-0011).
 9. sshd on `k0s0` still allows password authentication globally.

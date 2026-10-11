@@ -16,7 +16,7 @@ adr: 11
 
 ## Status
 
-Accepted on 2026-10-10.
+Accepted on 2026-10-10. Keeping the `s3` workspace was reversed by [[ADR-0015 - Remove MinIO and the s3 workspace]].
 
 ## Context
 

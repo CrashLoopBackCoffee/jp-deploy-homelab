@@ -31,7 +31,7 @@ updated: 2026-10-03
 | --- | --- | --- |
 | Four Ryzen-based systems (planned allocation) | Compute / virtualization | Intended allocation: three bare-metal k0s controller+workers plus one separate Proxmox host for Home Assistant, UniFi, and other VM/LXC workloads. Typical memory is 16–32 GB per system; exact mapping and specifications remain unconfirmed. See [[ADR-0005 - Phased bare-metal k0s cluster]]. |
 | Existing Proxmox VMs | External compute | Two existing VMs remain outside this repository; their mapping to the planned Proxmox host is to be confirmed. |
-| QNAP TS-673A | Always-on anchor | Hosts Gitea, MinIO, NetBox, and Immich. QTS 5.2.8.3359 |
+| QNAP TS-673A | Always-on anchor | Hosts Gitea, NetBox, and Immich, deployed from the QNAP's own repository. QTS 5.2.8.3359 |
 
 > Existing Proxmox platform details are retained as an external reference: see [[Proxmox]].
 

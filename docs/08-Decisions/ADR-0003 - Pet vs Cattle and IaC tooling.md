@@ -45,7 +45,7 @@ The k0s cluster is bootstrapped and lifecycle-managed with k0sctl, outside Pulum
 | Tier 0 | Switches | Ansible / documented YAML | Pet — limited API, documented manually |
 | Tier 1 | k0s bootstrap | k0sctl | Pet — cluster lifecycle tool |
 | Tier 1/2 | Platform & Apps | Pulumi (Python) | Cattle — K8s workloads and services |
-| Tier 1 | State backend | MinIO on QNAP | S3-compatible, always-on anchor |
+| Tier 1 | State backend | Pulumi Cloud (`jaypee-solutions`) | MinIO was removed ([[ADR-0015 - Remove MinIO and the s3 workspace]]) |
 | Tier 1 | Git server | Gitea on QNAP | Source of truth host |
 | Tier 2 | Documentation mirror | NetBox on QNAP | Populated from IaC state via sync script |
 
@@ -60,7 +60,7 @@ The k0s cluster is bootstrapped and lifecycle-managed with k0sctl, outside Pulum
 4. Apply tier0/switches → switching topology is correct
 5. Apply tier1/proxmox → required VMs are declared and running
 6. Run tier1/k0s with k0sctl → bootstrap the cluster and publish kubeconfig to the shared 1Password item
-7. Apply tier1/platform → platform workloads (NetBox, MinIO)
+7. Apply tier1/platform → platform workloads (NetBox)
 8. Apply tier2/apps → workloads running
 9. Run NetBox sync → documentation reflects reality
 ```

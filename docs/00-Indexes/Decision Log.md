@@ -27,3 +27,4 @@ updated: 2026-10-10
 | [[ADR-0012 - Local DNS records through dnsmasq on OPNsense]] | accepted | Pulumi creates local DNS records as dnsmasq host records, not Unbound overrides |
 | [[ADR-0013 - 1Password service account for Pulumi]] | accepted | Read-only service account token loaded by `.envrc` replaces per-run biometric approval |
 | [[ADR-0014 - Longhorn on a dedicated ext4 data disk]] | accepted | Longhorn on the whole Kingston NVMe (ext4, `/var/lib/longhorn`), one replica until node 2, installed as a Helm Release |
+| [[ADR-0015 - Remove MinIO and the s3 workspace]] | accepted | MinIO is deprecated and the QNAP has its own deploy repo: removed `services/s3`, `pulumi-minio` and the legacy Mimir |

@@ -16,7 +16,7 @@ adr: 4
 
 ## Status
 
-Accepted. This supersedes the Proxmox-management and VM-based cluster-placement portions of [[ADR-0003 - Pet vs Cattle and IaC tooling]].
+Accepted. This supersedes the Proxmox-management and VM-based cluster-placement portions of [[ADR-0003 - Pet vs Cattle and IaC tooling]]. The retention of the S3/MinIO workspace was reversed by [[ADR-0015 - Remove MinIO and the s3 workspace]].
 
 ## Context
 

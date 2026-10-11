@@ -25,10 +25,6 @@ class GrafanaConfig(utils.model.LocalBaseModel):
     hostname: str | None = None
 
 
-class MimirConfig(utils.model.LocalBaseModel):
-    version: str
-
-
 class SpeedtestExporterConfig(utils.model.LocalBaseModel):
     version: str
 
@@ -41,7 +37,6 @@ class ComponentConfig(utils.model.LocalBaseModel):
     cloudflare: utils.model.CloudflareConfig | None = None
     grafana: GrafanaConfig | None = None
     grafana_cloud: GrafanaCloudConfig | None = None
-    mimir: MimirConfig | None = None
     speedtest_exporter: SpeedtestExporterConfig | None = None
 
 

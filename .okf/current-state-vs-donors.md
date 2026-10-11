@@ -26,7 +26,7 @@ The user confirmed Immich already runs on the QNAP and should remain there. The 
 
 ## Bare-metal k0s and external infrastructure scope
 
-The k0s cluster is planned for bare-metal nodes. k0sctl owns bootstrap and lifecycle outside Pulumi; the Kubernetes Pulumi stack consumes the shared kubeconfig and manages platform add-ons. Proxmox management, the UniFi Pulumi workspace, and the unused Z-Wave VM/configuration were removed. Existing Proxmox VMs and UniFi remain external and were not changed. The S3/MinIO and monitoring legacy remote-Docker workspaces are retained; the Obsidian, Ollama, Subversion, and Cloudflared-ingress workspaces were removed on 2026-10-10 (`docs/08-Decisions/ADR-0011 - LAN-first ingress and service cleanup.md`).
+The k0s cluster is planned for bare-metal nodes. k0sctl owns bootstrap and lifecycle outside Pulumi; the Kubernetes Pulumi stack consumes the shared kubeconfig and manages platform add-ons. Proxmox management, the UniFi Pulumi workspace, and the unused Z-Wave VM/configuration were removed. Existing Proxmox VMs and UniFi remain external and were not changed. The monitoring legacy remote-Docker workspace is retained; the Obsidian, Ollama, Subversion, and Cloudflared-ingress workspaces were removed on 2026-10-10 (`docs/08-Decisions/ADR-0011 - LAN-first ingress and service cleanup.md`), and the S3/MinIO workspace on 2026-10-11 (`docs/08-Decisions/ADR-0015 - Remove MinIO and the s3 workspace.md`).
 
 The target topology is now three bare-metal k0s controller+workers plus one separate Proxmox host; the rollout and HA gates are captured in the [k0s cluster plan](./k0s-cluster-plan.md). Exact host mapping, specifications, disk inventory, and addressing remain open. No hardware operation or deployment was performed.
 

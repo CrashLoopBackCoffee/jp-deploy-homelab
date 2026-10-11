@@ -15,7 +15,6 @@ members = [
     "monitoring",
     "n8n",
     "paperless",
-    "s3",
     "utils",
 ]
 
@@ -207,10 +206,8 @@ dependencies = [
     { name = "pulumi-command" },
     { name = "pulumi-docker" },
     { name = "pulumi-kubernetes" },
-    { name = "pulumi-minio" },
     { name = "pulumi-onepassword" },
     { name = "pulumi-random" },
-    { name = "s3" },
 ]
 
 [package.dev-dependencies]
@@ -237,10 +234,8 @@ requires-dist = [
     { name = "pulumi-command", specifier = "==1.1.3" },
     { name = "pulumi-docker", specifier = "==4.9.0" },
     { name = "pulumi-kubernetes", specifier = "==4.23.0" },
-    { name = "pulumi-minio", specifier = "==0.16.6" },
     { name = "pulumi-onepassword", specifier = "==1.1.3" },
     { name = "pulumi-random", specifier = "==4.18.4" },
-    { name = "s3", editable = "services/s3" },
 ]
 
 [package.metadata.requires-dev]
@@ -553,20 +548,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pulumi-minio"
-version = "0.16.6"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "parver" },
-    { name = "pulumi" },
-    { name = "semver" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/4e/24/59a1d4dd5b68e58e20895e8dfb39bce8d54990f2c7cf6a7829a38935539c/pulumi_minio-0.16.6.tar.gz", hash = "sha256:64b5b9928d59a3e4c044bb1e504d2b5692180283b07da77b36c9ef0a1d29829e", size = 25378, upload-time = "2025-10-13T17:25:07.979Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/2e/6408a4d5f990b21f4bc1fcf042f42cad031f81a424d15615c5f086a99c47/pulumi_minio-0.16.6-py3-none-any.whl", hash = "sha256:00810be48c999aac25c8cee698ba82c15dcf91fe50d3fbc3706727b4dc8c2253", size = 50138, upload-time = "2025-10-13T17:25:06.283Z" },
-]
-
-[[package]]
 name = "pulumi-onepassword"
 version = "1.1.3"
 source = { registry = "https://pypi.org/simple" }
@@ -774,17 +755,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d0/a8/c688ef7e29983976820d18710f955751d9f4d4eb69df658af3d006e2ba3e/ruff-0.15.4-py3-none-win_amd64.whl", hash = "sha256:04196ad44f0df220c2ece5b0e959c2f37c777375ec744397d21d15b50a75264f", size = 11651048, upload-time = "2026-02-26T20:04:17.191Z" },
     { url = "https://files.pythonhosted.org/packages/3e/0a/9e1be9035b37448ce2e68c978f0591da94389ade5a5abafa4cf99985d1b2/ruff-0.15.4-py3-none-win_arm64.whl", hash = "sha256:60d5177e8cfc70e51b9c5fad936c634872a74209f934c1e79107d11787ad5453", size = 10966776, upload-time = "2026-02-26T20:03:56.908Z" },
 ]
-
-[[package]]
-name = "s3"
-version = "0.1.0"
-source = { editable = "services/s3" }
-dependencies = [
-    { name = "utils" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "utils", editable = "utils" }]
 
 [[package]]
 name = "semver"

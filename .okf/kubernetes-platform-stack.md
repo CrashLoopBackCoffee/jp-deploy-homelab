@@ -34,6 +34,6 @@ Local records are dnsmasq host records created through the OPNsense API at `http
 
 # Not done yet
 
-- Other stacks (paperless, n8n, monitoring, s3, backup, iot) still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints) and have not been previewed.
-- No CloudNativePG cluster exists; Longhorn has no backup target yet; public exposure through Caddy on OPNsense is future work.
+- Other stacks (paperless, n8n, monitoring, backup, iot) still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints) and have not been previewed.
+- No CloudNativePG cluster exists; Longhorn has no backup target yet (MinIO was removed, `docs/08-Decisions/ADR-0015 - Remove MinIO and the s3 workspace.md`); public exposure through Caddy on OPNsense is future work.
 - Related: [k0s0 node](./k0s0-node.md), [cluster plan](./k0s-cluster-plan.md), [operational lessons](./operational-lessons.md).
