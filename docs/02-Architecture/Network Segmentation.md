@@ -16,7 +16,7 @@ updated: 2026-03-20
 
 - VLAN-based segmentation is in use.
 - At least one VLAN contains a Fritz!Box for VoIP and legacy WLAN clients.
-- Proxmox host networking and Linux bridge VLAN handling are operationally relevant.
+- Existing Proxmox host networking and Linux bridge VLAN handling remain relevant to external systems; this repository's k0s cluster is planned for bare-metal nodes.
 
 > Scale and HA assumptions: see [[Environment Facts]]
 
@@ -38,7 +38,7 @@ SL-SWTGW2C48NS (Sodola) ← Core
     ├── JGS524Ev2 (Netgear) ← fragmented VLANs, migration source
     │           └── trunk → GS108Ev3 (1st floor)
     │                   ├── VLAN 1   legacy (FRITZbox + legacy clients)
-    │                   ├── VLAN 10  CoRE → Proxmox
+    │                   ├── VLAN 10   CoRE → external Proxmox / QNAP; bare-metal k0s nodes (k0s0)
     │                   ├── VLAN 20  PeRS
     │                   ├── VLAN 30  HoME
     │                   └── VLAN 40  GaST

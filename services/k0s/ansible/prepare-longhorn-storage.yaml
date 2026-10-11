@@ -1,0 +1,76 @@
+- name: Prepare the Longhorn data disk and host prerequisites on k0s nodes
+  hosts: k0s_nodes
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install Longhorn host prerequisites
+      ansible.builtin.apt:
+        name:
+          - nfs-common  # RWX volumes and NFS backup targets
+          - e2fsprogs
+        state: present
+
+    - name: Read the serial of the disk selected by stable identity
+      ansible.builtin.command:
+        argv: [lsblk, --nodeps, --noheadings, --output, SERIAL, "/dev/disk/by-id/{{ longhorn_disk_by_id }}"]
+      register: longhorn_disk_serial_found
+      changed_when: false
+      check_mode: false
+
+    - name: Refuse to touch a disk whose serial does not match the inventory
+      ansible.builtin.assert:
+        that: longhorn_disk_serial_found.stdout | trim == longhorn_disk_serial
+        fail_msg: "/dev/disk/by-id/{{ longhorn_disk_by_id }} has serial '{{ longhorn_disk_serial_found.stdout | trim }}', expected '{{ longhorn_disk_serial }}'"
+
+    - name: Resolve the kernel device name
+      ansible.builtin.command:
+        argv: [readlink, -f, "/dev/disk/by-id/{{ longhorn_disk_by_id }}"]
+      register: longhorn_disk_device
+      changed_when: false
+      check_mode: false
+
+    # Without force, the module fails on a disk that already carries a different filesystem
+    # or signature, so this never overwrites existing data.
+    - name: Create the filesystem on the whole disk
+      community.general.filesystem:
+        dev: "{{ longhorn_disk_device.stdout | trim }}"
+        fstype: ext4
+        opts: -L longhorn
+
+    - name: Mount the disk at the Longhorn data path
+      ansible.posix.mount:
+        path: "{{ longhorn_data_path }}"
+        src: "/dev/disk/by-id/{{ longhorn_disk_by_id }}"
+        fstype: ext4
+        opts: defaults,nofail
+        state: mounted
+
+    # multipathd claims the block devices Longhorn exposes as /dev/sdX and breaks volume mounts.
+    - name: Keep multipathd away from sd* devices
+      ansible.builtin.blockinfile:
+        path: /etc/multipath.conf
+        marker: "# {mark} ANSIBLE MANAGED: Longhorn"
+        block: |
+          blacklist {
+              devnode "^sd[a-z0-9]+"
+          }
+      notify: Restart multipathd
+
+    - name: Report the data path
+      ansible.builtin.command:
+        argv: [findmnt, --noheadings, --output, "SOURCE,FSTYPE,SIZE,AVAIL", "{{ longhorn_data_path }}"]
+      register: longhorn_mount_report
+      changed_when: false
+      check_mode: false
+      when: not ansible_check_mode
+
+    - name: Show the data path
+      ansible.builtin.debug:
+        msg: "{{ longhorn_mount_report.stdout | trim }}"
+      when: not ansible_check_mode
+
+  handlers:
+    - name: Restart multipathd
+      ansible.builtin.service:
+        name: multipathd
+        state: restarted

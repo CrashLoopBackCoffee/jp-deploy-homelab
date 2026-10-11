@@ -49,6 +49,7 @@
     {
       matchPackageNames: [
         'grafana/grafana',
+        'openebs/lvm-localpv',
       ],
       extractVersion: '^v?(?<version>.*)$',
     },

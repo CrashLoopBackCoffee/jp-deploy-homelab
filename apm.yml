@@ -1,0 +1,18 @@
+name: jp-deploy-homelab
+version: 1.0.0
+description: APM project for jp-deploy-homelab
+author: Jan-Peter Alten
+# Which agent platforms to deploy to (uncomment to pin):
+# targets:
+#   - copilot
+#   - claude
+
+dependencies:
+  apm:
+    - jaypee-solutions/apm-dev-workflow
+    - jaypee-solutions/apm-homelab
+    - jaypee-solutions/apm-okf
+    - jaypee-solutions/apm-python
+  mcp: []
+includes: auto
+scripts: {}

@@ -1,0 +1,25 @@
+apiVersion: k0sctl.k0sproject.io/v1beta1
+kind: Cluster
+metadata:
+  name: k0s-prod
+spec:
+  hosts:
+    - role: controller+worker
+      noTaints: true
+      ssh:
+        address: 10.10.8.1
+        user: k0sctl
+        port: 22
+  k0s:
+    # renovate: datasource=github-releases packageName=k0sproject/k0s versioning=semver
+    version: v1.36.4+k0s.1
+    config:
+      apiVersion: k0s.k0sproject.io/v1beta1
+      kind: ClusterConfig
+      spec:
+        api:
+          externalAddress: 10.10.8.1
+          sans:
+            - 10.10.8.1
+        storage:
+          type: etcd

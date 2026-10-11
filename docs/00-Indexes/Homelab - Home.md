@@ -5,7 +5,7 @@ tags:
 type: index
 status: active
 created: 2026-03-20
-updated: 2026-03-20
+updated: 2026-10-03
 ---
 
 # Homelab - Home
@@ -41,7 +41,7 @@ Central entry point for the Homelab knowledge base.
 - [[dnsmasq]]
 - [[Unbound]]
 - [[AdGuard]]
-- [[Proxmox]]
+- [[Proxmox]] (external)
 - [[k0s]]
 - [[FritzBox]]
 
@@ -55,7 +55,10 @@ Central entry point for the Homelab knowledge base.
 
 - [[ADR-0001 - Use dnsmasq instead of Kea on OPNsense]]
 - [[ADR-0002 - Local domain and addressing baseline]]
-- [[ADR-0003 - Pet vs Cattle and IaC tooling]]
+- [[ADR-0003 - Pet vs Cattle and IaC tooling]] (superseded)
+- [[ADR-0004 - Bare-metal k0s and external infrastructure scope]]
+- [[ADR-0005 - Phased bare-metal k0s cluster]]
+- [[ADR-0006 - Ubuntu Server 24.04 LTS for k0s nodes]] (proposed)
 
 ## Durable knowledge
 

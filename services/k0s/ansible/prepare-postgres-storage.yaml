@@ -1,0 +1,48 @@
+- name: Prepare the PostgreSQL LVM volume group on k0s nodes
+  hosts: k0s_nodes
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install LVM tools
+      ansible.builtin.apt:
+        name: lvm2
+        state: present
+
+    - name: Read the serial of the disk selected by stable identity
+      ansible.builtin.command:
+        argv: [lsblk, --nodeps, --noheadings, --output, SERIAL, "/dev/disk/by-id/{{ postgres_disk_by_id }}"]
+      register: postgres_disk_serial_found
+      changed_when: false
+      check_mode: false
+
+    - name: Refuse to touch a disk whose serial does not match the inventory
+      ansible.builtin.assert:
+        that: postgres_disk_serial_found.stdout | trim == postgres_disk_serial
+        fail_msg: "/dev/disk/by-id/{{ postgres_disk_by_id }} has serial '{{ postgres_disk_serial_found.stdout | trim }}', expected '{{ postgres_disk_serial }}'"
+
+    - name: Resolve the kernel device name
+      ansible.builtin.command:
+        argv: [readlink, -f, "/dev/disk/by-id/{{ postgres_disk_by_id }}"]
+      register: postgres_disk_device
+      changed_when: false
+      check_mode: false
+
+    # pvcreate fails on a disk that still carries a filesystem or partition signature,
+    # so this never overwrites existing data.
+    - name: Create the PostgreSQL volume group on the whole disk
+      community.general.lvg:
+        vg: "{{ postgres_vg }}"
+        pvs: "{{ postgres_disk_device.stdout | trim }}"
+
+    - name: Report the volume group
+      ansible.builtin.command:
+        argv: [vgs, --noheadings, --units, g, --options, "vg_name,pv_name,vg_size,vg_free", "{{ postgres_vg }}"]
+      register: postgres_vg_report
+      changed_when: false
+      check_mode: false
+      when: not ansible_check_mode
+
+    - name: Show the volume group
+      ansible.builtin.debug:
+        msg: "{{ postgres_vg_report.stdout | trim }}"
+      when: not ansible_check_mode

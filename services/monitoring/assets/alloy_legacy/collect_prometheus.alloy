@@ -1,0 +1,21 @@
+//===========================================================
+// Scrape jobs
+//===========================================================
+
+prometheus.scrape "default" {
+	targets = array.concat(
+		discovery.relabel.unix.output,
+	)
+
+	scrape_interval = "15s"
+	forward_to      = [otelcol.receiver.prometheus.default.receiver]
+}
+
+//===========================================================
+// Convert to Otel
+//===========================================================
+otelcol.receiver.prometheus "default" {
+	output {
+		metrics = [otelcol.processor.resourcedetection.default.input]
+	}
+}

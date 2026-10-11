@@ -1,0 +1,38 @@
+config:
+  kubernetes:config:
+    cert-manager:
+      # renovate: datasource=github-releases packageName=cert-manager/cert-manager versioning=semver
+      version: v1.19.1
+      use-staging: false
+      acme-email: support@jaypee.solutions
+    cloudnative-pg:
+      # renovate: datasource=github-releases packageName=cloudnative-pg/charts versioning=semver
+      version: 0.26.0
+    cloudflare:
+      api-token:
+        ref: op://Homelab/Cloudflare [4jp.de]/password
+      zone: 4jp.de
+    csi-nfs-driver:
+      # renovate: datasource=github-releases packageName=kubernetes-csi/csi-driver-nfs versioning=semver
+      version: v4.12.1
+    kubeconfig:
+      ref: op://Homelab/Kubeconfig prod/password
+    longhorn:
+      # renovate: datasource=github-releases packageName=longhorn/longhorn versioning=semver
+      version: 1.13.0
+      # Mount point of the Kingston NVMe, prepared by services/k0s/ansible/prepare-longhorn-storage.yaml
+      data-path: /var/lib/longhorn
+      # Phase 1 has a single node, so a replica count above 1 would leave every volume degraded
+      replica-count: 1
+    metallb:
+      # renovate: datasource=github-releases packageName=metallb/metallb versioning=semver
+      version: 0.15.2
+      start: 10.10.88.1
+      end: 10.10.88.250
+    openebs-lvm:
+      # renovate: datasource=github-releases packageName=openebs/lvm-localpv versioning=semver
+      version: 1.10.1
+      volume-group: postgres
+    traefik:
+      # renovate: datasource=github-releases packageName=traefik/traefik versioning=semver
+      version: v34.3.0

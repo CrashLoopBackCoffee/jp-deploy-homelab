@@ -6,7 +6,7 @@ tags:
 type: foundation
 status: active
 created: 2026-03-20
-updated: 2026-03-20
+updated: 2026-10-03
 ---
 
 # Hardware Inventory
@@ -29,10 +29,21 @@ updated: 2026-03-20
 
 | Device | Role | Notes |
 | --- | --- | --- |
-| Proxmox node | Compute (single → 3-node cluster) | IaC must be cluster-aware from day one |
-| QNAP TS-673A | Always-on anchor | Hosts Gitea, MinIO, NetBox. QTS 5.2.8.3359 |
+| Four Ryzen-based systems (planned allocation) | Compute / virtualization | Intended allocation: three bare-metal k0s controller+workers plus one separate Proxmox host for Home Assistant, UniFi, and other VM/LXC workloads. Typical memory is 16–32 GB per system; exact mapping and specifications remain unconfirmed. See [[ADR-0005 - Phased bare-metal k0s cluster]]. |
+| Existing Proxmox VMs | External compute | Two existing VMs remain outside this repository; their mapping to the planned Proxmox host is to be confirmed. |
+| QNAP TS-673A | Always-on anchor | Hosts Gitea, NetBox, and Immich, deployed from the QNAP's own repository. QTS 5.2.8.3359 |
 
-> Proxmox platform details: see [[Proxmox]]
+> Existing Proxmox platform details are retained as an external reference: see [[Proxmox]].
+
+## Planned k0s Node Storage (Unverified)
+
+| Device | Intended use | Target per node |
+| --- | --- | --- |
+| SATA SSD | OS, k0s/etcd, container runtime, images, and logs | 250–500 GB |
+| Separate SSD (SATA or NVMe), if available | PostgreSQL local persistent volume | 250–500 GB |
+| NVMe SSD | Dedicated Longhorn data disk | About 1 TB |
+
+These are planning targets, not a verified inventory or disk assignment. Confirm the devices, health, and per-node availability before implementation. Each k0s node is planned as both controller and worker; the Proxmox host is not a fourth controller initially. A k0s worker VM on Proxmox is optional later.
 
 ## Candidate Switches
 

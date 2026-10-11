@@ -1,0 +1,9 @@
+name: kubernetes
+pulumi:disable-default-providers:
+  - kubernetes
+runtime:
+  name: python
+  options:
+    toolchain: uv
+    virtualenv: ../../.venv
+description: Kubernetes add-ons for the k0s cluster

@@ -5,7 +5,7 @@ tags:
 type: backlog
 status: active
 created: 2026-03-20
-updated: 2026-03-20
+updated: 2026-10-03
 ---
 
 # Open Questions
@@ -30,7 +30,11 @@ updated: 2026-03-20
 
 ## Platform
 
-- Proxmox cluster node count and naming convention
+- Map the four Ryzen systems to Nodes 1–3 and the separate Proxmox host; confirm per-host CPU, RAM, NICs, OS, and management access.
+- Map Nodes 2 and 3, their disks, and node addresses. For Phase 3, choose a fault-tolerant TCP load balancer and VIP to replace the Phase 1 API endpoint `10.10.8.1`.
+- Configure Longhorn backups (target and schedule) and storage-class policy beyond the single-replica default (see [[ADR-0014 - Longhorn on a dedicated ext4 data disk]]), including coexistence with the NFS CSI driver; define per-host scheduling for CloudNativePG on the `openebs-lvm-postgres` class.
+- Design and test Paperless migration from the current Bitnami PostgreSQL release to CloudNativePG, including distinct-host placement, replication policy, and off-node backup/restore retention.
+- See [[ADR-0005 - Phased bare-metal k0s cluster]] for the accepted staged topology and remaining implementation prerequisites.
 - NetBox sync tooling — `netbox-sync` or custom Python script?
 
 ## Documentation Gaps
@@ -38,8 +42,7 @@ updated: 2026-03-20
 - Full hardware inventory with purchase status
 - Service inventory under `4jp.de`
 - DNS zone and naming conventions
-- Proxmox node inventory
-- k0s cluster topology
+- Document and run the three-node etcd, Longhorn, PostgreSQL, and node-failure recovery acceptance tests before declaring control-plane HA.
 - Per-service operations runbooks
 
 ## Operations Backlog
