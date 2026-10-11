@@ -40,6 +40,7 @@ Both NVMe drives previously held a throwaway Proxmox install and a Windows insta
 - The `postgres` volume group is created by `services/k0s/ansible/prepare-postgres-storage.yaml`, which resolves the disk by by-id path, asserts its serial, and uses `community.general.lvg` (idempotent, refuses disks with existing signatures).
 - The Kingston disk is prepared by `services/k0s/ansible/prepare-longhorn-storage.yaml` (applied 2026-10-11): serial assert, ext4 label `longhorn`, `fstab` mount by by-id path with `nofail`, `nfs-common`, and an `sd*` blacklist in `/etc/multipath.conf` so `multipathd` (active by default) leaves Longhorn devices alone.
 - k0s was installed by `k0sctl apply` from `services/k0s/k0sctl/cluster.yaml`; `k0sctl apply --dry-run` is a useful preview.
+- NetBox documents `k0s0` since 2026-10-11 (device, `enp6s0` with MAC, primary IPv4 `10.10.8.1/16`, platform Ubuntu Server 24.04 LTS). Verified read-only with `nbcli`'s Python and `pynetbox` (NetBox 4.2): one device, one IP record assigned to the interface, prefix `10.10.0.0/16` linked to VLAN 10. The MAC is a separate MAC object and not yet set as the interface's primary MAC.
 
 # Open items
 
