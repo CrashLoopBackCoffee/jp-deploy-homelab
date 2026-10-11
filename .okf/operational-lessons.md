@@ -31,7 +31,7 @@ tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 | Longhorn | The chart ships pre-upgrade, post-upgrade, and pre-delete hook jobs | Use `helm.v3.Release`, not `helm.v4.Chart` |
 | Longhorn | The default replica count of 3 leaves every volume degraded on one node | Set replica count 1 until a second node exists |
 | Pulumi | A preview failed with a timeout fetching the chart tgz from `github.com` while the apply had worked | Retry the preview; it is network flakiness, not drift |
-| OPNsense | The API key can read Unbound settings (HTTP 200) but not users (404) or system status (403), so its privileges cannot be audited through its own key | Check and edit privileges in the OPNsense UI (System > Access > Users) |
+| OPNsense | The API key cannot list users (404), so its privileges cannot be audited through its own key; after a first UI removal the key still answered 200 on Unbound, and only a later change produced 403 | Verify privilege changes by probing the exact endpoints (200 vs 403), not by trusting the UI state alone |
 
 # Suggested standing instructions for agents
 
