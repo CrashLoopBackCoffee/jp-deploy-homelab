@@ -179,3 +179,13 @@ cython_debug/
 # Temporary downloads (from GitHub Actions setup)
 alloy-boringcrypto-linux-amd64.zip
 alloy-boringcrypto-linux-amd64
+
+
+# APM dependencies
+apm_modules/
+
+# direnv-generated files, including the cluster kubeconfig
+.direnv/
+
+# Nested Claude Code worktrees
+docs/.claude/

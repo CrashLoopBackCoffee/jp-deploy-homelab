@@ -1,0 +1,12 @@
+all:
+  children:
+    k0s_nodes:
+      vars:
+        ansible_user: k0sctl
+        postgres_vg: postgres
+      hosts:
+        k0s0:
+          ansible_host: 10.10.8.1
+          # WDC PC SN520 256 GB NVMe, dedicated to node-local PostgreSQL volumes
+          postgres_disk_by_id: nvme-WDC_PC_SN520_SDAPMUW-256G-1101_1904D9802882
+          postgres_disk_serial: 1904D9802882

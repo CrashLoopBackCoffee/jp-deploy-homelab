@@ -4,12 +4,14 @@ tags:
   - platform
   - proxmox
 type: platform
-status: active
+status: external
 created: 2026-03-20
-updated: 2026-03-20
+updated: 2026-10-03
 ---
 
 # Proxmox Platform
+
+> These findings apply to existing external Proxmox systems. Proxmox management is no longer part of this repository.
 
 ## Relevant findings
 

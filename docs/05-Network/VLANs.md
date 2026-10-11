@@ -6,7 +6,7 @@ tags:
 type: network
 status: active
 created: 2026-03-20
-updated: 2026-03-20
+updated: 2026-10-03
 ---
 
 # VLANs
@@ -24,15 +24,15 @@ VLAN-based segmentation with OPNsense as the L3 boundary. Core routing and polic
 ```yaml
 vlans:
   - id: 1
-    name: legacy
-    subnet: null
-    notes: Drain and decommission during migration
+    name: management
+    subnet: 10.1.0.0/16
+    notes: Switches
 
   - id: 10
     name: CoRE
     description: Servers and infrastructure
     subnet: 10.10.0.0/16
-    notes: Proxmox, QNAP, network devices
+    notes: Existing external Proxmox, QNAP; bare-metal k0s nodes (k0s0 at 10.10.8.1)
 
   - id: 20
     name: PeRS
@@ -65,6 +65,8 @@ vlans:
 10.10.10.0/24  → VMs — DHCP pool
 10.10.20.0/24  → QNAP + storage
 ```
+
+The proposed Proxmox and VM subnets remain unconfirmed and external to this repository. The first bare-metal k0s node, `k0s0`, uses `10.10.8.1/16` on VLAN 10; its gateway and the sub-range reserved for k0s nodes are not yet recorded, and there is no DNS record for it.
 
 ## Migration Plan
 

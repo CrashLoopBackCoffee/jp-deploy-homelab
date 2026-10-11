@@ -3,6 +3,11 @@ ignore: |
   .git
   .venv
   services/monitoring/assets/snmp/snmp.yml
+  apm.lock.yaml
+  apm_modules
+  .agents
+  .claude
+  docs/.claude
 
 rules:
   document-start:

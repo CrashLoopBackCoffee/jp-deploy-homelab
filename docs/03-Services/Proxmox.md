@@ -4,12 +4,14 @@ tags:
   - service
   - proxmox
 type: service
-status: active
+status: external
 created: 2026-03-20
-updated: 2026-03-20
+updated: 2026-10-03
 ---
 
 # Proxmox
+
+> This note covers existing external Proxmox systems only. This repository no longer manages Proxmox or its VMs.
 
 ## Purpose
 

@@ -12,6 +12,8 @@ updated: 2026-03-20
 
 # Runbook - LXC Network Debugging
 
+> This runbook covers existing external Proxmox systems; this repository does not manage them.
+
 ## Goal
 
 Diagnose container connectivity and DHCP failures on VLAN-backed bridges.

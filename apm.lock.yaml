@@ -1,0 +1,819 @@
+lockfile_version: '1'
+apm_version: 0.32.0
+dependencies:
+- repo_url: jaypee-solutions/apm-dev-workflow
+  name: dev-workflow
+  host: github.com
+  resolved_commit: b7390b9dbaefbd95a08dd5ed15995a11cffe9795
+  version: 0.1.0
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/github-pr-workflow
+  - .agents/skills/github-pr-workflow/SKILL.md
+  - .agents/skills/github-pr-workflow/references/github-cli-playbook.md
+  - .agents/skills/github-pr-workflow/scripts/pr-thread-summary.sh
+  - .agents/skills/github-pr-workflow/scripts/reply-and-resolve-threads.sh
+  - .agents/skills/orca-cli
+  - .agents/skills/orca-cli/SKILL.md
+  - .agents/skills/worktrunk
+  - .agents/skills/worktrunk/SKILL.md
+  - .agents/skills/worktrunk/references/config-and-hooks.md
+  - .claude/skills/github-pr-workflow
+  - .claude/skills/github-pr-workflow/SKILL.md
+  - .claude/skills/github-pr-workflow/references/github-cli-playbook.md
+  - .claude/skills/github-pr-workflow/scripts/pr-thread-summary.sh
+  - .claude/skills/github-pr-workflow/scripts/reply-and-resolve-threads.sh
+  - .claude/skills/orca-cli
+  - .claude/skills/orca-cli/SKILL.md
+  - .claude/skills/worktrunk
+  - .claude/skills/worktrunk/SKILL.md
+  - .claude/skills/worktrunk/references/config-and-hooks.md
+  deployed_file_hashes:
+    .agents/skills/github-pr-workflow/SKILL.md: sha256:9c047f21b7e25ef6a0f4e9bf6dcd4dfc0eb7cc02c43fb4d614b5484518906a3f
+    .agents/skills/github-pr-workflow/references/github-cli-playbook.md: sha256:c5419890b9b6175ab8faa8aea20907c560c002aeb97c9a8c25892b060b796961
+    .agents/skills/github-pr-workflow/scripts/pr-thread-summary.sh: sha256:3146dc79f3d804e7fd9e6be2411c570d45a90589a94373fd18b1f260a50d87e6
+    .agents/skills/github-pr-workflow/scripts/reply-and-resolve-threads.sh: sha256:f7eb92a7cd2bf08fead623b167d47274664542988e2140a1274d518d195712e0
+    .agents/skills/orca-cli/SKILL.md: sha256:cdd5d9c8a95837a6cc24d68b150a117684afe9bbb2d763de2cc7fba1da1ed163
+    .agents/skills/worktrunk/SKILL.md: sha256:102e79074d108083db76e49b6c2ae0039afb083cc81c756c5453aebf5eb71abc
+    .agents/skills/worktrunk/references/config-and-hooks.md: sha256:f71ae4f39fa6d6901b6bbc4c65b0f0d1b67f0c3c2534104b21d60bf41b6bfe06
+    .claude/skills/github-pr-workflow/SKILL.md: sha256:9c047f21b7e25ef6a0f4e9bf6dcd4dfc0eb7cc02c43fb4d614b5484518906a3f
+    .claude/skills/github-pr-workflow/references/github-cli-playbook.md: sha256:c5419890b9b6175ab8faa8aea20907c560c002aeb97c9a8c25892b060b796961
+    .claude/skills/github-pr-workflow/scripts/pr-thread-summary.sh: sha256:3146dc79f3d804e7fd9e6be2411c570d45a90589a94373fd18b1f260a50d87e6
+    .claude/skills/github-pr-workflow/scripts/reply-and-resolve-threads.sh: sha256:f7eb92a7cd2bf08fead623b167d47274664542988e2140a1274d518d195712e0
+    .claude/skills/orca-cli/SKILL.md: sha256:cdd5d9c8a95837a6cc24d68b150a117684afe9bbb2d763de2cc7fba1da1ed163
+    .claude/skills/worktrunk/SKILL.md: sha256:102e79074d108083db76e49b6c2ae0039afb083cc81c756c5453aebf5eb71abc
+    .claude/skills/worktrunk/references/config-and-hooks.md: sha256:f71ae4f39fa6d6901b6bbc4c65b0f0d1b67f0c3c2534104b21d60bf41b6bfe06
+  content_hash: sha256:14acf242e8c66e210e6d64374f2b943abd6a3fb0a205a39c12b90a53499744f0
+  declared_license: UNLICENSED
+- repo_url: jaypee-solutions/apm-homelab
+  name: homelab
+  host: github.com
+  resolved_commit: 4b0864e598c0435e16ece389b010ee7079a2e526
+  version: 0.1.0
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/homelab-ops
+  - .agents/skills/homelab-ops/SKILL.md
+  - .agents/skills/homelab-ops/references/baseline-setup.md
+  - .agents/skills/homelab-ops/references/netbox-operations.md
+  - .agents/skills/homelab-ops/references/ops-checklists.md
+  - .agents/skills/homelab-ops/references/personal-preferences.md
+  - .agents/skills/netbox-ops
+  - .agents/skills/netbox-ops/SKILL.md
+  - .agents/skills/netbox-ops/references/netbox-operations.md
+  - .agents/skills/netbox-ops/references/review-against-netbox.md
+  - .claude/skills/homelab-ops
+  - .claude/skills/homelab-ops/SKILL.md
+  - .claude/skills/homelab-ops/references/baseline-setup.md
+  - .claude/skills/homelab-ops/references/netbox-operations.md
+  - .claude/skills/homelab-ops/references/ops-checklists.md
+  - .claude/skills/homelab-ops/references/personal-preferences.md
+  - .claude/skills/netbox-ops
+  - .claude/skills/netbox-ops/SKILL.md
+  - .claude/skills/netbox-ops/references/netbox-operations.md
+  - .claude/skills/netbox-ops/references/review-against-netbox.md
+  deployed_file_hashes:
+    .agents/skills/homelab-ops/SKILL.md: sha256:e03ea45c0e6624989a802a61fbd2757a1c7d7fb3ab01df82b43900b3b332d8a6
+    .agents/skills/homelab-ops/references/baseline-setup.md: sha256:00d29774e3825ec7b2c742ea8998dd86800cf7f410fe1f584a27ce07fabb5c8e
+    .agents/skills/homelab-ops/references/netbox-operations.md: sha256:5af694ff335a3f2efe2e107787c6321b18a8f3320b57614c9e58ee19315e0d65
+    .agents/skills/homelab-ops/references/ops-checklists.md: sha256:60d0f17eb2f2985982d61f6e626f32c5e101a1a700b4ccc3f92823eb8f3fb382
+    .agents/skills/homelab-ops/references/personal-preferences.md: sha256:d837e8e634b95c98582d4af19a62ef12b8c88eb82648891879e926a5521f7ff4
+    .agents/skills/netbox-ops/SKILL.md: sha256:ff2c8d83f3357b5c266f9fe286ced42b8eba0247a600a8db40bbb6733dfaca8c
+    .agents/skills/netbox-ops/references/netbox-operations.md: sha256:ac740713772fb753baa6ad0054b6b46496f23ab2efa25046b5b8044790d4f992
+    .agents/skills/netbox-ops/references/review-against-netbox.md: sha256:decb12fdaac35f928402efb01639e741ac4f0c1170d65fa1c8cd4a2ab9f211e0
+    .claude/skills/homelab-ops/SKILL.md: sha256:e03ea45c0e6624989a802a61fbd2757a1c7d7fb3ab01df82b43900b3b332d8a6
+    .claude/skills/homelab-ops/references/baseline-setup.md: sha256:00d29774e3825ec7b2c742ea8998dd86800cf7f410fe1f584a27ce07fabb5c8e
+    .claude/skills/homelab-ops/references/netbox-operations.md: sha256:5af694ff335a3f2efe2e107787c6321b18a8f3320b57614c9e58ee19315e0d65
+    .claude/skills/homelab-ops/references/ops-checklists.md: sha256:60d0f17eb2f2985982d61f6e626f32c5e101a1a700b4ccc3f92823eb8f3fb382
+    .claude/skills/homelab-ops/references/personal-preferences.md: sha256:d837e8e634b95c98582d4af19a62ef12b8c88eb82648891879e926a5521f7ff4
+    .claude/skills/netbox-ops/SKILL.md: sha256:ff2c8d83f3357b5c266f9fe286ced42b8eba0247a600a8db40bbb6733dfaca8c
+    .claude/skills/netbox-ops/references/netbox-operations.md: sha256:ac740713772fb753baa6ad0054b6b46496f23ab2efa25046b5b8044790d4f992
+    .claude/skills/netbox-ops/references/review-against-netbox.md: sha256:decb12fdaac35f928402efb01639e741ac4f0c1170d65fa1c8cd4a2ab9f211e0
+  content_hash: sha256:30fa0b6c7d4a9be2bd3eb4d8ae735580926bc47934b9df15df3ccc784927034f
+  declared_license: UNLICENSED
+- repo_url: jaypee-solutions/apm-okf
+  name: okf
+  host: github.com
+  resolved_commit: d9e766959fdb298fdb27fe073611918c267c77e7
+  version: 0.1.0
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/okf
+  - .agents/skills/okf-validate
+  - .agents/skills/okf-validate/SKILL.md
+  - .agents/skills/okf-validate/scripts/okf_validate.py
+  - .agents/skills/okf-visualize
+  - .agents/skills/okf-visualize/SKILL.md
+  - .agents/skills/okf-visualize/scripts/okf_visualize.py
+  - .agents/skills/okf/SKILL.md
+  - .agents/skills/okf/reference/APACHE-2.0.txt
+  - .agents/skills/okf/reference/SPEC.md
+  - .agents/skills/okf/templates/concept.md
+  - .agents/skills/okf/templates/index.md
+  - .agents/skills/okf/templates/log.md
+  deployed_file_hashes:
+    .agents/skills/okf-validate/SKILL.md: sha256:5921a3f429152699f3bd51574598a542c5a3b5f689a2185c8e27919510d51bb4
+    .agents/skills/okf-validate/scripts/okf_validate.py: sha256:8320a52e7cba2f287d1b4e648830fa138d901f80329c892e33b661472b5cfd6a
+    .agents/skills/okf-visualize/SKILL.md: sha256:3defa57f4da4ac5b7926337916afe416721876c3adf2b2bab2f902684e53816c
+    .agents/skills/okf-visualize/scripts/okf_visualize.py: sha256:9af303d0cadb54c694f440553e5211d0d895f2c560f90c7ca1e6d35c8262530a
+    .agents/skills/okf/SKILL.md: sha256:a08140ac2c6a6ffdacd76225f3eef8bb701e95d162e5fe09309b812481fdb4fc
+    .agents/skills/okf/reference/APACHE-2.0.txt: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+    .agents/skills/okf/reference/SPEC.md: sha256:c67926127ac0fbf3fc60f2e6135d9265da749f969acd1994c5ba7b46140487fd
+    .agents/skills/okf/templates/concept.md: sha256:5d4927d848e9de056f2a71345919bb917403376e088c6b3b440d58a06ff069ec
+    .agents/skills/okf/templates/index.md: sha256:fca29f13b7ac2b3c455cdce19edf518392bb5fed15b1b903e05c8a715c772880
+    .agents/skills/okf/templates/log.md: sha256:6a8d88f72eded39f85b194320584ad78f281e1721fb89f588774e3eb3ad0b5ef
+  content_hash: sha256:c90e5aa989b671f3be58657762b6679c4e3998f3d58a6d241a6285270b64d289
+  declared_license: UNLICENSED
+- repo_url: jaypee-solutions/apm-python
+  name: python
+  host: github.com
+  resolved_commit: 8b216ab20192843b6c3046a5ce6672759dab6923
+  version: 0.1.0
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/postgres-patterns
+  - .agents/skills/postgres-patterns/.skillfish.json
+  - .agents/skills/postgres-patterns/SKILL.md
+  - .agents/skills/python-database-access
+  - .agents/skills/python-database-access/SKILL.md
+  - .agents/skills/python-database-access/references/alembic.md
+  - .agents/skills/python-database-access/references/raw-dc-pattern.md
+  - .agents/skills/python-database-access/references/repository-uow.md
+  - .agents/skills/python-database-access/references/sqlalchemy-async.md
+  - .agents/skills/python-patterns
+  - .agents/skills/python-patterns/.skillfish.json
+  - .agents/skills/python-patterns/SKILL.md
+  - .agents/skills/python-patterns/references/advanced-patterns.md
+  - .agents/skills/pythonista-nicegui
+  - .agents/skills/pythonista-nicegui/.skillfish.json
+  - .agents/skills/pythonista-nicegui/SKILL.md
+  - .agents/skills/pythonista-nicegui/references/nicegui-styling.md
+  - .agents/skills/pythonista-nicegui/references/product-thinking.md
+  - .agents/skills/pythonista-nicegui/references/ui-architecture.md
+  deployed_file_hashes:
+    .agents/skills/postgres-patterns/.skillfish.json: sha256:b3fa616d2176166e228d926678442cf4de1b33f46966abedc6b217a0be6ee013
+    .agents/skills/postgres-patterns/SKILL.md: sha256:f38ed542ddcc0adbab49a960badcf015d0153f9ebe3d38f73ff0972756bc205f
+    .agents/skills/python-database-access/SKILL.md: sha256:f73c591ec289442f89c4fb09e8b28f79fcdca72f9f89c749ff107115b667b86b
+    .agents/skills/python-database-access/references/alembic.md: sha256:86e6610c1dc27c469343d9fd0523a0029a4f72bdb56b9b5aa850b95f0f32c22b
+    .agents/skills/python-database-access/references/raw-dc-pattern.md: sha256:f91860089e6ed60350212bbb41f4f71abc78a91112e42033484fe8abcbb2093d
+    .agents/skills/python-database-access/references/repository-uow.md: sha256:f828693398a046326f1dcef59bf77f5d37fa3f536123cf0de929c60f49da10cd
+    .agents/skills/python-database-access/references/sqlalchemy-async.md: sha256:2b2778cf98b06bfcb0f4ef1594a14d7eaecfe70e827cf11098e939317c36d0b3
+    .agents/skills/python-patterns/.skillfish.json: sha256:5e405b5dc9c5d2e21b0fce80f045b3007bb45e7df765a38b893b2f0f4149c2eb
+    .agents/skills/python-patterns/SKILL.md: sha256:e801c92189a0b974d03d7c73bc1e146b64448109b814aa74382781aa67428fdb
+    .agents/skills/python-patterns/references/advanced-patterns.md: sha256:6011950167a3afe6396b59c31983c3a8d8073b1ccfce6fd55844cdaca7eaee89
+    .agents/skills/pythonista-nicegui/.skillfish.json: sha256:a017b0d29332ca3a73a8e372c46b6287316abf6b2135a28a9e5095b290250904
+    .agents/skills/pythonista-nicegui/SKILL.md: sha256:2795ad502b8f076f0413e76c1016c3e19161f1c5732cbc0c508ada49fd25c2ee
+    .agents/skills/pythonista-nicegui/references/nicegui-styling.md: sha256:8cf6c0ead512ea307e38c94110276d79c97b8183b8fbbdacbf5cd8a5dcb4543b
+    .agents/skills/pythonista-nicegui/references/product-thinking.md: sha256:cf3c59f1d13175dc29db87f563f5eeb852a4352df61eef8bf42c92757ede390f
+    .agents/skills/pythonista-nicegui/references/ui-architecture.md: sha256:6d394f5a80d6a5ccaa5e7a7c2dcb50855205f3325cbdda00e642bd1b730985ae
+  content_hash: sha256:ea703f6b1dfc34366fc4a7a4c77992b1c884e1c2d1c187751fa5c087fbc404eb
+  declared_license: UNLICENSED
+deployments:
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/github-pr-workflow
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/github-pr-workflow/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:9c047f21b7e25ef6a0f4e9bf6dcd4dfc0eb7cc02c43fb4d614b5484518906a3f
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/github-pr-workflow/references/github-cli-playbook.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:c5419890b9b6175ab8faa8aea20907c560c002aeb97c9a8c25892b060b796961
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/github-pr-workflow/scripts/pr-thread-summary.sh
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:3146dc79f3d804e7fd9e6be2411c570d45a90589a94373fd18b1f260a50d87e6
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/github-pr-workflow/scripts/reply-and-resolve-threads.sh
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:f7eb92a7cd2bf08fead623b167d47274664542988e2140a1274d518d195712e0
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/homelab-ops
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/homelab-ops/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:e03ea45c0e6624989a802a61fbd2757a1c7d7fb3ab01df82b43900b3b332d8a6
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/homelab-ops/references/baseline-setup.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:00d29774e3825ec7b2c742ea8998dd86800cf7f410fe1f584a27ce07fabb5c8e
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/homelab-ops/references/netbox-operations.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:5af694ff335a3f2efe2e107787c6321b18a8f3320b57614c9e58ee19315e0d65
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/homelab-ops/references/ops-checklists.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:60d0f17eb2f2985982d61f6e626f32c5e101a1a700b4ccc3f92823eb8f3fb382
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/homelab-ops/references/personal-preferences.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:d837e8e634b95c98582d4af19a62ef12b8c88eb82648891879e926a5521f7ff4
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/netbox-ops
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/netbox-ops/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:ff2c8d83f3357b5c266f9fe286ced42b8eba0247a600a8db40bbb6733dfaca8c
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/netbox-ops/references/netbox-operations.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:ac740713772fb753baa6ad0054b6b46496f23ab2efa25046b5b8044790d4f992
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/netbox-ops/references/review-against-netbox.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:decb12fdaac35f928402efb01639e741ac4f0c1170d65fa1c8cd4a2ab9f211e0
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf-validate
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf-validate/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: sha256:5921a3f429152699f3bd51574598a542c5a3b5f689a2185c8e27919510d51bb4
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf-validate/scripts/okf_validate.py
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: sha256:8320a52e7cba2f287d1b4e648830fa138d901f80329c892e33b661472b5cfd6a
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf-visualize
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf-visualize/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: sha256:3defa57f4da4ac5b7926337916afe416721876c3adf2b2bab2f902684e53816c
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf-visualize/scripts/okf_visualize.py
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: sha256:9af303d0cadb54c694f440553e5211d0d895f2c560f90c7ca1e6d35c8262530a
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: sha256:a08140ac2c6a6ffdacd76225f3eef8bb701e95d162e5fe09309b812481fdb4fc
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf/reference/APACHE-2.0.txt
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: sha256:cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf/reference/SPEC.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: sha256:c67926127ac0fbf3fc60f2e6135d9265da749f969acd1994c5ba7b46140487fd
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf/templates/concept.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: sha256:5d4927d848e9de056f2a71345919bb917403376e088c6b3b440d58a06ff069ec
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf/templates/index.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: sha256:fca29f13b7ac2b3c455cdce19edf518392bb5fed15b1b903e05c8a715c772880
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/okf/templates/log.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-okf
+  active_owner: jaypee-solutions/apm-okf
+  content_hash: sha256:6a8d88f72eded39f85b194320584ad78f281e1721fb89f588774e3eb3ad0b5ef
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/orca-cli
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/orca-cli/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:cdd5d9c8a95837a6cc24d68b150a117684afe9bbb2d763de2cc7fba1da1ed163
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/postgres-patterns
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/postgres-patterns/.skillfish.json
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:b3fa616d2176166e228d926678442cf4de1b33f46966abedc6b217a0be6ee013
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/postgres-patterns/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:f38ed542ddcc0adbab49a960badcf015d0153f9ebe3d38f73ff0972756bc205f
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/python-database-access
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/python-database-access/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:f73c591ec289442f89c4fb09e8b28f79fcdca72f9f89c749ff107115b667b86b
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/python-database-access/references/alembic.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:86e6610c1dc27c469343d9fd0523a0029a4f72bdb56b9b5aa850b95f0f32c22b
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/python-database-access/references/raw-dc-pattern.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:f91860089e6ed60350212bbb41f4f71abc78a91112e42033484fe8abcbb2093d
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/python-database-access/references/repository-uow.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:f828693398a046326f1dcef59bf77f5d37fa3f536123cf0de929c60f49da10cd
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/python-database-access/references/sqlalchemy-async.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:2b2778cf98b06bfcb0f4ef1594a14d7eaecfe70e827cf11098e939317c36d0b3
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/python-patterns
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/python-patterns/.skillfish.json
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:5e405b5dc9c5d2e21b0fce80f045b3007bb45e7df765a38b893b2f0f4149c2eb
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/python-patterns/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:e801c92189a0b974d03d7c73bc1e146b64448109b814aa74382781aa67428fdb
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/python-patterns/references/advanced-patterns.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:6011950167a3afe6396b59c31983c3a8d8073b1ccfce6fd55844cdaca7eaee89
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/pythonista-nicegui
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/pythonista-nicegui/.skillfish.json
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:a017b0d29332ca3a73a8e372c46b6287316abf6b2135a28a9e5095b290250904
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/pythonista-nicegui/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:2795ad502b8f076f0413e76c1016c3e19161f1c5732cbc0c508ada49fd25c2ee
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/pythonista-nicegui/references/nicegui-styling.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:8cf6c0ead512ea307e38c94110276d79c97b8183b8fbbdacbf5cd8a5dcb4543b
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/pythonista-nicegui/references/product-thinking.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:cf3c59f1d13175dc29db87f563f5eeb852a4352df61eef8bf42c92757ede390f
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/pythonista-nicegui/references/ui-architecture.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-python
+  active_owner: jaypee-solutions/apm-python
+  content_hash: sha256:6d394f5a80d6a5ccaa5e7a7c2dcb50855205f3325cbdda00e642bd1b730985ae
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/worktrunk
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: null
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/worktrunk/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:102e79074d108083db76e49b6c2ae0039afb083cc81c756c5453aebf5eb71abc
+- kind: project-relative
+  target: agent-skills
+  value: .agents/skills/worktrunk/references/config-and-hooks.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:f71ae4f39fa6d6901b6bbc4c65b0f0d1b67f0c3c2534104b21d60bf41b6bfe06
+- kind: project-relative
+  target: claude
+  value: .claude/skills/github-pr-workflow
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/github-pr-workflow/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:9c047f21b7e25ef6a0f4e9bf6dcd4dfc0eb7cc02c43fb4d614b5484518906a3f
+- kind: project-relative
+  target: claude
+  value: .claude/skills/github-pr-workflow/references/github-cli-playbook.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:c5419890b9b6175ab8faa8aea20907c560c002aeb97c9a8c25892b060b796961
+- kind: project-relative
+  target: claude
+  value: .claude/skills/github-pr-workflow/scripts/pr-thread-summary.sh
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:3146dc79f3d804e7fd9e6be2411c570d45a90589a94373fd18b1f260a50d87e6
+- kind: project-relative
+  target: claude
+  value: .claude/skills/github-pr-workflow/scripts/reply-and-resolve-threads.sh
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:f7eb92a7cd2bf08fead623b167d47274664542988e2140a1274d518d195712e0
+- kind: project-relative
+  target: claude
+  value: .claude/skills/homelab-ops
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/homelab-ops/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:e03ea45c0e6624989a802a61fbd2757a1c7d7fb3ab01df82b43900b3b332d8a6
+- kind: project-relative
+  target: claude
+  value: .claude/skills/homelab-ops/references/baseline-setup.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:00d29774e3825ec7b2c742ea8998dd86800cf7f410fe1f584a27ce07fabb5c8e
+- kind: project-relative
+  target: claude
+  value: .claude/skills/homelab-ops/references/netbox-operations.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:5af694ff335a3f2efe2e107787c6321b18a8f3320b57614c9e58ee19315e0d65
+- kind: project-relative
+  target: claude
+  value: .claude/skills/homelab-ops/references/ops-checklists.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:60d0f17eb2f2985982d61f6e626f32c5e101a1a700b4ccc3f92823eb8f3fb382
+- kind: project-relative
+  target: claude
+  value: .claude/skills/homelab-ops/references/personal-preferences.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:d837e8e634b95c98582d4af19a62ef12b8c88eb82648891879e926a5521f7ff4
+- kind: project-relative
+  target: claude
+  value: .claude/skills/netbox-ops
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/netbox-ops/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:ff2c8d83f3357b5c266f9fe286ced42b8eba0247a600a8db40bbb6733dfaca8c
+- kind: project-relative
+  target: claude
+  value: .claude/skills/netbox-ops/references/netbox-operations.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:ac740713772fb753baa6ad0054b6b46496f23ab2efa25046b5b8044790d4f992
+- kind: project-relative
+  target: claude
+  value: .claude/skills/netbox-ops/references/review-against-netbox.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-homelab
+  active_owner: jaypee-solutions/apm-homelab
+  content_hash: sha256:decb12fdaac35f928402efb01639e741ac4f0c1170d65fa1c8cd4a2ab9f211e0
+- kind: project-relative
+  target: claude
+  value: .claude/skills/orca-cli
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/orca-cli/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:cdd5d9c8a95837a6cc24d68b150a117684afe9bbb2d763de2cc7fba1da1ed163
+- kind: project-relative
+  target: claude
+  value: .claude/skills/worktrunk
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/worktrunk/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:102e79074d108083db76e49b6c2ae0039afb083cc81c756c5453aebf5eb71abc
+- kind: project-relative
+  target: claude
+  value: .claude/skills/worktrunk/references/config-and-hooks.md
+  runtime: null
+  scope: project
+  owners:
+  - jaypee-solutions/apm-dev-workflow
+  active_owner: jaypee-solutions/apm-dev-workflow
+  content_hash: sha256:f71ae4f39fa6d6901b6bbc4c65b0f0d1b67f0c3c2534104b21d60bf41b6bfe06

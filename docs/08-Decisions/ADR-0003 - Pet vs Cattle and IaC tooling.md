@@ -5,17 +5,17 @@ tags:
   - decisions
   - tooling
 type: adr
-status: accepted
+status: superseded
 date: 2026-03-08
 created: 2026-03-20
-updated: 2026-03-20
+updated: 2026-10-03
 ---
 
 # ADR-0003 — Pet vs Cattle and IaC Tooling
 
 ## Status
 
-Accepted
+Superseded in part by [[ADR-0004 - Bare-metal k0s and external infrastructure scope]]. Its Proxmox-management and VM-based cluster-placement decisions are no longer current; the historical pet/cattle and tooling rationale is retained.
 
 ## Context
 
@@ -33,6 +33,8 @@ Additionally, NetBox as a source of truth creates a **circular bootstrap depende
 - **Pets** (OPNsense, Proxmox, network switches, k0s cluster bootstrap): managed with **Ansible** or **k0sctl**
 - **Cattle** (all workloads and services running on top of k0s): managed with **Pulumi (Python)**
 - OpenTofu and Terraform are not used
+
+The k0s cluster is bootstrapped and lifecycle-managed with k0sctl, outside Pulumi. The Kubernetes Pulumi stack consumes its kubeconfig from the shared 1Password item and manages only platform add-ons and workloads; it republishes that secret as the `kubeconfig` stack output for existing Pulumi consumers.
 
 ### Infrastructure Tiers
 
@@ -53,13 +55,14 @@ Additionally, NetBox as a source of truth creates a **circular bootstrap depende
 
 ```text
 1. QNAP is up (always-on anchor)
-2. git clone from Gitea on QNAP
-3. Apply tier0/opnsense    → network exists, VLANs up
-4. Apply tier0/switches    → switching topology correct
-5. Apply tier1/proxmox     → VMs declared and running
-6. Apply tier1/platform    → NetBox, MinIO, k8s control plane
-7. Apply tier2/apps        → workloads running
-8. Run NetBox sync         → documentation reflects reality
+2. Clone the Git repository from Gitea on QNAP
+3. Apply tier0/opnsense → network exists, VLANs up
+4. Apply tier0/switches → switching topology is correct
+5. Apply tier1/proxmox → required VMs are declared and running
+6. Run tier1/k0s with k0sctl → bootstrap the cluster and publish kubeconfig to the shared 1Password item
+7. Apply tier1/platform → platform workloads (NetBox, MinIO)
+8. Apply tier2/apps → workloads running
+9. Run NetBox sync → documentation reflects reality
 ```
 
 Steps 1–4 require zero services running on Proxmox.
@@ -92,6 +95,7 @@ repo/
 - Consistent Python across scripting and IaC layers
 - Clear separation of operational concern between pets and cattle
 - NetBox sync step makes documentation a derived output, not a prerequisite
+- The Kubernetes Pulumi stack requires the externally managed kubeconfig from the shared 1Password item; k0sctl remains responsible for creating and updating that credential.
 
 ## Related
 

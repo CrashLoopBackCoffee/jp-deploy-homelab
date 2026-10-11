@@ -6,7 +6,7 @@ tags:
 type: foundation
 status: active
 created: 2026-03-20
-updated: 2026-03-20
+updated: 2026-10-03
 ---
 
 # Standards and Conventions
@@ -30,11 +30,12 @@ updated: 2026-03-20
 - Python preferred for scripting
 - `uv` for environment management
 - `Ruff` for linting
-- **Pets** (OPNsense, Proxmox, switches, k0s bootstrap): managed with **Ansible** or **k0sctl**
-- **Cattle** (workloads and services on k0s): managed with **Pulumi (Python)**
+- **Pets** (OPNsense, switches, bare-metal k0s bootstrap): managed with **Ansible** or **k0sctl**
+- **Kubernetes workloads**: managed with **Pulumi (Python)**
+- Existing Proxmox VMs are external to this repository. The retained remote-Docker stacks are managed separately from Kubernetes.
 - OpenTofu and Terraform are not used
 
-> Full rationale and bootstrap sequence: see [[ADR-0003 - Pet vs Cattle and IaC tooling]]
+> Current cluster and infrastructure scope: see [[ADR-0004 - Bare-metal k0s and external infrastructure scope]]
 
 ## Workstation and ecosystem
 
