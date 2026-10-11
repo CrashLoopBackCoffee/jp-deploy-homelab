@@ -1,7 +1,8 @@
 # Update Log
 
 ## 2026-10-11
-* **Update**: Committed `services/`, tooling, docs, OKF notes, and APM skills on `feature/track-k0s-services` (`4766a01`); paperless and monitoring `Pulumi.prod.yaml` stay untracked (donor ciphertext). Linters now skip APM-managed paths and nested Claude worktrees; `alloy` was installed with brew for the format hook.
+* **Update**: Committed `services/`, tooling, docs, and OKF notes on `feature/track-k0s-services` (`4766a01`); paperless and monitoring `Pulumi.prod.yaml` stay untracked (donor ciphertext). `docs/.claude/` (nested worktree) is git-ignored and yamllint skips `apm.lock.yaml`, `apm_modules`, `.agents`, `.claude`, and `docs/.claude`; `alloy` was installed with brew for the format hook.
+* **Decision**: Agent skills under `.agents/skills/` and `.claude/skills/` are managed by APM (`apm.yml`, `apm.lock.yaml`) and must not be committed. They were committed by mistake in `4766a01` and untracked afterwards; the paths are git-ignored.
 * **Verification**: The OPNsense API key still read Unbound settings after the first removal attempt (HTTP 200 on three re-probes). After the user rechecked in the UI, `/api/unbound/settings/get` and `/api/unbound/service/status` return 403 while `/api/dnsmasq/settings/get` returns 200: the key holds only the dnsmasq privilege. Which UI change fixed it (group or direct grant) was not reported.
 * **Decision**: Longhorn runs on the whole Kingston NVMe as ext4 at `/var/lib/longhorn` with one replica, installed as a Helm Release (ADR-0014).
 * **Update**: Applied `prepare-longhorn-storage.yaml` on `k0s0` (idempotent re-run: 0 changes) and Longhorn 1.13.0 through the kubernetes `prod` stack (+3 resources, 112 total, preview clean). A 1 GiB `longhorn` volume bound, attached, wrote data, and was removed; the Longhorn disk reports about 916 GiB schedulable.

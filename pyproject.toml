@@ -60,7 +60,7 @@ build-backend = "hatchling.build"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-extend-exclude = ["docs/examples", ".agents", ".claude", "docs/.claude", "apm_modules"]
+extend-exclude = ["docs/examples"]
 extend-include = ["scripts/generate-config-schema"]
 
 [tool.ruff.lint]

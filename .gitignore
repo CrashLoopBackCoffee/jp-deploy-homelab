@@ -189,3 +189,7 @@ apm_modules/
 
 # Nested Claude Code worktrees
 docs/.claude/
+
+# Agent skills are managed by APM (see apm.yml)
+.agents/skills/
+.claude/skills/
