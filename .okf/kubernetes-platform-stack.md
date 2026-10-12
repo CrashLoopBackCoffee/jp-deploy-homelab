@@ -9,7 +9,7 @@ resource: https://app.pulumi.com/jaypee-solutions/kubernetes/prod
 
 # What it deploys
 
-Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 112 resources after adding Longhorn on 2026-10-11 (`pulumi preview --expect-no-changes` clean).
+Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 114 resources after the 2026-10-12 Longhorn backup configuration apply (+2 resources, ~1 Helm Release from the previous 112). The Longhorn backup target is Available and a disposable backup/restore round-trip succeeded; no production workload backup or off-site copy has been verified.
 
 | Component | Notes |
 | --- | --- |
@@ -19,7 +19,7 @@ Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 112 reso
 | Traefik | Service `10.10.88.1`, default TLS store with the wildcard certificate `*.4jp.de`, dnsmasq record `k8s-ingress-prod.4jp.de` |
 | CloudNativePG | Operator only; no database cluster yet |
 | OpenEBS LVM LocalPV | StorageClass `openebs-lvm-postgres` (`volgroup: postgres`, ext4, `WaitForFirstConsumer`, expansion allowed); snapshot CRDs and controller are on |
-| Longhorn | Chart 1.13.0 as `helm.v3.Release` (the chart has hook jobs), namespace `longhorn-system`, data path `/var/lib/longhorn` on the Kingston NVMe, 1 replica, kubelet dir `/var/lib/k0s/kubelet`; the chart's StorageClass `longhorn` is the cluster default; no second snapshot controller (`docs/08-Decisions/ADR-0014 - Longhorn on a dedicated ext4 data disk.md`) |
+| Longhorn | Chart 1.13.0 as `helm.v3.Release` (the chart has hook jobs), namespace `longhorn-system`, data path `/var/lib/longhorn` on the Kingston NVMe, 1 replica, kubelet dir `/var/lib/k0s/kubelet`; the chart's StorageClass `longhorn` is the cluster default. The QuObjects S3 backup target is Available and the daily `02:00` job belongs to the `default` group (retain 14). A disposable volume automatically joined that group and completed a backup and separate restore. No second snapshot controller (`docs/08-Decisions/ADR-0014 - Longhorn on a dedicated ext4 data disk.md`) |
 
 # Configuration and secrets
 
@@ -34,10 +34,12 @@ Local records are dnsmasq host records created through the OPNsense API at `http
 
 # Backup destination decision
 
-The user selected the local QNAP's QuObjects S3-compatible service for Longhorn and CloudNativePG backups. Private buckets named `longhorn-backups` and `cnpg-backups`, and separate scoped access-key items `QuObjects Longhorn Backup` and `QuObjects CNPG Backup` in the `Homelab` vault, were approved but **not created**. An HBS 3 job with client-side encryption to a second, off-site QNAP is the selected secondary copy (ADR-0016). The supplied address `10.10.0.10:8010` responds on HTTPS, but the QNAP's self-signed certificate has no SAN and does not verify for that IP. The user chose a trusted certificate on an as-yet-unspecified DNS name; do not disable TLS verification. Buckets, credentials, the HBS job, and restores are not configured; no backup guarantee exists yet. A direct CNPG Barman Cloud integration to QuObjects supports physical base backups and WAL archiving, unlike plain NFS. The NAS deployment and HBS job remain outside this Pulumi stack.
+The user selected the local QNAP's QuObjects S3-compatible service for Longhorn and CloudNativePG backups. Both private buckets, `longhorn-backups` and `cnpg-backups`, and separate access-key items `QuObjects Longhorn Backup` and `QuObjects CNPG Backup` in the `Homelab` vault exist. Initially each key could list the other bucket; after the user moved `cnpg-backups` into a dedicated storage space, each key can list its own bucket but receives `NoSuchBucket` when listing the other. QuObjects scopes access by NAS user and storage space rather than key name alone; do not claim object-write/delete isolation beyond this read-only test. The endpoint `https://qnap.4jp.de:8443` presents a certificate trusted for its name from the workstation; the earlier QNAP administration endpoint `10.10.0.10:8010` presented a self-signed certificate without a SAN and is not used. Do not disable TLS verification. Longhorn's credentials, target, and recurring job are applied. An OPNsense Unbound host override chosen and applied by the user points `qnap.4jp.de` to S3 NIC `10.10.0.10` instead of the other QNAP NIC `.6`; both router DNS ports now return `.10`, and `BackupTarget/default` is Available. Both QNAP NICs advertise `qnap` in active DHCP leases; neither reservation was deleted. A 256 MiB test volume created with `longhorn` automatically joined the `default` recurring-job group, was written and backed up to QuObjects, then restored into a separate volume; the restored PVC contained the same marker. Test resources and the test S3 volume prefix were removed afterward. An HBS 3 job with client-side encryption to a second, off-site QNAP is the selected secondary copy but is not verified. CloudNativePG's supported Barman Cloud plugin will provide physical base backups and WAL archiving; the NAS and HBS configuration remain outside Pulumi (ADR-0016).
+
+CoreDNS forwards external names to its pod's `/etc/resolv.conf` and caches for up to 30 seconds (`kube-system/coredns` Corefile). Earlier direct queries to OPNsense at `10.10.0.1:53` and dnsmasq at `10.10.0.1:53053` both returned `.6` (TTL 1 second); the user's Unbound override corrected both to `.10`. Longhorn became Available without a CoreDNS restart. Resolve upstream DNS faults at the router before considering a CoreDNS cache flush.
 
 # Not done yet
 
 - Other stacks (paperless, n8n, monitoring, backup, iot) still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints) and have not been previewed.
-- No CloudNativePG cluster exists; Longhorn backups are not configured yet (the QuObjects target has been selected but not provisioned, ADR-0016). Public exposure through Caddy on OPNsense is future work.
+- No CloudNativePG cluster exists; Longhorn's local QuObjects backup/restore path has passed with disposable data, but no production workload backup, scheduled run, or encrypted off-site copy has been verified (ADR-0016). Public exposure through Caddy on OPNsense is future work.
 - Related: [k0s0 node](./k0s0-node.md), [cluster plan](./k0s-cluster-plan.md), [operational lessons](./operational-lessons.md).
