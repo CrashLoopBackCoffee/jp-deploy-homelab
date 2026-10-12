@@ -24,6 +24,14 @@ config:
       data-path: /var/lib/longhorn
       # Phase 1 has a single node, so a replica count above 1 would leave every volume degraded
       replica-count: 1
+      backup:
+        endpoint: https://qnap.4jp.de:8443
+        bucket: longhorn-backups
+        region: us-east-1
+        access-key-id:
+          ref: op://Homelab/QuObjects Longhorn Backup/username
+        secret-access-key:
+          ref: op://Homelab/QuObjects Longhorn Backup/password
     metallb:
       # renovate: datasource=github-releases packageName=metallb/metallb versioning=semver
       version: 0.15.2

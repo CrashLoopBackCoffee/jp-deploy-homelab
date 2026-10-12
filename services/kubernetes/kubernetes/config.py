@@ -13,10 +13,19 @@ class NfsCsiDriverConfig(utils.model.LocalBaseModel):
     version: str
 
 
+class LonghornBackupConfig(utils.model.LocalBaseModel):
+    endpoint: str
+    bucket: str
+    region: str
+    access_key_id: utils.model.OnePasswordRef
+    secret_access_key: utils.model.OnePasswordRef
+
+
 class LonghornConfig(utils.model.LocalBaseModel):
     version: str
     data_path: str
     replica_count: int
+    backup: LonghornBackupConfig
 
 
 class OpenEbsLvmConfig(utils.model.LocalBaseModel):
