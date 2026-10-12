@@ -8,6 +8,21 @@ config:
     cloudnative-pg:
       # renovate: datasource=github-releases packageName=cloudnative-pg/charts versioning=semver
       version: 0.26.0
+      plugin-version: 0.8.1
+      cluster:
+        name: postgres-pilot
+        # renovate: datasource=docker packageName=ghcr.io/cloudnative-pg/postgresql versioning=semver
+        image-version: "17.10"
+        storage-size: 2Gi
+      backup:
+        endpoint: https://qnap.4jp.de:8443
+        bucket: cnpg-backups
+        access-key-id:
+          ref: op://Homelab/QuObjects CNPG Backup/username
+        secret-access-key:
+          ref: op://Homelab/QuObjects CNPG Backup/password
+        schedule: "0 0 3 * * *"
+        retention-policy: 14d
     cloudflare:
       api-token:
         ref: op://Homelab/Cloudflare [4jp.de]/password
