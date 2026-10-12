@@ -33,6 +33,8 @@ tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 | Pulumi | A preview failed with a timeout fetching the chart tgz from `github.com` while the apply had worked | Retry the preview; it is network flakiness, not drift |
 | OPNsense | The API key cannot list users (404), so its privileges cannot be audited through its own key; after a first UI removal the key still answered 200 on Unbound, and only a later change produced 403 | Verify privilege changes by probing the exact endpoints (200 vs 403), not by trusting the UI state alone |
 | LAN access | `curl` and `pynetbox` to a host on the Mac's own subnet failed with `No route to host` from some terminals, while `traceroute`, the browser, and another terminal worked | Run LAN API checks from a terminal that works; if one fails instantly with `No route to host`, check macOS Privacy & Security > Local Network for that app (suspected, unconfirmed) |
+| Barman Cloud / QuObjects | The first base backup and WAL archive failed with S3 `InvalidDigest`; changing the ObjectStore did not update the already-running sidecar environment | Set boto3's optional request/response checksum modes to `when_required`, preview/apply the ObjectStore change, then use `kubectl cnpg restart CLUSTER` for a controlled Pod rollout; verify archiver counters and restore actual rows from an independent Cluster |
+| CNPG / Longhorn | Both operators define a `Backup` resource; unqualified `kubectl wait backup/...` resolved to Longhorn | Qualify CNPG backups as `backup.postgresql.cnpg.io/NAME` |
 
 # Suggested standing instructions for agents
 

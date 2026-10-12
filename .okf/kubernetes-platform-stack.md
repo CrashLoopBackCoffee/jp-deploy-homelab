@@ -9,7 +9,7 @@ resource: https://app.pulumi.com/jaypee-solutions/kubernetes/prod
 
 # What it deploys
 
-Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 114 resources after the 2026-10-12 Longhorn backup configuration apply (+2 resources, ~1 Helm Release from the previous 112). The Longhorn backup target is Available and a disposable backup/restore round-trip succeeded; no production workload backup or off-site copy has been verified.
+Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 133 resources after the 2026-10-12 CloudNativePG pilot apply (+19 from the previous 114). Longhorn's QuObjects target is Available and a disposable volume passed backup/restore. PostgreSQL's Barman base backup and archived WAL passed an independent restore; no production application backup, scheduled PostgreSQL run, time-targeted PITR, or encrypted off-site copy has been verified.
 
 | Component | Notes |
 | --- | --- |
@@ -17,7 +17,7 @@ Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 114 reso
 | NFS CSI driver | kubelet dir `/var/lib/k0s/kubelet`; no StorageClass defined |
 | cert-manager | Let's Encrypt ClusterIssuer with DNS-01 through Cloudflare; ACME email `support@jaypee.solutions` (confirmed by the user on 2026-10-12); self-check forced to `1.1.1.1`/`1.0.0.1` because the LAN resolver answers NXDOMAIN for ACME records |
 | Traefik | Service `10.10.88.1`, default TLS store with the wildcard certificate `*.4jp.de`, dnsmasq record `k8s-ingress-prod.4jp.de` |
-| CloudNativePG | Operator only; no database cluster yet |
+| CloudNativePG | Operator 1.27.0 and Barman Cloud plugin 0.15.1 (chart 0.8.1); single-instance PostgreSQL 17.10 `postgres-pilot` on `openebs-lvm-postgres`, with daily 03:00 physical backups, continuous compressed WAL archiving and 14-day retention to QuObjects. Pilot PVC 2 GiB. A separate, temporary restore cluster is currently running for verified base-backup + WAL recovery; see [the recovery runbook](./postgres-pilot-recovery.md). |
 | OpenEBS LVM LocalPV | StorageClass `openebs-lvm-postgres` (`volgroup: postgres`, ext4, `WaitForFirstConsumer`, expansion allowed); snapshot CRDs and controller are on |
 | Longhorn | Chart 1.13.0 as `helm.v3.Release` (the chart has hook jobs), namespace `longhorn-system`, data path `/var/lib/longhorn` on the Kingston NVMe, 1 replica, kubelet dir `/var/lib/k0s/kubelet`; the chart's StorageClass `longhorn` is the cluster default. The QuObjects S3 backup target is Available and the daily `02:00` job belongs to the `default` group (retain 14). A disposable volume automatically joined that group and completed a backup and separate restore. No second snapshot controller (`docs/08-Decisions/ADR-0014 - Longhorn on a dedicated ext4 data disk.md`) |
 
@@ -41,5 +41,5 @@ CoreDNS forwards external names to its pod's `/etc/resolv.conf` and caches for u
 # Not done yet
 
 - Other stacks (paperless, n8n, monitoring, backup, iot) still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints) and have not been previewed.
-- No CloudNativePG cluster exists; Longhorn's local QuObjects backup/restore path has passed with disposable data, but no production workload backup, scheduled run, or encrypted off-site copy has been verified (ADR-0016). Public exposure through Caddy on OPNsense is future work.
+- The `postgres-pilot` Cluster is live and independently restored from QuObjects; its temporary restore Cluster and 2 GiB PVC remain until deletion is explicitly approved. Time-targeted PITR, scheduled-backup execution, and the encrypted off-site HBS copy are not yet verified. Longhorn has no production workload backup. Public exposure through Caddy on OPNsense is future work (ADR-0016, ADR-0017).
 - Related: [k0s0 node](./k0s0-node.md), [cluster plan](./k0s-cluster-plan.md), [operational lessons](./operational-lessons.md).

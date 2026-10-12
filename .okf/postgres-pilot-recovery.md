@@ -1,0 +1,38 @@
+---
+type: Runbook
+title: PostgreSQL pilot recovery from QuObjects
+description: CloudNativePG pilot backup settings, live recovery evidence, and safe follow-up operations.
+timestamp: 2026-10-12T00:00:00Z
+tags: [homelab, kubernetes, postgresql, cloudnativepg, backup, recovery]
+resource: https://app.pulumi.com/jaypee-solutions/kubernetes/prod
+---
+
+# Pilot state
+
+`postgres-pilot` is a single PostgreSQL 17.10 instance in namespace `postgres-pilot`, with a 2 GiB PVC on `openebs-lvm-postgres`. Pulumi owns the Cluster, Barman plugin, ObjectStore, backup Secret, and ScheduledBackup. The ObjectStore writes to `s3://cnpg-backups/postgres-pilot/` at `https://qnap.4jp.de:8443` using the `QuObjects CNPG Backup` item in the Homelab 1Password vault. It archives gzip-compressed WAL, schedules daily backups at `0 0 3 * * *`, and retains a 14-day recovery window. The first immediate backup failed; `postgres-pilot-backup-recovered` later completed with backup ID `20261012T183618`.
+
+# Verified recovery (2026-10-12)
+
+- QuObjects returned `InvalidDigest` for both `PutObject` WAL and base-backup uploads. Barman's documented S3-compatibility settings `AWS_REQUEST_CHECKSUM_CALCULATION=when_required` and `AWS_RESPONSE_CHECKSUM_VALIDATION=when_required` are set on the `ObjectStore` instance sidecar; TLS verification remains enabled. An `ObjectStore` update alone does **not** update an existing Pod's environment. After the previewed Pulumi update, a CNPG-managed `kubectl cnpg restart postgres-pilot -n postgres-pilot` replaced the pilot Pod and WAL archiving recovered. Do not delete the Pod directly just to refresh plugin settings.
+- The completed Barman base backup contains `postgres.recovery_probe` row 1 (`qnap-cnpg-restore-20261012`). Row 2 (`qnap-cnpg-wal-restore-20261012`) was inserted **after** the backup; a WAL switch archived the segment containing it. The independent Cluster `postgres-pilot-restore-20261012` recovered the most recent backup plus WAL from the source ObjectStore and returned **both** rows. Its own 2 GiB PVC is Bound on `openebs-lvm-postgres`; the source Cluster and PVC remain unchanged.
+- This proves latest-state base-backup + WAL recovery, not recovery to a specified point in time, retention after 14 days, scheduled execution, or an encrypted off-site HBS copy. The temporary restore Cluster and PVC are still running; obtain explicit approval and preview cleanup before deleting either. The failed initial Backup CR is historical evidence, not a successful backup.
+
+# Operations
+
+Enter the repository through direnv (warn before commands that may request biometric approval). Use the explicit API group because Longhorn also defines a `Backup` kind:
+
+```sh
+kubectl -n postgres-pilot get backup.postgresql.cnpg.io,scheduledbackup.postgresql.cnpg.io,cluster.postgresql.cnpg.io
+kubectl -n postgres-pilot get pvc
+kubectl -n postgres-pilot exec postgres-pilot-1 -c postgres -- psql -U postgres -d postgres -Atc 'SELECT archived_count, last_archived_wal, failed_count FROM pg_stat_archiver'
+```
+
+For a new on-demand plugin backup, preview its manifest before creating it:
+
+```sh
+kubectl cnpg backup -n postgres-pilot postgres-pilot --method=plugin --plugin-name=barman-cloud.cloudnative-pg.io --backup-name=CHOSEN_NAME --dry-run
+kubectl cnpg backup -n postgres-pilot postgres-pilot --method=plugin --plugin-name=barman-cloud.cloudnative-pg.io --backup-name=CHOSEN_NAME
+kubectl -n postgres-pilot wait backup.postgresql.cnpg.io/CHOSEN_NAME --for=jsonpath='{.status.phase}'=completed --timeout=300s
+```
+
+A successful `Backup` CR alone is not a restore test. To restore independently, create a new `Cluster` with a different name and PVC, `bootstrap.recovery.source` naming an `externalClusters` entry whose `plugin` uses `barman-cloud.cloudnative-pg.io`, `barmanObjectName: postgres-pilot-store`, and `serverName: postgres-pilot`. Do not enable WAL archiving to the source prefix from the restored Cluster. Preview with `kubectl diff --server-side -f MANIFEST` before `kubectl apply -f MANIFEST`; check actual recovered rows before considering cleanup. See ADR-0017 and the [Barman plugin recovery example](https://cloudnative-pg.io/plugin-barman-cloud/docs/usage/).
