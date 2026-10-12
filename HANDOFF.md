@@ -11,7 +11,7 @@ Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 | Kubernetes stack | `jaypee-solutions/kubernetes/prod` applied, 133 resources; preview clean after the CNPG backup compatibility update |
 | Add-ons | MetalLB (`10.10.88.1`-`.250`), NFS CSI, cert-manager (DNS-01 via Cloudflare), Traefik at `10.10.88.1`, CloudNativePG operator and Barman plugin, OpenEBS LVM LocalPV, Longhorn 1.13.0 (1 replica, default StorageClass `longhorn`) |
 | TLS / DNS | Wildcard `*.4jp.de` issued by Let's Encrypt; dnsmasq record `k8s-ingress-prod.4jp.de` via the OPNsense API |
-| Storage | `postgres` VG on the WDC 256 GB NVMe (`openebs-lvm-postgres`); Kingston 1 TB NVMe is ext4 at `/var/lib/longhorn` for Longhorn. Both have QuObjects backup targets; PostgreSQL base+WAL and Longhorn disposable backup restores succeeded (ADR-0016, ADR-0017). A temporary PostgreSQL restore Cluster/PVC is still present. |
+| Storage | `postgres` VG on the WDC 256 GB NVMe (`openebs-lvm-postgres`); Kingston 1 TB NVMe is ext4 at `/var/lib/longhorn` for Longhorn. Both have QuObjects backup targets; PostgreSQL base+WAL and Longhorn disposable backup restores succeeded (ADR-0016, ADR-0017). The temporary PostgreSQL restore Cluster/PVC/PV was deleted after explicit approval. |
 | Repo | `svn`, `obsidian`, `ollama`, `ingress`, `s3` (MinIO) workspaces removed; `monitoring`, `backup`, `iot`, `n8n`, `paperless` remain |
 | Inventory | `k0s0` is documented in NetBox (device, `enp6s0` with MAC, `10.10.8.1/16`, platform Ubuntu 24.04), verified 2026-10-11; nodes 2 and 3 need the same records once mapped |
 
@@ -26,7 +26,7 @@ Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 ## Open items
 
 1. Merge PR #8 (`feature/longhorn-quobjects-backups`), then retarget and merge the stacked CloudNativePG PR (`feature/cnpg-quobjects-cluster`). Keep both changes on feature branches and through PRs.
-2. Ask for explicit approval before deleting the temporary `postgres-pilot-restore-20261012` Cluster and its PVC. The failed first CNPG Backup CR is historical evidence. Confirm a scheduled backup and a time-targeted PITR before any application migration; verify the encrypted off-site HBS 3 copy separately.
+2. The failed first CNPG Backup CR remains as historical evidence. Confirm a scheduled backup and a time-targeted PITR before any application migration; verify the encrypted off-site HBS 3 copy separately. The approved temporary restore Cluster/PVC/PV cleanup is complete.
 3. Other stacks still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints); none has been previewed. Each needs a JP mapping first. Paperless migration is not started.
 4. Nodes 2 and 3 are unmapped; Phase 1 is explicitly non-HA. The API endpoint `10.10.8.1` must become a load-balanced VIP before Phase 3 (ADR-0008). Increase Longhorn replicas after node 2 joins.
 5. Public exposure: static IPv4 with Caddy on OPNsense (ADR-0011).
@@ -45,5 +45,5 @@ Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 ## Starter prompt for the next session
 
 ```text
-Continue the bare-metal k0s homelab work. Read HANDOFF.md, AGENTS.md, and .okf/index.md first. The CloudNativePG pilot, Longhorn backups, and a separate PostgreSQL restore have been verified; the restore Cluster and its PVC remain for approved cleanup. First review the stacked PRs (#8 then the CloudNativePG PR) and live backup health without deleting data. Ask before destructive actions, preview before applies, record decisions in ADRs and insights in .okf, and warn before any command that may require biometric approval.
+Continue the bare-metal k0s homelab work. Read HANDOFF.md, AGENTS.md, and .okf/index.md first. The CloudNativePG pilot, Longhorn backups, and a separate PostgreSQL restore have been verified; the test restore Cluster/PVC/PV were removed with explicit approval. First review the stacked PRs (#8 then #9) and live backup health without deleting data. Ask before destructive actions, preview before applies, record decisions in ADRs and insights in .okf, and warn before any command that may require biometric approval.
 ```
