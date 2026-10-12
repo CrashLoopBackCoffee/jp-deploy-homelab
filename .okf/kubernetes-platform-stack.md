@@ -2,7 +2,7 @@
 type: Service
 title: Kubernetes platform stack (Pulumi, prod)
 description: What the Kubernetes Pulumi stack deploys on k0s, how it is configured, and how secrets, DNS, and certificates flow.
-timestamp: 2026-10-11T15:00:00Z
+timestamp: 2026-10-12T00:00:00Z
 tags: [homelab, kubernetes, pulumi, metallb, traefik, cert-manager, cloudnativepg, openebs, longhorn]
 resource: https://app.pulumi.com/jaypee-solutions/kubernetes/prod
 ---
@@ -15,7 +15,7 @@ Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 112 reso
 | --- | --- |
 | MetalLB | L2 pool `10.10.88.1`–`10.10.88.250` (chosen by the user, inside VLAN 10's `/16`) |
 | NFS CSI driver | kubelet dir `/var/lib/k0s/kubelet`; no StorageClass defined |
-| cert-manager | Let's Encrypt ClusterIssuer with DNS-01 through Cloudflare; ACME email `support@jaypee.solutions` (from `Pulumi.prod.yaml`; unconfirmed as the desired contact); self-check forced to `1.1.1.1`/`1.0.0.1` because the LAN resolver answers NXDOMAIN for ACME records |
+| cert-manager | Let's Encrypt ClusterIssuer with DNS-01 through Cloudflare; ACME email `support@jaypee.solutions` (confirmed by the user on 2026-10-12); self-check forced to `1.1.1.1`/`1.0.0.1` because the LAN resolver answers NXDOMAIN for ACME records |
 | Traefik | Service `10.10.88.1`, default TLS store with the wildcard certificate `*.4jp.de`, dnsmasq record `k8s-ingress-prod.4jp.de` |
 | CloudNativePG | Operator only; no database cluster yet |
 | OpenEBS LVM LocalPV | StorageClass `openebs-lvm-postgres` (`volgroup: postgres`, ext4, `WaitForFirstConsumer`, expansion allowed); snapshot CRDs and controller are on |
@@ -32,8 +32,12 @@ Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 112 reso
 
 Local records are dnsmasq host records created through the OPNsense API at `https://router.4jp.de` (`docs/08-Decisions/ADR-0012 - Local DNS records through dnsmasq on OPNsense.md`). The API user needs the privilege "Services: Dnsmasq DNS/DHCP: Settings"; the `OPNsense` item keeps the key in `username` and the secret in `password`. The helper is `utils.opnsense.dnsmasq.host.Host`, used by the kubernetes, paperless, n8n, iot, and monitoring stacks.
 
+# Backup destination decision
+
+The user selected the local QNAP's QuObjects S3-compatible service for Longhorn and CloudNativePG backups. Private buckets named `longhorn-backups` and `cnpg-backups`, and separate scoped access-key items `QuObjects Longhorn Backup` and `QuObjects CNPG Backup` in the `Homelab` vault, were approved but **not created**. An HBS 3 job with client-side encryption to a second, off-site QNAP is the selected secondary copy (ADR-0016). The supplied address `10.10.0.10:8010` responds on HTTPS, but the QNAP's self-signed certificate has no SAN and does not verify for that IP. The user chose a trusted certificate on an as-yet-unspecified DNS name; do not disable TLS verification. Buckets, credentials, the HBS job, and restores are not configured; no backup guarantee exists yet. A direct CNPG Barman Cloud integration to QuObjects supports physical base backups and WAL archiving, unlike plain NFS. The NAS deployment and HBS job remain outside this Pulumi stack.
+
 # Not done yet
 
 - Other stacks (paperless, n8n, monitoring, backup, iot) still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints) and have not been previewed.
-- No CloudNativePG cluster exists; Longhorn has no backup target yet (MinIO was removed, `docs/08-Decisions/ADR-0015 - Remove MinIO and the s3 workspace.md`); public exposure through Caddy on OPNsense is future work.
+- No CloudNativePG cluster exists; Longhorn backups are not configured yet (the QuObjects target has been selected but not provisioned, ADR-0016). Public exposure through Caddy on OPNsense is future work.
 - Related: [k0s0 node](./k0s0-node.md), [cluster plan](./k0s-cluster-plan.md), [operational lessons](./operational-lessons.md).

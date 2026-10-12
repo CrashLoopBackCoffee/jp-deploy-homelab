@@ -1,5 +1,11 @@
 # Update Log
 
+## 2026-10-12
+* **Decision**: The user confirmed `support@jaypee.solutions` as the ACME contact; production configuration is already correct.
+* **Decision**: Selected local QNAP QuObjects S3 as the primary target for Longhorn and CloudNativePG, with a second QNAP receiving a client-side encrypted HBS 3 backup (ADR-0016). NFS and Hetzner/IDrive alternatives were considered. Approved private bucket names `longhorn-backups` and `cnpg-backups` and scoped access-key item titles in ADR-0016; neither buckets nor keys exist yet.
+* **Verification**: Read-only `kubectl get nodes,storageclass` through `direnv exec .` showed `k0s0` Ready and `openebs-lvm-postgres` present on 2026-10-12; no backup resources were applied.
+* **Observation**: The user supplied QuObjects address `10.10.0.10:8010`. HTTPS responds, but the self-signed certificate subject `QNAP NAS` has no SAN and fails hostname verification; HTTP resets. A read-only HTTPS probe with validation disabled returned 404, which only establishes reachability. The user chose a trusted certificate for a DNS name yet to be supplied; do not disable TLS verification for backups.
+
 ## 2026-10-11
 * **Update**: Committed `services/`, tooling, docs, and OKF notes on `feature/track-k0s-services` (`4766a01`); paperless and monitoring `Pulumi.prod.yaml` stay untracked (donor ciphertext). `docs/.claude/` (nested worktree) is git-ignored and yamllint skips `apm.lock.yaml`, `apm_modules`, `.agents`, `.claude`, and `docs/.claude`; `alloy` was installed with brew for the format hook.
 * **Decision**: Agent skills under `.agents/skills/` and `.claude/skills/` are managed by APM (`apm.yml`, `apm.lock.yaml`) and must not be committed. They were committed by mistake in `4766a01` and untracked afterwards; the paths are git-ignored.
