@@ -1,6 +1,6 @@
 # Handoff: bare-metal k0s homelab
 
-Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) and decisions in `docs/08-Decisions/` (ADR-0004 to ADR-0017). Read `AGENTS.md` first.
+Last updated: 2026-10-13. Knowledge lives in `.okf/` (start at `.okf/index.md`) and decisions in `docs/08-Decisions/` (ADR-0004 to ADR-0018). Read `AGENTS.md` first.
 
 ## Where things stand
 
@@ -26,8 +26,8 @@ Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 
 ## Open items
 
-1. Confirm the first scheduled Longhorn and CloudNativePG backups actually run and can be restored. The first immediate CNPG Backup CR failed before the QuObjects checksum fix and remains as historical evidence; a later on-demand backup and independent restore succeeded.
-2. Verify time-targeted PostgreSQL PITR before any application migration, and the encrypted off-site HBS 3 backup and restore separately. The temporary restore Cluster/PVC/PV was removed after explicit approval.
+1. The first scheduled CloudNativePG backup ran (`postgres-pilot-backup-20261013030000`, completed 2026-10-13 03:00 UTC). Longhorn's scheduled job has not been exercised: no Longhorn volumes exist yet. Verify it with the first real Longhorn workload volume.
+2. ADR-0018 (proposed) defines the time-targeted PITR test and the HBS 3 off-site acceptance criteria. Both must pass before any application migration. The PITR test needs user approval, a Cluster preview, and later an approved cleanup; the HBS part needs user action on the QNAPs.
 3. Other stacks still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints); none has been previewed. Each needs a JP mapping first. Paperless migration is not started.
 4. Nodes 2 and 3 are unmapped; Phase 1 is explicitly non-HA. The API endpoint `10.10.8.1` must become a load-balanced VIP before Phase 3 (ADR-0008). Increase Longhorn replicas after node 2 joins.
 5. Public exposure: static IPv4 with Caddy on OPNsense (ADR-0011).

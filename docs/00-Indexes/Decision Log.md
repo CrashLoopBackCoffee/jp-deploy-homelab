@@ -29,3 +29,5 @@ updated: 2026-10-12
 | [[ADR-0014 - Longhorn on a dedicated ext4 data disk]] | accepted | Longhorn on the whole Kingston NVMe (ext4, `/var/lib/longhorn`), one replica until node 2, installed as a Helm Release |
 | [[ADR-0015 - Remove MinIO and the s3 workspace]] | accepted | MinIO is deprecated and the QNAP has its own deploy repo: removed `services/s3`, `pulumi-minio` and the legacy Mimir |
 | [[ADR-0016 - QuObjects backup target and encrypted offsite copy]] | accepted | Local QNAP QuObjects S3 for Longhorn and PostgreSQL; second QNAP via client-side encrypted HBS 3 backup, pending validation |
+| [[ADR-0017 - First CloudNativePG cluster and QuObjects recovery]] | accepted | Single-instance `postgres-pilot` with Barman plugin backups and WAL archiving to QuObjects; latest-state restore verified |
+| [[ADR-0018 - PostgreSQL PITR and off-site recovery acceptance]] | proposed | Acceptance tests for time-targeted PITR and the encrypted HBS 3 off-site copy before any application migration |

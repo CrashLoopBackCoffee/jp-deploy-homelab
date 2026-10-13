@@ -14,8 +14,18 @@ resource: https://app.pulumi.com/jaypee-solutions/kubernetes/prod
 # Verified recovery (2026-10-12)
 
 - QuObjects returned `InvalidDigest` for both `PutObject` WAL and base-backup uploads. Barman's documented S3-compatibility settings `AWS_REQUEST_CHECKSUM_CALCULATION=when_required` and `AWS_RESPONSE_CHECKSUM_VALIDATION=when_required` are set on the `ObjectStore` instance sidecar; TLS verification remains enabled. An `ObjectStore` update alone does **not** update an existing Pod's environment. After the previewed Pulumi update, a CNPG-managed `kubectl cnpg restart postgres-pilot -n postgres-pilot` replaced the pilot Pod and WAL archiving recovered. Do not delete the Pod directly just to refresh plugin settings.
-- The completed Barman base backup contains `postgres.recovery_probe` row 1 (`qnap-cnpg-restore-20261012`). Row 2 (`qnap-cnpg-wal-restore-20261012`) was inserted **after** the backup; a WAL switch archived the segment containing it. The independent Cluster `postgres-pilot-restore-20261012` recovered the most recent backup plus WAL from the source ObjectStore and returned **both** rows. Its 2 GiB PVC was Bound on `openebs-lvm-postgres` during the test; the source Cluster and PVC remained unchanged.
-- This proves latest-state base-backup + WAL recovery, not recovery to a specified point in time, retention after 14 days, scheduled execution, or an encrypted off-site HBS copy. After explicit user approval and a server-side delete dry run, the temporary restore Cluster was deleted; its owned PVC and PV were reclaimed. The failed initial Backup CR is historical evidence, not a successful backup.
+- The completed Barman base backup contains `public.recovery_probe` row 1 (`qnap-cnpg-restore-20261012`). Row 2 (`qnap-cnpg-wal-restore-20261012`) was inserted **after** the backup; a WAL switch archived the segment containing it. The independent Cluster `postgres-pilot-restore-20261012` recovered the most recent backup plus WAL from the source ObjectStore and returned **both** rows. Its 2 GiB PVC was Bound on `openebs-lvm-postgres` during the test; the source Cluster and PVC remained unchanged.
+- This proves latest-state base-backup + WAL recovery, not recovery to a specified point in time, retention after 14 days, or an encrypted off-site HBS copy. After explicit user approval and a server-side delete dry run, the temporary restore Cluster was deleted; its owned PVC and PV were reclaimed. The failed initial Backup CR is historical evidence, not a successful backup.
+
+# Scheduled backup evidence (2026-10-13)
+
+`postgres-pilot-backup-20261013030000` (ID `20261013T030000`) ran from the `ScheduledBackup` at 03:00 UTC and completed in about 4 s; the plugin log shows `barman-cloud-backup` start/complete, and the ObjectStore status reports `lastSuccessfulBackupTime` `2026-10-13T03:00:00Z` and `firstRecoverabilityPoint` `2026-10-12T18:36:24Z`. `pg_stat_archiver` shows continuous WAL archiving (last segment `...0A` at 03:05; the 21 failures are the pre-fix `InvalidDigest` period). The backup status records `startedAt`/`stoppedAt` to the second only, so use the plugin log for duration. The 14-day retention task runs every 30 minutes but nothing is old enough to prune yet.
+
+Longhorn's `longhorn-daily-backup` RecurringJob (`0 2 * * *`, 14 retained) exists and the target is Available, but there are **no Longhorn volumes**, so the scheduled job has produced no backup; it is unverified until a real volume joins the `default` group.
+
+# Next verification
+
+Time-targeted PITR and the encrypted off-site HBS restore follow the procedure and acceptance criteria in ADR-0018 (proposed).
 
 # Operations
 

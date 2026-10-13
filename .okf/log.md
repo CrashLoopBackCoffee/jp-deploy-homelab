@@ -1,5 +1,9 @@
 # Update Log
 
+## 2026-10-13
+* **Verification**: First scheduled CloudNativePG backup `postgres-pilot-backup-20261013030000` (ID `20261013T030000`) completed at 03:00 UTC; ObjectStore reports it as `lastSuccessfulBackupTime`, archiving is healthy, the cluster is healthy. Longhorn's `longhorn-daily-backup` has produced nothing because no Longhorn volumes exist, so its scheduled run is unverified.
+* **Decision (proposed)**: ADR-0018 defines the PITR acceptance test (marker rows around a target time, separate restore Cluster, third row must be absent) and off-site HBS 3 criteria (client-side encryption, deletion-resistant retention, restore into a new bucket then recover a temp Cluster). Awaiting user approval before running.
+
 ## 2026-10-12
 * **Decision**: The user confirmed `support@jaypee.solutions` as the ACME contact; production configuration is already correct.
 * **Decision**: Selected local QNAP QuObjects S3 for Longhorn and CloudNativePG, with a second QNAP receiving a client-side encrypted HBS 3 copy (ADR-0016); considered NFS, Hetzner and IDrive. The private buckets `longhorn-backups` and `cnpg-backups` and separate access-key items now exist; read-only credentialed bucket probes succeeded, but cross-bucket access denial is not yet verified.
