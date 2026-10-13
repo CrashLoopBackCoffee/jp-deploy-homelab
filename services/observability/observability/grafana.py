@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 import pulumi as p
@@ -52,6 +53,10 @@ NOTIFICATION_POLICIES = {
 }
 
 
+def _checksum(files: dict[str, str]) -> str:
+    return hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
+
+
 def create_grafana(
     component_config: ComponentConfig,
     k8s_opts: p.ResourceOptions,
@@ -72,13 +77,14 @@ def create_grafana(
         },
         opts=k8s_opts,
     )
+    alerting_files = {
+        'contact-points.yaml': json.dumps(CONTACT_POINTS, indent=2),
+        'policies.yaml': json.dumps(NOTIFICATION_POLICIES, indent=2),
+        'rules.yaml': json.dumps(alert_rules.provisioning(), indent=2),
+    }
     alerting = k8s.core.v1.ConfigMap(
         'grafana-alerting-provisioning',
-        data={
-            'contact-points.yaml': json.dumps(CONTACT_POINTS, indent=2),
-            'policies.yaml': json.dumps(NOTIFICATION_POLICIES, indent=2),
-            'rules.yaml': json.dumps(alert_rules.provisioning(), indent=2),
-        },
+        data=alerting_files,
         opts=k8s_opts,
     )
     dashboard_files = k8s.core.v1.ConfigMap(
@@ -104,6 +110,8 @@ def create_grafana(
                 'analytics': {'reporting_enabled': False, 'check_for_updates': False},
             },
             'testFramework': {'enabled': False},
+            # Grafana reads alerting provisioning only at startup, so changed content rolls the pod.
+            'podAnnotations': {'checksum/provisioning': _checksum(alerting_files)},
             'datasources': {
                 'datasources.yaml': {
                     'apiVersion': 1,

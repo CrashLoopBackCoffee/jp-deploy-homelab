@@ -27,7 +27,7 @@ config:
     grafana:
       # renovate: datasource=helm registryUrl=https://grafana-community.github.io/helm-charts packageName=grafana versioning=helm
       version: 13.5.1
-      host: grafana
+      host: g
       storage-size-gb: 2
       pushover:
         # username holds the Pushover user key, password the application API token

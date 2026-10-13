@@ -28,7 +28,7 @@ class PushoverConfig(utils.model.LocalBaseModel):
 
 
 class GrafanaConfig(ChartConfig):
-    # Hostname below the zone, e.g. `grafana` for grafana.4jp.de
+    # Hostname below the zone, e.g. `g` for g.4jp.de
     host: str
     storage_size_gb: int
     pushover: PushoverConfig

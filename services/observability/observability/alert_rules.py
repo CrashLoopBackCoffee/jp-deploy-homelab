@@ -11,12 +11,15 @@ MIMIR_DATASOURCE_UID = 'mimir'
 FOLDER = 'Homelab'
 EXPRESSION_DATASOURCE = {'type': '__expr__', 'uid': '__expr__'}
 
-# Longhorn volume robustness: 0 unknown, 1 healthy, 2 degraded, 3 faulted.
-# Longhorn backup state: 4 is error.
+# Longhorn exposes volume robustness as one 0/1 series per state, and its backup target as a
+# 0/1 `unavailable` condition.
 # Node filesystems below k0s' kubelet directory are per-pod mounts, not capacity concerns.
 _NODE_FILESYSTEM = (
     'fstype=~"ext4|xfs|btrfs", mountpoint!~"/var/lib/(k0s|kubelet)/.*", mountpoint!~"/run/.*"'
 )
+
+# Grafana never deletes a provisioned rule just because its file entry disappeared.
+REMOVED_RULE_UIDS = ('longhorn-backup-failed',)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -86,7 +89,7 @@ RULES = [
     AlertRule(
         uid='longhorn-volume-unhealthy',
         title='Longhorn volume degraded or faulted',
-        expr='longhorn_volume_robustness > bool 1',
+        expr='longhorn_volume_robustness{state=~"degraded|faulted"} == bool 1',
         summary='Longhorn volume {{ $labels.volume }} is degraded or faulted',
         severity='critical',
     ),
@@ -98,11 +101,21 @@ RULES = [
         for_='15m',
     ),
     AlertRule(
-        uid='longhorn-backup-failed',
-        title='Longhorn backup failed',
-        expr='longhorn_backup_state == bool 4',
-        summary='Longhorn backup of volume {{ $labels.volume }} is in error state',
-        for_='1m',
+        uid='longhorn-backup-target-unavailable',
+        title='Longhorn backup target unavailable',
+        expr='longhorn_backup_target_status{condition="unavailable"} == bool 1',
+        summary='Longhorn backup target {{ $labels.backup_target }} is unavailable',
+        for_='10m',
+        severity='critical',
+    ),
+    AlertRule(
+        uid='longhorn-volume-backup-stale',
+        title='Longhorn volume not backed up for 30 hours',
+        expr='(time() - longhorn_volume_last_backup_at) > bool 108000',
+        # A value of 0 means never backed up. A new volume therefore stays pending until the
+        # first nightly job has run, so the delay must exceed the 24 hour job interval.
+        summary='Volume {{ $labels.pvc_namespace }}/{{ $labels.pvc }} has no recent Longhorn backup',
+        for_='26h',
         severity='critical',
     ),
     AlertRule(
@@ -197,6 +210,7 @@ def provisioning() -> dict[str, t.Any]:
     """Alert rule provisioning document (apiVersion 1 file format)."""
     return {
         'apiVersion': 1,
+        'deleteRules': [{'orgId': 1, 'uid': uid} for uid in REMOVED_RULE_UIDS],
         'groups': [
             {
                 'orgId': 1,

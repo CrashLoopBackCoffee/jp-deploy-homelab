@@ -135,6 +135,13 @@ discovery.relabel "metrics_pods" {
 		action        = "keep"
 	}
 
+	// The nginx gateways of Loki and Mimir name their proxy port `http-metrics`, but serve no metrics.
+	rule {
+		source_labels = ["__meta_kubernetes_pod_container_name"]
+		regex         = "gateway|nginx"
+		action        = "drop"
+	}
+
 	rule {
 		source_labels = ["__meta_kubernetes_namespace"]
 		target_label  = "namespace"
@@ -158,6 +165,18 @@ discovery.relabel "metrics_pods" {
 
 	rule {
 		source_labels = ["__meta_kubernetes_pod_label_app"]
+		regex         = "(.+)"
+		target_label  = "app"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_label_k8s_app"]
+		regex         = "(.+)"
+		target_label  = "app"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_label_cnpg_io_cluster"]
 		regex         = "(.+)"
 		target_label  = "app"
 	}

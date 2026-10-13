@@ -129,9 +129,10 @@ BACKUP_PANELS = [
         legend='{{node}} {{disk}}',
     ),
     Panel(
-        'Longhorn volume robustness (1 healthy, 2 degraded, 3 faulted)',
-        'longhorn_volume_robustness',
-        legend='{{volume}}',
+        'Longhorn volume backup age',
+        'time() - longhorn_volume_last_backup_at',
+        's',
+        legend='{{pvc_namespace}}/{{pvc}}',
     ),
 ]
 

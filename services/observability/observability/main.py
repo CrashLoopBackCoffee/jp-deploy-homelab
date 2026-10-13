@@ -6,6 +6,7 @@ from observability.config import ComponentConfig
 from observability.exporters import create_kube_state_metrics, create_node_exporter
 from observability.grafana import create_grafana
 from observability.loki import create_loki
+from observability.longhorn_access import create_longhorn_metrics_access
 from observability.mimir import create_mimir
 
 
@@ -31,4 +32,5 @@ def main():
     create_node_exporter(component_config, k8s_opts)
     alloy = create_alloy(component_config, k8s_opts, depends_on=[loki, mimir])
     create_node_proxy_access(k8s_opts, alloy)
+    create_longhorn_metrics_access(k8s_provider)
     create_grafana(component_config, k8s_opts, depends_on=[loki, mimir])

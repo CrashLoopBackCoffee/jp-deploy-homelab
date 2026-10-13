@@ -9,4 +9,5 @@ okf_version: "0.1"
 * [k0s0 (Node 1)](k0s0-node.md) - identity, access accounts, disks and their roles, and the preparation done outside Pulumi.
 * [Kubernetes platform stack](kubernetes-platform-stack.md) - add-ons deployed by the prod Pulumi stack, configuration mapping, secrets flow, and local DNS.
 * [PostgreSQL pilot recovery](postgres-pilot-recovery.md) - QuObjects Barman backup settings, WAL recovery evidence, and safe follow-up operations.
+* [Observability stack](observability-stack.md) - LGTM on k0s, Grafana at g.4jp.de, Pushover alert routing, verification evidence, and metric and provisioning pitfalls.
 * [Operational lessons](operational-lessons.md) - pitfalls from the first rollout with the rule for each, plus suggested standing agent instructions.
