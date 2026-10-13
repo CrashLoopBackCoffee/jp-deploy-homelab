@@ -1,0 +1,43 @@
+config:
+  observability:config:
+    kubeconfig:
+      ref: op://Homelab/Kubeconfig prod/password
+    zone: 4jp.de
+    loki:
+      # renovate: datasource=helm registryUrl=https://grafana-community.github.io/helm-charts packageName=loki versioning=helm
+      version: 18.15.1
+      retention-days: 30
+      storage-size-gb: 10
+    mimir:
+      # renovate: datasource=helm registryUrl=https://grafana.github.io/helm-charts packageName=mimir-distributed versioning=helm
+      version: 6.2.1
+      retention-days: 30
+      endpoint: qnap.4jp.de:8443
+      bucket: mimir-metrics
+      access-key-id:
+        ref: op://Homelab/QuObjects Mimir Metrics/username
+      secret-access-key:
+        ref: op://Homelab/QuObjects Mimir Metrics/password
+      ingester-storage-size-gb: 10
+      store-gateway-storage-size-gb: 5
+      compactor-storage-size-gb: 10
+    alloy:
+      # renovate: datasource=helm registryUrl=https://grafana.github.io/helm-charts packageName=alloy versioning=helm
+      version: 1.13.1
+    grafana:
+      # renovate: datasource=helm registryUrl=https://grafana-community.github.io/helm-charts packageName=grafana versioning=helm
+      version: 13.5.1
+      host: grafana
+      storage-size-gb: 2
+      pushover:
+        # username holds the Pushover user key, password the application API token
+        user-key:
+          ref: op://Homelab/Pushover Grafana/username
+        api-token:
+          ref: op://Homelab/Pushover Grafana/password
+    kube-state-metrics:
+      # renovate: datasource=helm registryUrl=https://prometheus-community.github.io/helm-charts packageName=kube-state-metrics versioning=helm
+      version: 8.6.0
+    node-exporter:
+      # renovate: datasource=helm registryUrl=https://prometheus-community.github.io/helm-charts packageName=prometheus-node-exporter versioning=helm
+      version: 4.59.0

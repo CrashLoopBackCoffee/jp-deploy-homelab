@@ -1,0 +1,9 @@
+name: observability
+pulumi:disable-default-providers:
+  - kubernetes
+runtime:
+  name: python
+  options:
+    toolchain: uv
+    virtualenv: ../../.venv
+description: LGTM observability stack for the k0s cluster

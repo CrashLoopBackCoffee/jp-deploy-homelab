@@ -1,0 +1,59 @@
+import utils.model
+
+
+class ChartConfig(utils.model.LocalBaseModel):
+    version: str
+
+
+class LokiConfig(ChartConfig):
+    retention_days: int
+    storage_size_gb: int
+
+
+class MimirConfig(ChartConfig):
+    retention_days: int
+    # S3 endpoint as host:port without scheme; TLS is always on.
+    endpoint: str
+    bucket: str
+    access_key_id: utils.model.OnePasswordRef
+    secret_access_key: utils.model.OnePasswordRef
+    ingester_storage_size_gb: int
+    store_gateway_storage_size_gb: int
+    compactor_storage_size_gb: int
+
+
+class PushoverConfig(utils.model.LocalBaseModel):
+    api_token: utils.model.OnePasswordRef
+    user_key: utils.model.OnePasswordRef
+
+
+class GrafanaConfig(ChartConfig):
+    # Hostname below the zone, e.g. `grafana` for grafana.4jp.de
+    host: str
+    storage_size_gb: int
+    pushover: PushoverConfig
+
+
+class ComponentConfig(utils.model.LocalBaseModel):
+    kubeconfig: utils.model.OnePasswordRef
+    # DNS zone for the local records and the ingress hostname
+    zone: str
+    loki: LokiConfig
+    mimir: MimirConfig
+    alloy: ChartConfig
+    grafana: GrafanaConfig
+    kube_state_metrics: ChartConfig
+    node_exporter: ChartConfig
+
+
+class StackConfig(utils.model.LocalBaseModel):
+    model_config = {
+        'alias_generator': lambda field_name: (
+            f'{utils.model.get_pulumi_project(__file__)}:{field_name}'
+        )
+    }
+    config: ComponentConfig
+
+
+class PulumiConfigRoot(utils.model.LocalBaseModel):
+    config: StackConfig
