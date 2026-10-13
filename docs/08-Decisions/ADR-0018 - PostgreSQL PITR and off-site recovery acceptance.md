@@ -47,7 +47,7 @@ Accepted on 2026-10-13 after the user approved the PITR test. The PITR check is 
 
 ## Verification
 
-**PITR (2026-10-13):** rows 3 and 4 were inserted, the database clock was read as `T = 2026-10-13 17:47:43.010934+00`, then row 5 was inserted, followed by `pg_switch_wal()`; segment `00000001000000000000000D` was archived with `failed_count` unchanged. The temporary Cluster `postgres-pilot-pitr-20261013` (2 GiB on `openebs-lvm-postgres`, no WAL archiver plugin, server-side diff showed a pure create) recovered with `targetTime = T` and returned rows 1–4 and **not** row 5, with `pg_is_in_recovery()` false. The source pilot kept all 5 rows and `ContinuousArchiving=True`. The temporary Cluster and PVC remain until the user approves deleting them.
+**PITR (2026-10-13):** rows 3 and 4 were inserted, the database clock was read as `T = 2026-10-13 17:47:43.010934+00`, then row 5 was inserted, followed by `pg_switch_wal()`; segment `00000001000000000000000D` was archived with `failed_count` unchanged. The temporary Cluster `postgres-pilot-pitr-20261013` (2 GiB on `openebs-lvm-postgres`, no WAL archiver plugin, server-side diff showed a pure create) recovered with `targetTime = T` and returned rows 1–4 and **not** row 5, with `pg_is_in_recovery()` false. The source pilot kept all 5 rows and `ContinuousArchiving=True`. After the user's explicit approval and a `--dry-run=server` delete, only the temporary Cluster was deleted; its owned PVC and `Delete`-policy PV were reclaimed and the pilot is unchanged.
 
 ## References
 

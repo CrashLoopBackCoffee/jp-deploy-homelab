@@ -25,7 +25,7 @@ Longhorn's `longhorn-daily-backup` RecurringJob (`0 2 * * *`, 14 retained) exist
 
 # Verified time-targeted PITR (2026-10-13)
 
-Rows 3 and 4 were written, then `T = 2026-10-13 17:47:43.010934+00` was read from `clock_timestamp()`, then row 5, then `pg_switch_wal()` and a confirmed archive of segment `…0D`. Cluster `postgres-pilot-pitr-20261013` with `bootstrap.recovery.recoveryTarget.targetTime: "<T>"` (source `externalClusters` plugin entry, no archiver plugin of its own) became Ready in about 50 s and held rows 1–4 and **not** row 5. A target later than the last archived WAL cannot be reached, so always switch and confirm archival before restoring. The PITR restore reuses the Operations manifest below with `recoveryTarget` added. Pass `-i` to `kubectl exec` when feeding psql via a heredoc; without it stdin is dropped and nothing runs, silently.
+Rows 3 and 4 were written, then `T = 2026-10-13 17:47:43.010934+00` was read from `clock_timestamp()`, then row 5, then `pg_switch_wal()` and a confirmed archive of segment `…0D`. Cluster `postgres-pilot-pitr-20261013` with `bootstrap.recovery.recoveryTarget.targetTime: "<T>"` (source `externalClusters` plugin entry, no archiver plugin of its own) became Ready in about 50 s and held rows 1–4 and **not** row 5. A target later than the last archived WAL cannot be reached, so always switch and confirm archival before restoring. The PITR restore reuses the Operations manifest below with `recoveryTarget` added. Pass `-i` to `kubectl exec` when feeding psql via a heredoc; without it stdin is dropped and nothing runs, silently. After approval and a server-side delete dry run, the temporary Cluster was deleted and its PVC/PV reclaimed automatically; the pilot kept its 5 rows.
 
 # Next verification
 
