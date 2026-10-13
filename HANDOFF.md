@@ -1,6 +1,6 @@
 # Handoff: bare-metal k0s homelab
 
-Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) and decisions in `docs/08-Decisions/` (ADR-0004 to ADR-0017). Read `AGENTS.md` first.
+Last updated: 2026-10-13. Knowledge lives in `.okf/` (start at `.okf/index.md`) and decisions in `docs/08-Decisions/` (ADR-0004 to ADR-0018). Read `AGENTS.md` first.
 
 ## Where things stand
 
@@ -26,8 +26,8 @@ Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 
 ## Open items
 
-1. Confirm the first scheduled Longhorn and CloudNativePG backups actually run and can be restored. The first immediate CNPG Backup CR failed before the QuObjects checksum fix and remains as historical evidence; a later on-demand backup and independent restore succeeded.
-2. Verify time-targeted PostgreSQL PITR before any application migration, and the encrypted off-site HBS 3 backup and restore separately. The temporary restore Cluster/PVC/PV was removed after explicit approval.
+1. The first scheduled CloudNativePG backup ran (`postgres-pilot-backup-20261013030000`, completed 2026-10-13 03:00 UTC). Longhorn's scheduled job has not been exercised: no Longhorn volumes exist yet. Verify it with the first real Longhorn workload volume.
+2. ADR-0018 (accepted): time-targeted PITR is **verified** on the pilot (2026-10-13) and its temporary restore Cluster/PVC/PV were removed with explicit approval. The encrypted HBS 3 off-site backup and restore are deferred by the user and must pass before any application migration.
 3. Other stacks still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints); none has been previewed. Each needs a JP mapping first. Paperless migration is not started.
 4. Nodes 2 and 3 are unmapped; Phase 1 is explicitly non-HA. The API endpoint `10.10.8.1` must become a load-balanced VIP before Phase 3 (ADR-0008). Increase Longhorn replicas after node 2 joins.
 5. Public exposure: static IPv4 with Caddy on OPNsense (ADR-0011).
@@ -46,5 +46,5 @@ Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 ## Starter prompt for the next session
 
 ```text
-Continue the bare-metal k0s homelab work. Read HANDOFF.md, AGENTS.md, and .okf/index.md first. Longhorn backups (PR #8) and the CloudNativePG pilot (PR #9) are merged into local `main`. The pilot's base backup and archived WAL passed an independent restore; the temporary restore Cluster/PVC/PV were removed with explicit approval. Start by checking actual scheduled backup results, then plan time-targeted PITR and encrypted off-site HBS 3 recovery before migrating applications. Ask before destructive actions, preview before applies, record decisions in ADRs and insights in .okf, and warn before any command that may require biometric approval.
+Continue the bare-metal k0s homelab work. Read HANDOFF.md, AGENTS.md, and .okf/index.md first. Longhorn backups (PR #8) and the CloudNativePG pilot (PR #9) are merged into local `main`. The pilot has a verified scheduled backup, a base-backup-plus-WAL restore, and a time-targeted PITR restore (ADR-0018); the temporary restore resources were removed with explicit approval. Next: the encrypted off-site HBS 3 backup and restore test (needs the user on the QNAPs), then plan the Paperless migration. Ask before destructive actions, preview before applies, record decisions in ADRs and insights in .okf, and warn before any command that may require biometric approval.
 ```
