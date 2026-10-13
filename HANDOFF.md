@@ -27,7 +27,7 @@ Last updated: 2026-10-13. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 ## Open items
 
 1. The first scheduled CloudNativePG backup ran (`postgres-pilot-backup-20261013030000`, completed 2026-10-13 03:00 UTC). Longhorn's scheduled job has not been exercised: no Longhorn volumes exist yet. Verify it with the first real Longhorn workload volume.
-2. ADR-0018 (proposed) defines the time-targeted PITR test and the HBS 3 off-site acceptance criteria. Both must pass before any application migration. The PITR test needs user approval, a Cluster preview, and later an approved cleanup; the HBS part needs user action on the QNAPs.
+2. ADR-0018 (accepted): time-targeted PITR is **verified** on the pilot (2026-10-13). The temporary restore Cluster `postgres-pilot-pitr-20261013` and its PVC still exist awaiting the user's approval to delete; delete with a `--dry-run=server` first. The encrypted HBS 3 off-site backup and restore are deferred by the user and must pass before any application migration.
 3. Other stacks still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints); none has been previewed. Each needs a JP mapping first. Paperless migration is not started.
 4. Nodes 2 and 3 are unmapped; Phase 1 is explicitly non-HA. The API endpoint `10.10.8.1` must become a load-balanced VIP before Phase 3 (ADR-0008). Increase Longhorn replicas after node 2 joins.
 5. Public exposure: static IPv4 with Caddy on OPNsense (ADR-0011).

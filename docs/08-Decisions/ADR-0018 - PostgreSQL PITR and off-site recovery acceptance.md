@@ -6,7 +6,7 @@ tags:
   - postgresql
   - backup
 type: adr
-status: proposed
+status: accepted
 date: 2026-10-13
 created: 2026-10-13
 updated: 2026-10-13
@@ -17,7 +17,7 @@ adr: 18
 
 ## Status
 
-Proposed on 2026-10-13. Becomes accepted when the user approves the test procedure; becomes *verified* only when each acceptance check below has been observed. No application database migrates before both checks pass.
+Accepted on 2026-10-13 after the user approved the PITR test. The PITR check is **verified** (see Verification); the HBS 3 off-site check is deferred by the user and remains unverified. No application database migrates before it passes.
 
 ## Context
 
@@ -41,9 +41,13 @@ Proposed on 2026-10-13. Becomes accepted when the user approves the test procedu
 
 ## Consequences
 
-- The PITR test mutates the pilot only by inserting three tiny rows. The restore Cluster costs one 2 GiB LVM volume while it exists.
+- The PITR test mutated the pilot only by inserting three tiny rows (probe IDs 3–5, which stay in the pilot). The restore Cluster costs one 2 GiB LVM volume while it exists.
 - The off-site test needs user actions on the QNAP side (new restore bucket, scoped key stored in the `Homelab` vault, HBS job runs). These cannot be previewed with Pulumi; each is described to the user before it is needed.
 - Until both checks pass, the pilot is recoverable from a same-site failure only in the sense of ADR-0017; loss of the QNAP loses all backups.
+
+## Verification
+
+**PITR (2026-10-13):** rows 3 and 4 were inserted, the database clock was read as `T = 2026-10-13 17:47:43.010934+00`, then row 5 was inserted, followed by `pg_switch_wal()`; segment `00000001000000000000000D` was archived with `failed_count` unchanged. The temporary Cluster `postgres-pilot-pitr-20261013` (2 GiB on `openebs-lvm-postgres`, no WAL archiver plugin, server-side diff showed a pure create) recovered with `targetTime = T` and returned rows 1–4 and **not** row 5, with `pg_is_in_recovery()` false. The source pilot kept all 5 rows and `ContinuousArchiving=True`. The temporary Cluster and PVC remain until the user approves deleting them.
 
 ## References
 

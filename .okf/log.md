@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-13
+* **Verification**: User approved and ran the PITR test (ADR-0018, now accepted). Rows 3, 4 written, target time `2026-10-13 17:47:43.010934+00`, row 5 after, WAL switch archived segment `…0D`. Temporary Cluster `postgres-pilot-pitr-20261013` (server-side diff preview, then apply) recovered rows 1–4 and not row 5; the source pilot is unchanged (5 rows, archiving True). The first heredoc attempt silently did nothing because `kubectl exec` lacked `-i`; no rows were written by it. HBS off-site copy deferred by the user. Restore Cluster remains pending approved cleanup.
 * **Verification**: First scheduled CloudNativePG backup `postgres-pilot-backup-20261013030000` (ID `20261013T030000`) completed at 03:00 UTC; ObjectStore reports it as `lastSuccessfulBackupTime`, archiving is healthy, the cluster is healthy. Longhorn's `longhorn-daily-backup` has produced nothing because no Longhorn volumes exist, so its scheduled run is unverified.
 * **Decision (proposed)**: ADR-0018 defines the PITR acceptance test (marker rows around a target time, separate restore Cluster, third row must be absent) and off-site HBS 3 criteria (client-side encryption, deletion-resistant retention, restore into a new bucket then recover a temp Cluster). Awaiting user approval before running.
 
