@@ -31,3 +31,4 @@ updated: 2026-10-12
 | [[ADR-0016 - QuObjects backup target and encrypted offsite copy]] | accepted | Local QNAP QuObjects S3 for Longhorn and PostgreSQL; second QNAP via client-side encrypted HBS 3 backup, pending validation |
 | [[ADR-0017 - First CloudNativePG cluster and QuObjects recovery]] | accepted | Single-instance `postgres-pilot` with Barman plugin backups and WAL archiving to QuObjects; latest-state restore verified |
 | [[ADR-0018 - PostgreSQL PITR and off-site recovery acceptance]] | accepted | Time-targeted PITR verified on the pilot; encrypted HBS 3 off-site copy deferred and unverified |
+| [[ADR-0019 - LGTM observability stack on k0s]] | accepted | Loki, Mimir (blocks in QuObjects), Grafana and Alloy in a separate `observability` Pulumi project; Grafana at `g.4jp.de`, alerts provisioned from code and delivered by Pushover |

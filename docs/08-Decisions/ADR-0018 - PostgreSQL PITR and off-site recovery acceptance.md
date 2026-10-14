@@ -17,7 +17,7 @@ adr: 18
 
 ## Status
 
-Accepted on 2026-10-13 after the user approved the PITR test. The PITR check is **verified** (see Verification); the HBS 3 off-site check is deferred by the user and remains unverified. No application database migrates before it passes.
+Accepted on 2026-10-13 after the user approved the PITR test. The PITR check is **verified** (see Verification). The HBS 3 off-site check is deferred by the user because the remote NAS is offline and its reconfiguration still has to be scheduled; it remains unverified. No application database migrates before it passes. The user chose to continue with monitoring meanwhile ([[ADR-0019 - LGTM observability stack on k0s]]).
 
 ## Context
 

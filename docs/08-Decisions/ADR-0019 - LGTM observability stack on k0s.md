@@ -45,6 +45,8 @@ The k0s cluster has no monitoring. Backups, WAL archiving, certificates, storage
 
 Applied 2026-10-13 after a create-only preview of 21 resources; follow-up updates were each previewed. All pods Running, 29 scrape targets up, Loki and Mimir queryable through Grafana, a flushed Mimir block present in the `mimir-metrics` bucket (no checksum errors), 15 provisioned alert rules healthy against live series, and a Pushover test notification returned `success`. Findings that changed the design: Longhorn's chart NetworkPolicies blocked metric scraping, so an additive policy admits Alloy to the manager only; Longhorn 1.13's metrics differ from older docs (rules rewritten and every expression checked against live data); the Barman plugin leaves CloudNativePG's own backup metrics at 0, so backup freshness uses kube-state-metrics custom-resource metrics. Not yet exercised: the store-gateway read path for aged blocks, and the first scheduled Longhorn backup of these volumes (02:00 UTC). See `.okf/observability-stack.md`.
 
+Update 2026-10-14: the first scheduled Longhorn backups ran at 02:00 UTC and completed for all five observability volumes; no alert fired. A restore from them is untested.
+
 ## Alternatives considered
 
 - kube-prometheus-stack: the standard Kubernetes choice with bundled rules, but the user asked for the donors' LGTM layout.

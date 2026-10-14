@@ -26,6 +26,7 @@ Alerting cannot report its own failure: if Grafana, Alloy or Mimir is down, noth
 - All 16 pods Running; 29 scrape targets, none down, across apiserver, kubelet, cAdvisor, kube-state-metrics, node-exporter, CoreDNS, cert-manager, CloudNativePG, Traefik, MetalLB, Longhorn, Loki, Mimir, Grafana and Alloy.
 - QuObjects write path: after `POST /ingester/flush`, a block (`index`, `chunks/000001`, `meta.json`) appeared under `blocks/anonymous/` in `mimir-metrics` with no `InvalidDigest`. Listing needs the `aws` CLI with `AWS_REQUEST_CHECKSUM_CALCULATION=when_required`; a `curl --aws-sigv4` probe returned 403 even for the known-good CNPG key. The store-gateway read path for data older than the ingester window has not been exercised.
 - Loki returns pod logs; both datasources report healthy; 15 rules loaded and healthy; every rule expression returns live series; the Pushover test notification succeeded.
+- 2026-10-14: all alert rules inactive and no `ALERTS` series firing; the first scheduled Longhorn backups of the five observability volumes completed.
 
 # Pitfalls found
 
@@ -34,7 +35,7 @@ Alerting cannot report its own failure: if Grafana, Alloy or Mimir is down, noth
 - **The Barman plugin does not populate CloudNativePG's backup metrics** (`cnpg_collector_last_available_backup_timestamp` stays 0). Backup freshness comes from kube-state-metrics custom-resource metrics `cnpg_backup_stopped_at_seconds{phase}` over the `Backup` objects.
 - **nginx gateways name their proxy port `http-metrics`** (Loki and Mimir), which the generic port-name scrape rule would hit and report as `up == 0`; the Alloy config drops containers named `gateway` or `nginx`.
 - **The old `grafana/grafana` chart repository is deprecated**; use `grafana-community.github.io/helm-charts` (chart 13.x).
-- `longhorn-volume-backup-stale` stays pending for 26 hours on a brand-new volume (its backup timestamp is 0 until the first nightly job). The first scheduled Longhorn backups with real volumes run at 02:00 UTC after the stack was applied; check `longhorn_volume_last_backup_at`.
+- `longhorn-volume-backup-stale` stays pending for 26 hours on a brand-new volume (its backup timestamp is 0 until the first nightly job). The first scheduled run, 2026-10-14 02:00 UTC, completed backups for all five volumes (`Completed` Longhorn `Backup` objects, 02:00:06 to 02:02:32) and no alert fired. A restore from these backups is untested.
 
 # Operations
 
