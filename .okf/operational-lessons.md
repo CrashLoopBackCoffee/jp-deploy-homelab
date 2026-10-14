@@ -49,6 +49,7 @@ tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 - Dry-run or preview first; credentials are tested against the exact endpoints the code calls.
 - Check the metric catalogue of the deployed version before writing an alert rule, and evaluate every rule against live data; a rule on a metric of the wrong shape or name is silently inactive.
 - Never run `cd` in the shell tool, even inside a chained command; use the tool's `cwd` parameter.
+- Never commit APM-managed skills (`.agents/skills/`, `.claude/skills/`); `apm.yml` and `apm.lock.yaml` are tracked. Pre-commit scans the whole directory, so untracked files can block a commit.
 - Warn before any step that needs a 1Password biometric approval: `direnv` loading `.envrc` once, and the first SSH use of the `k0s` key through the 1Password agent.
 
 See also [k0s0 node](./k0s0-node.md) and [Kubernetes platform stack](./kubernetes-platform-stack.md).
