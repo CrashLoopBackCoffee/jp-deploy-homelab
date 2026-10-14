@@ -20,6 +20,7 @@ dependencies = [
     "kubernetes",
     "monitoring",
     "n8n",
+    "observability",
     "paperless",
 ]
 
@@ -40,6 +41,7 @@ iot = { workspace = true }
 kubernetes = { workspace = true }
 monitoring = { workspace = true }
 n8n = { workspace = true }
+observability = { workspace = true }
 paperless = { workspace = true }
 utils = { workspace = true }
 
@@ -130,6 +132,10 @@ model = "monitoring.config:PulumiConfigRoot"
 [tool.config-models.n8n]
 root = "services/n8n"
 model = "n8n.config:PulumiConfigRoot"
+
+[tool.config-models.observability]
+root = "services/observability"
+model = "observability.config:PulumiConfigRoot"
 
 [tool.config-models.paperless]
 root = "services/paperless"
