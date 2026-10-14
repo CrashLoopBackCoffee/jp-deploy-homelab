@@ -13,10 +13,19 @@ class NfsCsiDriverConfig(utils.model.LocalBaseModel):
     version: str
 
 
+class LonghornBackupConfig(utils.model.LocalBaseModel):
+    endpoint: str
+    bucket: str
+    region: str
+    access_key_id: utils.model.OnePasswordRef
+    secret_access_key: utils.model.OnePasswordRef
+
+
 class LonghornConfig(utils.model.LocalBaseModel):
     version: str
     data_path: str
     replica_count: int
+    backup: LonghornBackupConfig
 
 
 class OpenEbsLvmConfig(utils.model.LocalBaseModel):
@@ -42,8 +51,26 @@ class CertManagerConfig(utils.model.LocalBaseModel):
         )
 
 
+class CloudNativePgClusterConfig(utils.model.LocalBaseModel):
+    name: str
+    image_version: str
+    storage_size: str
+
+
+class CloudNativePgBackupConfig(utils.model.LocalBaseModel):
+    endpoint: str
+    bucket: str
+    access_key_id: utils.model.OnePasswordRef
+    secret_access_key: utils.model.OnePasswordRef
+    schedule: str
+    retention_policy: str
+
+
 class CloudNativePgConfig(utils.model.LocalBaseModel):
     version: str
+    plugin_version: str
+    cluster: CloudNativePgClusterConfig
+    backup: CloudNativePgBackupConfig
 
 
 class CloudflareConfig(utils.model.LocalBaseModel):

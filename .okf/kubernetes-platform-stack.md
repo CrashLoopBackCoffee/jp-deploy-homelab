@@ -2,24 +2,24 @@
 type: Service
 title: Kubernetes platform stack (Pulumi, prod)
 description: What the Kubernetes Pulumi stack deploys on k0s, how it is configured, and how secrets, DNS, and certificates flow.
-timestamp: 2026-10-11T15:00:00Z
+timestamp: 2026-10-12T00:00:00Z
 tags: [homelab, kubernetes, pulumi, metallb, traefik, cert-manager, cloudnativepg, openebs, longhorn]
 resource: https://app.pulumi.com/jaypee-solutions/kubernetes/prod
 ---
 
 # What it deploys
 
-Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 112 resources after adding Longhorn on 2026-10-11 (`pulumi preview --expect-no-changes` clean).
+Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 133 resources after the 2026-10-12 CloudNativePG pilot apply (+19 from the previous 114). Longhorn's QuObjects target is Available and a disposable volume passed backup/restore. PostgreSQL's Barman base backup and archived WAL passed an independent restore; no production application backup, scheduled PostgreSQL run, time-targeted PITR, or encrypted off-site copy has been verified.
 
 | Component | Notes |
 | --- | --- |
 | MetalLB | L2 pool `10.10.88.1`–`10.10.88.250` (chosen by the user, inside VLAN 10's `/16`) |
 | NFS CSI driver | kubelet dir `/var/lib/k0s/kubelet`; no StorageClass defined |
-| cert-manager | Let's Encrypt ClusterIssuer with DNS-01 through Cloudflare; ACME email `support@jaypee.solutions` (from `Pulumi.prod.yaml`; unconfirmed as the desired contact); self-check forced to `1.1.1.1`/`1.0.0.1` because the LAN resolver answers NXDOMAIN for ACME records |
+| cert-manager | Let's Encrypt ClusterIssuer with DNS-01 through Cloudflare; ACME email `support@jaypee.solutions` (confirmed by the user on 2026-10-12); self-check forced to `1.1.1.1`/`1.0.0.1` because the LAN resolver answers NXDOMAIN for ACME records |
 | Traefik | Service `10.10.88.1`, default TLS store with the wildcard certificate `*.4jp.de`, dnsmasq record `k8s-ingress-prod.4jp.de` |
-| CloudNativePG | Operator only; no database cluster yet |
+| CloudNativePG | Operator 1.27.0 and Barman Cloud plugin 0.15.1 (chart 0.8.1); single-instance PostgreSQL 17.10 `postgres-pilot` on `openebs-lvm-postgres`, with daily 03:00 physical backups, continuous compressed WAL archiving and 14-day retention to QuObjects. Pilot PVC 2 GiB. A separate test cluster recovered the base backup plus WAL and was then deleted after user approval; see [the recovery runbook](./postgres-pilot-recovery.md). |
 | OpenEBS LVM LocalPV | StorageClass `openebs-lvm-postgres` (`volgroup: postgres`, ext4, `WaitForFirstConsumer`, expansion allowed); snapshot CRDs and controller are on |
-| Longhorn | Chart 1.13.0 as `helm.v3.Release` (the chart has hook jobs), namespace `longhorn-system`, data path `/var/lib/longhorn` on the Kingston NVMe, 1 replica, kubelet dir `/var/lib/k0s/kubelet`; the chart's StorageClass `longhorn` is the cluster default; no second snapshot controller (`docs/08-Decisions/ADR-0014 - Longhorn on a dedicated ext4 data disk.md`) |
+| Longhorn | Chart 1.13.0 as `helm.v3.Release` (the chart has hook jobs), namespace `longhorn-system`, data path `/var/lib/longhorn` on the Kingston NVMe, 1 replica, kubelet dir `/var/lib/k0s/kubelet`; the chart's StorageClass `longhorn` is the cluster default. The QuObjects S3 backup target is Available and the daily `02:00` job belongs to the `default` group (retain 14). A disposable volume automatically joined that group and completed a backup and separate restore. No second snapshot controller (`docs/08-Decisions/ADR-0014 - Longhorn on a dedicated ext4 data disk.md`) |
 
 # Configuration and secrets
 
@@ -32,8 +32,16 @@ Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 112 reso
 
 Local records are dnsmasq host records created through the OPNsense API at `https://router.4jp.de` (`docs/08-Decisions/ADR-0012 - Local DNS records through dnsmasq on OPNsense.md`). The API user needs the privilege "Services: Dnsmasq DNS/DHCP: Settings"; the `OPNsense` item keeps the key in `username` and the secret in `password`. The helper is `utils.opnsense.dnsmasq.host.Host`, used by the kubernetes, paperless, n8n, iot, and monitoring stacks.
 
+# Backup destination decision
+
+The user selected the local QNAP's QuObjects S3-compatible service for Longhorn and CloudNativePG backups. Both private buckets, `longhorn-backups` and `cnpg-backups`, and separate access-key items `QuObjects Longhorn Backup` and `QuObjects CNPG Backup` in the `Homelab` vault exist. Initially each key could list the other bucket; after the user moved `cnpg-backups` into a dedicated storage space, each key can list its own bucket but receives `NoSuchBucket` when listing the other. QuObjects scopes access by NAS user and storage space rather than key name alone; do not claim object-write/delete isolation beyond this read-only test. The endpoint `https://qnap.4jp.de:8443` presents a certificate trusted for its name from the workstation; the earlier QNAP administration endpoint `10.10.0.10:8010` presented a self-signed certificate without a SAN and is not used. Do not disable TLS verification. Longhorn's credentials, target, and recurring job are applied. An OPNsense Unbound host override chosen and applied by the user points `qnap.4jp.de` to S3 NIC `10.10.0.10` instead of the other QNAP NIC `.6`; both router DNS ports now return `.10`, and `BackupTarget/default` is Available. Both QNAP NICs advertise `qnap` in active DHCP leases; neither reservation was deleted. A 256 MiB test volume created with `longhorn` automatically joined the `default` recurring-job group, was written and backed up to QuObjects, then restored into a separate volume; the restored PVC contained the same marker. Test resources and the test S3 volume prefix were removed afterward. An HBS 3 job with client-side encryption to a second, off-site QNAP is the selected secondary copy but is not verified. CloudNativePG's supported Barman Cloud plugin will provide physical base backups and WAL archiving; the NAS and HBS configuration remain outside Pulumi (ADR-0016).
+
+CoreDNS forwards external names to its pod's `/etc/resolv.conf` and caches for up to 30 seconds (`kube-system/coredns` Corefile). Earlier direct queries to OPNsense at `10.10.0.1:53` and dnsmasq at `10.10.0.1:53053` both returned `.6` (TTL 1 second); the user's Unbound override corrected both to `.10`. Longhorn became Available without a CoreDNS restart. Resolve upstream DNS faults at the router before considering a CoreDNS cache flush.
+
+QTS 5.2 exposes certificate replacement at **Control Panel → System → Security → SSL Certificate & Private Key → Server Certificate → Replace Certificate → Import certificate**; QuObjects documents HTTPS server mode but no separate certificate picker. The imported PEM certificate, matching key, and intermediate chain replace the NAS server certificate and may affect other QTS HTTPS endpoints. Verify that QuObjects serves the new certificate with a trusted name on its S3 port before client configuration; `https://qnap.4jp.de:8443` passes hostname and chain verification and is the endpoint in use. Import/renewal and DNS-01 issuance belong to the QNAP administration workflow, not this Pulumi stack. [QTS certificate instructions](https://docs.qnap.com/operating-system/qts/5.2.x/en-us/replacing-the-server-certificate-8E7C1926.html).
+
 # Not done yet
 
 - Other stacks (paperless, n8n, monitoring, backup, iot) still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints) and have not been previewed.
-- No CloudNativePG cluster exists; Longhorn has no backup target yet (MinIO was removed, `docs/08-Decisions/ADR-0015 - Remove MinIO and the s3 workspace.md`); public exposure through Caddy on OPNsense is future work.
+- The `postgres-pilot` Cluster is live; a scheduled backup ran, a base-backup-plus-WAL restore and a time-targeted PITR restore both passed, and their temporary restore resources were removed (ADR-0017, ADR-0018). The first scheduled Longhorn backups completed for the five observability volumes on 2026-10-14 at 02:00 UTC; a restore from them has not been tested. The encrypted off-site HBS copy is not yet verified. Public exposure through Caddy on OPNsense is future work (ADR-0016, ADR-0017).
 - Related: [k0s0 node](./k0s0-node.md), [cluster plan](./k0s-cluster-plan.md), [operational lessons](./operational-lessons.md).

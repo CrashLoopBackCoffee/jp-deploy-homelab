@@ -33,6 +33,12 @@ tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 | Pulumi | A preview failed with a timeout fetching the chart tgz from `github.com` while the apply had worked | Retry the preview; it is network flakiness, not drift |
 | OPNsense | The API key cannot list users (404), so its privileges cannot be audited through its own key; after a first UI removal the key still answered 200 on Unbound, and only a later change produced 403 | Verify privilege changes by probing the exact endpoints (200 vs 403), not by trusting the UI state alone |
 | LAN access | `curl` and `pynetbox` to a host on the Mac's own subnet failed with `No route to host` from some terminals, while `traceroute`, the browser, and another terminal worked | Run LAN API checks from a terminal that works; if one fails instantly with `No route to host`, check macOS Privacy & Security > Local Network for that app (suspected, unconfirmed) |
+| Barman Cloud / QuObjects | The first base backup and WAL archive failed with S3 `InvalidDigest`; changing the ObjectStore did not update the already-running sidecar environment | Set boto3's optional request/response checksum modes to `when_required`, preview/apply the ObjectStore change, then use `kubectl cnpg restart CLUSTER` for a controlled Pod rollout; verify archiver counters and restore actual rows from an independent Cluster |
+| CNPG / Longhorn | Both operators define a `Backup` resource; unqualified `kubectl wait backup/...` resolved to Longhorn | Qualify CNPG backups as `backup.postgresql.cnpg.io/NAME` |
+| Longhorn | The chart ships NetworkPolicies that admit only Longhorn pods to the manager, so a scraper in another namespace gets `connection refused` on port 9500 even though the pod listens | Add an additive NetworkPolicy for the one scraper and port; policies are additive |
+| Longhorn 1.13 | `longhorn_volume_robustness` is one 0/1 series per `state` label and `longhorn_backup_state` does not exist; backup freshness is `longhorn_volume_last_backup_at` | Query the live metric names and labels before writing rules |
+| Grafana | File-provisioned alert rules are read only at startup and are not deleted when their entry disappears | Roll the pod on content change (hash annotation) and list removed uids under `deleteRules` |
+| Grafana | Local `grafana.4jp.de` collided with the user's old Grafana, a public Cloudflare record | Check the name resolves nowhere (`dig` against router and public resolvers) before creating a host record; this stack uses `g.4jp.de` |
 
 # Suggested standing instructions for agents
 
@@ -41,6 +47,9 @@ tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 - Node-level changes belong in `services/k0s` (k0sctl, Ansible); cluster add-ons belong in Pulumi.
 - Pulumi must only read secrets from 1Password; writes use the interactive `op` session.
 - Dry-run or preview first; credentials are tested against the exact endpoints the code calls.
+- Check the metric catalogue of the deployed version before writing an alert rule, and evaluate every rule against live data; a rule on a metric of the wrong shape or name is silently inactive.
+- Never run `cd` in the shell tool, even inside a chained command; use the tool's `cwd` parameter.
+- Never commit APM-managed skills (`.agents/skills/`, `.claude/skills/`); `apm.yml` and `apm.lock.yaml` are tracked. Pre-commit scans the whole directory, so untracked files can block a commit.
 - Warn before any step that needs a 1Password biometric approval: `direnv` loading `.envrc` once, and the first SSH use of the `k0s` key through the 1Password agent.
 
 See also [k0s0 node](./k0s0-node.md) and [Kubernetes platform stack](./kubernetes-platform-stack.md).
