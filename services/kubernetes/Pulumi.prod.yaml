@@ -8,6 +8,21 @@ config:
     cloudnative-pg:
       # renovate: datasource=github-releases packageName=cloudnative-pg/charts versioning=semver
       version: 0.26.0
+      plugin-version: 0.8.1
+      cluster:
+        name: postgres-pilot
+        # renovate: datasource=docker packageName=ghcr.io/cloudnative-pg/postgresql versioning=semver
+        image-version: "17.10"
+        storage-size: 2Gi
+      backup:
+        endpoint: https://qnap.4jp.de:8443
+        bucket: cnpg-backups
+        access-key-id:
+          ref: op://Homelab/QuObjects CNPG Backup/username
+        secret-access-key:
+          ref: op://Homelab/QuObjects CNPG Backup/password
+        schedule: "0 0 3 * * *"
+        retention-policy: 14d
     cloudflare:
       api-token:
         ref: op://Homelab/Cloudflare [4jp.de]/password
@@ -24,6 +39,14 @@ config:
       data-path: /var/lib/longhorn
       # Phase 1 has a single node, so a replica count above 1 would leave every volume degraded
       replica-count: 1
+      backup:
+        endpoint: https://qnap.4jp.de:8443
+        bucket: longhorn-backups
+        region: us-east-1
+        access-key-id:
+          ref: op://Homelab/QuObjects Longhorn Backup/username
+        secret-access-key:
+          ref: op://Homelab/QuObjects Longhorn Backup/password
     metallb:
       # renovate: datasource=github-releases packageName=metallb/metallb versioning=semver
       version: 0.15.2
