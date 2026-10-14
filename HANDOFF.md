@@ -1,6 +1,6 @@
 # Handoff: bare-metal k0s homelab
 
-Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) and decisions in `docs/08-Decisions/` (ADR-0004 to ADR-0017). Read `AGENTS.md` first.
+Last updated: 2026-10-13. Knowledge lives in `.okf/` (start at `.okf/index.md`) and decisions in `docs/08-Decisions/` (ADR-0004 to ADR-0018). Read `AGENTS.md` first.
 
 ## Where things stand
 
@@ -13,6 +13,7 @@ Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 | TLS / DNS | Wildcard `*.4jp.de` issued by Let's Encrypt; dnsmasq record `k8s-ingress-prod.4jp.de` via the OPNsense API |
 | Storage | `postgres` VG on the WDC 256 GB NVMe (`openebs-lvm-postgres`); Kingston 1 TB NVMe is ext4 at `/var/lib/longhorn` for Longhorn. Both have QuObjects backup targets; PostgreSQL base+WAL and Longhorn disposable backup restores succeeded (ADR-0016, ADR-0017). The temporary PostgreSQL restore Cluster/PVC/PV was deleted after explicit approval. |
 | Repo | `svn`, `obsidian`, `ollama`, `ingress`, `s3` (MinIO) workspaces removed; `monitoring`, `backup`, `iot`, `n8n`, `paperless` remain |
+| Git | Longhorn backup PR #8 and CloudNativePG pilot PR #9 are merged; local `main` was fast-forwarded to `origin/main` on 2026-10-12. Further edits belong on feature branches and go through PRs. |
 | Inventory | `k0s0` is documented in NetBox (device, `enp6s0` with MAC, `10.10.8.1/16`, platform Ubuntu 24.04), verified 2026-10-11; nodes 2 and 3 need the same records once mapped |
 
 ## Working in this repo
@@ -25,8 +26,8 @@ Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 
 ## Open items
 
-1. Merge PR #8 (`feature/longhorn-quobjects-backups`), then retarget and merge the stacked CloudNativePG PR (`feature/cnpg-quobjects-cluster`). Keep both changes on feature branches and through PRs.
-2. The failed first CNPG Backup CR remains as historical evidence. Confirm a scheduled backup and a time-targeted PITR before any application migration; verify the encrypted off-site HBS 3 copy separately. The approved temporary restore Cluster/PVC/PV cleanup is complete.
+1. The first scheduled CloudNativePG backup ran (`postgres-pilot-backup-20261013030000`, completed 2026-10-13 03:00 UTC). Longhorn's scheduled job has not been exercised: no Longhorn volumes exist yet. Verify it with the first real Longhorn workload volume.
+2. ADR-0018 (accepted): time-targeted PITR is **verified** on the pilot (2026-10-13) and its temporary restore Cluster/PVC/PV were removed with explicit approval. The encrypted HBS 3 off-site backup and restore are deferred by the user and must pass before any application migration.
 3. Other stacks still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints); none has been previewed. Each needs a JP mapping first. Paperless migration is not started.
 4. Nodes 2 and 3 are unmapped; Phase 1 is explicitly non-HA. The API endpoint `10.10.8.1` must become a load-balanced VIP before Phase 3 (ADR-0008). Increase Longhorn replicas after node 2 joins.
 5. Public exposure: static IPv4 with Caddy on OPNsense (ADR-0011).
@@ -45,5 +46,5 @@ Last updated: 2026-10-12. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 ## Starter prompt for the next session
 
 ```text
-Continue the bare-metal k0s homelab work. Read HANDOFF.md, AGENTS.md, and .okf/index.md first. The CloudNativePG pilot, Longhorn backups, and a separate PostgreSQL restore have been verified; the test restore Cluster/PVC/PV were removed with explicit approval. First review the stacked PRs (#8 then #9) and live backup health without deleting data. Ask before destructive actions, preview before applies, record decisions in ADRs and insights in .okf, and warn before any command that may require biometric approval.
+Continue the bare-metal k0s homelab work. Read HANDOFF.md, AGENTS.md, and .okf/index.md first. Longhorn backups (PR #8) and the CloudNativePG pilot (PR #9) are merged into local `main`. The pilot has a verified scheduled backup, a base-backup-plus-WAL restore, and a time-targeted PITR restore (ADR-0018); the temporary restore resources were removed with explicit approval. Next: the encrypted off-site HBS 3 backup and restore test (needs the user on the QNAPs), then plan the Paperless migration. Ask before destructive actions, preview before applies, record decisions in ADRs and insights in .okf, and warn before any command that may require biometric approval.
 ```
