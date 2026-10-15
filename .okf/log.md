@@ -1,5 +1,10 @@
 # Update Log
 
+## 2026-10-15
+* **Verification**: Cluster state checked read-only: `k0s0` Ready, no pod outside Running or Completed, all 15 Grafana alert rules inactive and healthy. CloudNativePG scheduled backups completed on 2026-10-13, 14 and 15 (03:00 UTC); Longhorn backed up the five observability volumes on 2026-10-14 and 2026-10-15 (02:00 UTC). A Longhorn restore from these backups is still untested.
+* **Merge**: The user merged PR #5, reworked from an obsolete status update into a small carry-over of durable operating notes (Security row, Git rules, Pulumi tips, NetBox access, Longhorn and LAN gotchas, housekeeping item).
+* **Cleanup**: With the user's approval, 12 local branches merged by ancestry were deleted with `git branch -d` (which refuses unmerged work). The rest followed after a content check: `origin/jp/action` was 0 commits ahead of `main`; `feature/quobjects-backup-decision` (commit `a0da7e3`) is patch-equivalent to a commit already in `main` (PR #6); `feat/workspace-foundation` (commit `cc4f27c`, 2026-04-02) is the original foundation commit, and all seven of its files exist in `main` in evolved form (two identical). Both local and remote copies of these three were deleted; the two unmerged commits can be recovered by SHA from the reflog or GitHub until garbage collection.
+
 ## 2026-10-14
 * **Verification**: The first scheduled Longhorn backups ran at 02:00 UTC and `Completed` for all five observability volumes; all Grafana alert rules are inactive. A restore from these backups is untested.
 * **Merge**: The user merged PRs #10 and #12. PR #7 (QTS certificate guidance) conflicted with the QuObjects entries that landed through #8 and #9; main's current facts (buckets exist, trusted endpoint `https://qnap.4jp.de:8443`) were kept, only the QTS certificate procedure was carried over with its stale port 8010 and not-created wording corrected, and the stale pilot status bullet in the platform note was refreshed. PR #7 was merged after its linters check passed.
