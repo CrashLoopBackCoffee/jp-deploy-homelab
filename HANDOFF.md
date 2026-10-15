@@ -1,6 +1,6 @@
 # Handoff: bare-metal k0s homelab
 
-Last updated: 2026-10-14. Knowledge lives in `.okf/` (start at `.okf/index.md`) and decisions in `docs/08-Decisions/` (ADR-0004 to ADR-0019). Read `AGENTS.md` first.
+Last updated: 2026-10-15. Knowledge lives in `.okf/` (start at `.okf/index.md`) and decisions in `docs/08-Decisions/` (ADR-0004 to ADR-0019). Read `AGENTS.md` first.
 
 ## Where things stand
 
@@ -14,7 +14,7 @@ Last updated: 2026-10-14. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 | TLS / DNS | Wildcard `*.4jp.de` issued by Let's Encrypt; dnsmasq records `k8s-ingress-prod.4jp.de` and `g.4jp.de` via the OPNsense API. `grafana.4jp.de` belongs to the user's old Grafana; the workstation resolver (`1.1.1.1`) cannot resolve LAN-only records |
 | Storage | `postgres` VG on the WDC 256 GB NVMe (`openebs-lvm-postgres`); Kingston 1 TB NVMe is ext4 at `/var/lib/longhorn` for Longhorn. Both have QuObjects backup targets; PostgreSQL base+WAL and Longhorn disposable backup restores succeeded (ADR-0016, ADR-0017). The temporary PostgreSQL restore Cluster/PVC/PV was deleted after explicit approval. |
 | Repo | `svn`, `obsidian`, `ollama`, `ingress`, `s3` (MinIO) workspaces removed; `monitoring`, `backup`, `iot`, `n8n`, `paperless` remain |
-| Git | PRs #7 to #13 are merged and local `main` is current. Further edits belong on feature branches and go through PRs. |
+| Git | PRs #5 and #7 to #13 are merged; local `main` is current at the #5 merge. Only `main`, `feat/workspace-foundation` and `feature/quobjects-backup-decision` exist locally. Further edits belong on feature branches and go through PRs. |
 | Inventory | `k0s0` is documented in NetBox (device, `enp6s0` with MAC, `10.10.8.1/16`, platform Ubuntu 24.04), verified 2026-10-11; nodes 2 and 3 need the same records once mapped |
 | Security | OPNsense API user holds only "Services: Dnsmasq DNS/DHCP: Settings" (verified: Unbound returns 403) |
 
@@ -31,14 +31,14 @@ Last updated: 2026-10-14. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 
 ## Open items
 
-1. The first scheduled CloudNativePG backup (2026-10-13 03:00 UTC) and the first scheduled Longhorn backups (five observability volumes, 2026-10-14 02:00 UTC) ran. A restore from a scheduled Longhorn backup is untested; do it with a disposable volume before relying on Longhorn for application data.
+1. Scheduled backups are healthy: CloudNativePG ran nightly at 03:00 UTC (2026-10-13 to 2026-10-15, all `completed`), and Longhorn backed up the five observability volumes at 02:00 UTC on 2026-10-14 and 2026-10-15 (all `Completed`). A restore from a scheduled Longhorn backup is untested; do it with a disposable volume before relying on Longhorn for application data.
 2. ADR-0018 (accepted): time-targeted PITR is **verified**. The encrypted HBS 3 off-site backup and restore are deferred because the remote NAS is offline and its reconfiguration is still to be scheduled. They must pass before any application migration.
 3. Observability follow-ups (ADR-0019): Mimir's store-gateway read path for aged blocks is untested; nothing alerts if Grafana, Alloy or Mimir itself is down (consider a Pushover heartbeat or an external check); metrics volumes are included in the nightly Longhorn backups.
 4. Other stacks still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints); none has been previewed. Each needs a JP mapping first. Paperless migration is not started.
 5. Nodes 2 and 3 are unmapped; Phase 1 is explicitly non-HA. The API endpoint `10.10.8.1` must become a load-balanced VIP before Phase 3 (ADR-0008). Increase Longhorn replicas after node 2 joins.
 6. Public exposure: static IPv4 with Caddy on OPNsense (ADR-0011).
 7. sshd on `k0s0` still allows password authentication globally.
-8. Housekeeping: merged local branches can be deleted (`claude/unruffled-perlman`, `docs/netbox-k0s0`, `feature/track-k0s-services`, `jp/action`, and the merged `feature/*` and `docs/*` branches from PRs #7 to #13). `feature/quobjects-backup-decision` (PR #6) and `feat/workspace-foundation` do not show as merged by ancestry; check before deleting. Stale remote branches: `origin/feat/workspace-foundation`, `origin/jp/action`, `origin/feature/quobjects-backup-decision`. Also: decide whether `docs/.obsidian/` is tracked or ignored (it is neither today); set the primary MAC on the `enp6s0` interface in NetBox (cosmetic); add a Longhorn mount check (`findmnt /var/lib/longhorn`) to a runbook.
+8. Housekeeping: local merged branches are deleted; `feature/quobjects-backup-decision` (PR #6) and `feat/workspace-foundation` remain locally because they do not show as merged by ancestry, so compare their trees with `main` before deleting. Stale remote branches: `origin/feat/workspace-foundation`, `origin/jp/action` (merged by ancestry), `origin/feature/quobjects-backup-decision`. Also: decide whether `docs/.obsidian/` is tracked or ignored (it is neither today); set the primary MAC on the `enp6s0` interface in NetBox (cosmetic); add a Longhorn mount check (`findmnt /var/lib/longhorn`) to a runbook.
 
 ## Gotchas
 
@@ -57,5 +57,5 @@ Last updated: 2026-10-14. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 ## Starter prompt for the next session
 
 ```text
-Continue the bare-metal k0s homelab work. Read HANDOFF.md, AGENTS.md, and .okf/index.md first. Everything through PR #12 and PR #7 is merged into `main`. The cluster has a verified PostgreSQL pilot (scheduled backup, restore and time-targeted PITR) and a running LGTM observability stack with Pushover alerting at https://g.4jp.de (ADR-0019). The encrypted off-site HBS 3 backup and restore test is deferred until the remote NAS is back online and reconfigured; it still gates application migration. Next candidates: map one donor stack (Paperless first) to JP values and plan its migration to CloudNativePG, and test a Longhorn restore from the nightly backups. Ask before destructive actions, preview before applies, record decisions in ADRs and insights in .okf, and warn before any command that may require biometric approval.
+Continue the bare-metal k0s homelab work. Read HANDOFF.md, AGENTS.md, and .okf/index.md first. All PRs through #13, including #5 and #7, are merged into `main`, and merged local branches are cleaned up. The cluster has a verified PostgreSQL pilot (scheduled backups, restore and time-targeted PITR) and a running LGTM observability stack with Pushover alerting at https://g.4jp.de (ADR-0019); nightly CloudNativePG and Longhorn backups have run on several nights and all alert rules are inactive. The encrypted off-site HBS 3 backup and restore test is deferred until the remote NAS is back online and reconfigured; it still gates application migration. Next candidates: map one donor stack (Paperless first) to JP values and plan its migration to CloudNativePG, and test a Longhorn restore from the nightly backups. Ask before destructive actions, preview before applies, record decisions in ADRs and insights in .okf, and warn before any command that may require biometric approval.
 ```
