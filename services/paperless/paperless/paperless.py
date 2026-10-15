@@ -92,14 +92,13 @@ class Paperless(p.ComponentResource):
                 redis_service.metadata.name,
                 REDIS_PORT,
             ),
-            'PAPERLESS_CONSUMER_POLLING': '30',
+            # NFS has no change notifications, so the consumer polls
+            'PAPERLESS_CONSUMER_POLLING_INTERVAL': '30',
             'PAPERLESS_TASK_WORKERS': '4',
             'PAPERLESS_THREADS_PER_WORKER': '4',
-            # Extend the polling delay to account for printers updating their PDFs after scanning
-            # each page.
-            'PAPERLESS_CONSUMER_POLLING_DELAY': '30',
-            # Wait up to 10min for the scan to finish
-            'PAPERLESS_CONSUMER_POLLING_RETRY_COUNT': '20',
+            # Printers update their PDFs after scanning each page; a file must stay unchanged this
+            # long before it is consumed.
+            'PAPERLESS_CONSUMER_STABILITY_DELAY': '30',
             'PAPERLESS_URL': f'https://{hostname}',
             # https://docs.paperless-ngx.com/troubleshooting/#gunicorn-fails-to-start-with-is-not-a-valid-port-number
             'PAPERLESS_PORT': str(PAPERLESS_PORT),
@@ -113,24 +112,30 @@ class Paperless(p.ComponentResource):
             'PAPERLESS_DBUSER': DATABASE_USER,
             'PAPERLESS_CONSUMER_ENABLE_BARCODES': 'true',
             'PAPERLESS_CONSUMER_ENABLE_ASN_BARCODE': 'true',
-            'PAPERLESS_CONSUMER_BARCODE_SCANNER': 'ZXING',
             'PAPERLESS_CONSUMER_RECURSIVE': 'true',
+            # Regular expressions matched against file names only (not paths); built-in defaults
+            # stay active and these are added to them.
             'PAPERLESS_CONSUMER_IGNORE_PATTERNS': json.dumps(
                 [
-                    '._*',
-                    '.DS_Store',
-                    '.DS_STORE',
-                    '.localized/*',
-                    '.stfolder/*',
-                    '.stversions/*',
-                    '@eaDir/*',
-                    '#recycle/*',
-                    # QNAP keeps deleted and snapshot files in these folders of the share
-                    '@Recycle/*',
-                    '@Recently-Snapshot/*',
-                    '.@__thumb/*',
-                    'desktop.ini',
-                    'Thumbs.db',
+                    r'^\._',
+                    r'^\.DS_Store$',
+                    r'^desktop\.ini$',
+                    r'^Thumbs\.db$',
+                ]
+            ),
+            # Directory names to skip with everything below them. The QNAP share keeps deleted and
+            # snapshot files in `@Recycle` and `@Recently-Snapshot`, which would otherwise be
+            # consumed again.
+            'PAPERLESS_CONSUMER_IGNORE_DIRS': json.dumps(
+                [
+                    '@Recycle',
+                    '@Recently-Snapshot',
+                    '.@__thumb',
+                    '@eaDir',
+                    '#recycle',
+                    '.stfolder',
+                    '.stversions',
+                    '.localized',
                 ]
             ),
             'PAPERLESS_TIKA_ENABLED': 'true',
