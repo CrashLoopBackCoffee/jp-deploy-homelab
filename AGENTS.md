@@ -90,6 +90,10 @@ See the **`helm-chart-management`** skill for the Chart vs Release decision rule
 
 See the **`python-pulumi-patterns`** skill for Kubernetes typed-dict notation and CPU limit rules.
 
+### 9. Donor Repositories
+
+`mp-deploy-homelab` and `th-deploy-homelab` (sibling directories of this repository) are the reference for new work, and they change daily. **Run `scripts/pull-donors` at least once a day and before reading them.** It fast-forwards both on `main`, skips any that are dirty or on another branch, and lists the changed services and commits. Never judge a donor from a stale clone: on 2026-10-15 an outdated clone hid MP's Paperless client blueprint for Authentik and TH's working Paperless 3.x settings.
+
 ## Common Commands
 
 ```bash

@@ -28,6 +28,7 @@ Last updated: 2026-10-15. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 - Node changes go in `services/k0s` (`k0sctl/cluster.yaml`, `ansible/`); cluster add-ons go in Pulumi.
 - Checks: `uv run ./scripts/run-all-checks.sh`, `uv run /Users/alten/.agents/skills/okf-validate/scripts/okf_validate.py .okf --strict`. Ruff has one existing `PLW0108` finding in `paperless.py`.
 - Secrets: all in the `Homelab` vault, `my.1password.eu`. Pulumi's resolver looks items up by title; the `op` CLI needs the item ID for `Cloudflare [4jp.de]` (`b6i34pfgjitlzneedilxq47lxa`).
+- Donors: run `scripts/pull-donors` at least once a day and before reading `mp-deploy-homelab` or `th-deploy-homelab` (siblings of this repository); stale clones hid relevant donor work on 2026-10-15.
 
 ## Open items
 
