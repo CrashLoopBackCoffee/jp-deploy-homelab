@@ -14,7 +14,7 @@ Last updated: 2026-10-15. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 | TLS / DNS | Wildcard `*.4jp.de` issued by Let's Encrypt; dnsmasq records `k8s-ingress-prod.4jp.de` and `g.4jp.de` via the OPNsense API. `grafana.4jp.de` belongs to the user's old Grafana; the workstation resolver (`1.1.1.1`) cannot resolve LAN-only records |
 | Storage | `postgres` VG on the WDC 256 GB NVMe (`openebs-lvm-postgres`); Kingston 1 TB NVMe is ext4 at `/var/lib/longhorn` for Longhorn. Both have QuObjects backup targets; PostgreSQL base+WAL and Longhorn disposable backup restores succeeded (ADR-0016, ADR-0017). The temporary PostgreSQL restore Cluster/PVC/PV was deleted after explicit approval. |
 | Repo | `svn`, `obsidian`, `ollama`, `ingress`, `s3` (MinIO) workspaces removed; `monitoring`, `backup`, `iot`, `n8n`, `paperless` remain |
-| Git | PRs #5 and #7 to #13 are merged; local `main` is current at the #5 merge. Only `main`, `feat/workspace-foundation` and `feature/quobjects-backup-decision` exist locally. Further edits belong on feature branches and go through PRs. |
+| Git | PRs #5 and #7 to #13 are merged; local `main` is current at the #5 merge. All other local and remote branches are deleted, so only `main` exists. Further edits belong on feature branches and go through PRs. |
 | Inventory | `k0s0` is documented in NetBox (device, `enp6s0` with MAC, `10.10.8.1/16`, platform Ubuntu 24.04), verified 2026-10-11; nodes 2 and 3 need the same records once mapped |
 | Security | OPNsense API user holds only "Services: Dnsmasq DNS/DHCP: Settings" (verified: Unbound returns 403) |
 
@@ -38,7 +38,7 @@ Last updated: 2026-10-15. Knowledge lives in `.okf/` (start at `.okf/index.md`) 
 5. Nodes 2 and 3 are unmapped; Phase 1 is explicitly non-HA. The API endpoint `10.10.8.1` must become a load-balanced VIP before Phase 3 (ADR-0008). Increase Longhorn replicas after node 2 joins.
 6. Public exposure: static IPv4 with Caddy on OPNsense (ADR-0011).
 7. sshd on `k0s0` still allows password authentication globally.
-8. Housekeeping: local merged branches are deleted; `feature/quobjects-backup-decision` (PR #6) and `feat/workspace-foundation` remain locally because they do not show as merged by ancestry, so compare their trees with `main` before deleting. Stale remote branches: `origin/feat/workspace-foundation`, `origin/jp/action` (merged by ancestry), `origin/feature/quobjects-backup-decision`. Also: decide whether `docs/.obsidian/` is tracked or ignored (it is neither today); set the primary MAC on the `enp6s0` interface in NetBox (cosmetic); add a Longhorn mount check (`findmnt /var/lib/longhorn`) to a runbook.
+8. Housekeeping: all stale branches are deleted. Decide whether `docs/.obsidian/` is tracked or ignored (it is neither today); set the primary MAC on the `enp6s0` interface in NetBox (cosmetic); add a Longhorn mount check (`findmnt /var/lib/longhorn`) to a runbook.
 
 ## Gotchas
 
