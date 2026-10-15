@@ -125,6 +125,10 @@ class Paperless(p.ComponentResource):
                     '.stversions/*',
                     '@eaDir/*',
                     '#recycle/*',
+                    # QNAP keeps deleted and snapshot files in these folders of the share
+                    '@Recycle/*',
+                    '@Recently-Snapshot/*',
+                    '.@__thumb/*',
                     'desktop.ini',
                     'Thumbs.db',
                 ]
