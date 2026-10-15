@@ -39,6 +39,7 @@ tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 | Longhorn 1.13 | `longhorn_volume_robustness` is one 0/1 series per `state` label and `longhorn_backup_state` does not exist; backup freshness is `longhorn_volume_last_backup_at` | Query the live metric names and labels before writing rules |
 | Grafana | File-provisioned alert rules are read only at startup and are not deleted when their entry disappears | Roll the pod on content change (hash annotation) and list removed uids under `deleteRules` |
 | Grafana | Local `grafana.4jp.de` collided with the user's old Grafana, a public Cloudflare record | Check the name resolves nowhere (`dig` against router and public resolvers) before creating a host record; this stack uses `g.4jp.de` |
+| Alloy / Prometheus | A `pod` target label on the kube-state-metrics scrape overwrote the metric's own `pod` label (the real one became `exported_pod`), so pod-keyed queries and alert text were silently wrong | Never set `pod` or `namespace` target labels for a scrape whose series describe other objects; check a sample series' labels after adding a scrape |
 
 # Suggested standing instructions for agents
 

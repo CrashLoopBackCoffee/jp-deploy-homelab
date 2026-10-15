@@ -47,6 +47,8 @@ Applied 2026-10-13 after a create-only preview of 21 resources; follow-up update
 
 Update 2026-10-14: the first scheduled Longhorn backups ran at 02:00 UTC and completed for all five observability volumes; no alert fired. A restore from them is untested.
 
+Update 2026-10-15: at the user's request the dashboard set grew from 2 to 9: Kubernetes workloads, Observability self-health and Logs explorer are generated in code; Node Exporter Full, CloudNativePG, Longhorn and Traefik are community dashboards vendored under `assets/grafana/dashboards/` and adapted when rendered. The donors' dashboards are specific to services JP does not run. Each was evaluated against live data before adoption; this also exposed a label bug in the kube-state-metrics scrape (see `.okf/observability-stack.md`).
+
 ## Alternatives considered
 
 - kube-prometheus-stack: the standard Kubernetes choice with bundled rules, but the user asked for the donors' LGTM layout.
