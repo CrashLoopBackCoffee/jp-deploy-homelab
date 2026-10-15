@@ -32,3 +32,4 @@ updated: 2026-10-12
 | [[ADR-0017 - First CloudNativePG cluster and QuObjects recovery]] | accepted | Single-instance `postgres-pilot` with Barman plugin backups and WAL archiving to QuObjects; latest-state restore verified |
 | [[ADR-0018 - PostgreSQL PITR and off-site recovery acceptance]] | accepted | Time-targeted PITR verified on the pilot; encrypted HBS 3 off-site copy deferred and unverified |
 | [[ADR-0019 - LGTM observability stack on k0s]] | accepted | Loki, Mimir (blocks in QuObjects), Grafana and Alloy in a separate `observability` Pulumi project; Grafana at `g.4jp.de`, alerts provisioned from code and delivered by Pushover |
+| [[ADR-0020 - Paperless fresh install with Nextcloud off-site backup]] | accepted | Fresh Paperless install with local accounts, a dedicated CloudNativePG database, restic over WebDAV to an off-site Nextcloud and a QNAP NFS intake share; Paperless-specific go-live gate instead of waiting for HBS 3 |

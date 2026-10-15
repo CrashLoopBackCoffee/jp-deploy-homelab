@@ -1,29 +1,36 @@
 config:
   paperless:config:
-    cloudflare:
-      api-key:
-        ref: op://Pulumi/Cloudflare Global API Key/password
-      email: tobias_henkel@gmx.de
-      zone: tobiash.net
     kubeconfig:
       ref: op://Homelab/Kubeconfig prod/password
-    entraid:
-      client-id: a02dcdca-dd0d-4b11-8a92-e7c8307ad547
-      client-secret:
-        secure: AAABAM21YdSLrpU9qebitEnlC8/9G1C/jqWB593x8iybBZyK/xASE8rh7/bqQzkPztqxxLUbyKiKPA9iaH3lpwkkrS9uV9Mx
-    google:
-      client-id: 153248760938-p7v8p1m2vtvsj8ek8jc4qoubgjgdh8rs.apps.googleusercontent.com
-      client-secret:
-        secure: AAABAHNJhKTQyeUviwkgC8LH8PSe71ZlqYwrjjH978KnZeJhNdbgjTl+bBEnw5Gi/sLrULpnKnMv2sdCR5iBuMoffg==
-    mail:
-      client-id: 153248760938-k1ff8a6mta5k20l05keg46klsn32stue.apps.googleusercontent.com
-      client-secret:
-        secure: AAABADJWFhyDQEeCnOudImXSDQmZT38y5lHhkieOIOjtGGraR8TAtdHm7dCpP6yKeOuc8hmVzj91W4uj272+EbOsKQ==
+    zone: 4jp.de
     paperless:
       # renovate: datasource=github-releases packageName=paperless-ngx/paperless-ngx versioning=semver
       version: 2.18.4
-      consume-server: synology.tobiash.net
-      consume-share: /volume2/paperless
+      host: paperless
+      ocr-language: deu+eng
+      consume:
+        # QNAP (qnap.4jp.de resolves to 10.10.0.10); the share and its NFS export for k0s0 are
+        # created on the NAS, outside Pulumi.
+        server: qnap.4jp.de
+        share: /paperless-consume
+      storage:
+        data-size: 5Gi
+        media-size: 30Gi
+        export-size: 30Gi
+    database:
+      name: paperless-db
+      # renovate: datasource=docker packageName=ghcr.io/cloudnative-pg/postgresql versioning=semver
+      image-version: "17.10"
+      storage-size: 5Gi
+      backup:
+        endpoint: https://qnap.4jp.de:8443
+        bucket: cnpg-backups
+        access-key-id:
+          ref: op://Homelab/QuObjects CNPG Backup/username
+        secret-access-key:
+          ref: op://Homelab/QuObjects CNPG Backup/password
+        schedule: "0 0 3 * * *"
+        retention-policy: 14d
     backup:
       # renovate: datasource=docker packageName=ghcr.io/crashloopbackcoffee/restic-rclone versioning=docker
       restic-rclone-version: 0.18.0-1.70.3
@@ -35,30 +42,16 @@ config:
       retention-weekly: 4
       retention-monthly: 6
       restic-password:
-        ref: "op://Pulumi/Paperless Backup/password"
-      google-drive:
-        client-id:
-          ref: "op://Pulumi/Google Drive Rclone/Client ID"
-        client-secret:
-          ref: "op://Pulumi/Google Drive Rclone/Client Secret"
-        access-token:
-          ref: "op://Pulumi/Google Drive Rclone/Access Token"
-        refresh-token:
-          ref: "op://Pulumi/Google Drive Rclone/Refresh Token"
-        token-expiry: "2025-08-03T11:40:33.396532175+02:00"
-        root-folder-id: 1bGQ8Uemiv57zzQIQR0g6TyTwPkCy1lkE
-      # Secondary IDrive E2 (S3) backup target
-      idrive-enabled: true
-      idrive-endpoint:
-        ref: "op://Pulumi/IDrive e2 Paperless/Endpoint"
-      idrive-bucket: restic-paperless
-      idrive-access-key-id:
-        ref: "op://Pulumi/IDrive e2 Paperless/Access Key ID"
-      idrive-secret-access-key:
-        ref: "op://Pulumi/IDrive e2 Paperless/Secret Access Key"
-    postgres:
-      # renovate: datasource=docker packageName=registry-1.docker.io/bitnamicharts/postgresql versioning=semver
-      version: 16.7.26
+        ref: op://Homelab/Paperless Backup/password
+      nextcloud:
+        # Item `Nextcloud Paperless Backup`: website is the base URL, username the account, password
+        # an app password created in Nextcloud (Settings, Security).
+        url:
+          ref: op://Homelab/Nextcloud Paperless Backup/website
+        username:
+          ref: op://Homelab/Nextcloud Paperless Backup/username
+        password:
+          ref: op://Homelab/Nextcloud Paperless Backup/password
     redis:
       # renovate: datasource=github-releases packageName=redis/redis versioning=semver
       version: 8.2.2

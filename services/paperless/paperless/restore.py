@@ -27,7 +27,8 @@ RESTORE_SCRIPT = textwrap.dedent(
 
     # Parse arguments
     SNAPSHOT_ID="${{1:-latest}}"
-    RESTORE_PATH="${{2:-/tmp/paperless-restore}}"
+    # /restore is an emptyDir shared by the restic and paperless containers
+    RESTORE_PATH="${{2:-/restore/paperless-restore}}"
 
     log "Using kubectl version: $($KUBECTL version --client --short 2>/dev/null || $KUBECTL version --client)"
     log "Restoring snapshot: $SNAPSHOT_ID"
@@ -35,7 +36,10 @@ RESTORE_SCRIPT = textwrap.dedent(
 
     # Step 1: Restore data from restic repository
     log "Step 1: Restoring data from restic repository..."
-    $KUBECTL exec paperless-0 -c restic -- restic restore "$SNAPSHOT_ID" --target "$RESTORE_PATH"
+    # SNAPSHOT:SUBFOLDER restores the export directory itself; a plain snapshot restore would
+    # recreate the absolute path /usr/src/paperless/export below the target.
+    $KUBECTL exec paperless-0 -c restic -- restic restore \\
+        "$SNAPSHOT_ID:/usr/src/paperless/export" --target "$RESTORE_PATH"
 
     log "Data restored to $RESTORE_PATH"
 
@@ -77,7 +81,7 @@ def create_restore_job(
     Args:
         component_config: The component configuration
         k8s_opts: Kubernetes resource options
-        backup_secret: The backup secret containing restic password and rclone config
+        backup_secret: The backup secret containing the restic password
         snapshot_id: The restic snapshot ID to restore (default: "latest")
         job_name: Custom job name (default: auto-generated with timestamp)
     """

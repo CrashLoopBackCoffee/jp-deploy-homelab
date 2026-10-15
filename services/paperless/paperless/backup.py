@@ -36,85 +36,42 @@ BACKUP_SCRIPT = textwrap.dedent(
 
     log "Document export completed."
 
-    SECONDARY_FAILED=0
+    RESTIC="$KUBECTL exec paperless-0 -c restic -- restic"
 
-    # Initialize only missing repositories; reject other access errors and clean stale locks.
-    ensure_repo() {{
-        container="$1"
-        rc=0
-        $KUBECTL exec paperless-0 -c "$container" -- restic cat config --no-lock >/dev/null || rc=$?
-        if [ "$rc" -eq 10 ]; then
-            log "Repository of $container not initialized; initializing..."
-            $KUBECTL exec paperless-0 -c "$container" -- restic init || return $?
-            log "Repository of $container initialized."
-        elif [ "$rc" -ne 0 ]; then
-            log "Failed to access repository of $container (restic exit code $rc)"
-            return "$rc"
-        fi
-        log "Removing stale locks in repository of $container..."
-        $KUBECTL exec paperless-0 -c "$container" -- restic unlock
-    }}
-
-    log "Step 1.5: Ensuring repositories are initialized..."
-    ensure_repo restic || {{ log "Primary repository not usable"; exit 1; }}
-
-    if $KUBECTL get pod paperless-0 -o jsonpath='{{.spec.containers[*].name}}' | grep -q 'restic-idrive'; then
-        if ! ensure_repo restic-idrive; then
-            log "Secondary IDrive repository not usable; continuing with primary backup"
-            SECONDARY_FAILED=1
-        fi
+    # Initialize only a missing repository; reject other access errors and clean stale locks.
+    log "Step 2: Ensuring the Nextcloud repository is initialized..."
+    rc=0
+    $RESTIC cat config --no-lock >/dev/null || rc=$?
+    if [ "$rc" -eq 10 ]; then
+        log "Repository not initialized; initializing..."
+        $RESTIC init
+        log "Repository initialized."
+    elif [ "$rc" -ne 0 ]; then
+        log "Failed to access the repository (restic exit code $rc)"
+        exit 1
     fi
+    log "Removing stale locks..."
+    $RESTIC unlock
 
-    # Step 2: Run restic backup (primary Google Drive)
-    log "Step 2: Running primary restic backup (gdrive)..."
-    $KUBECTL exec paperless-0 -c restic -- restic backup /usr/src/paperless/export \\
+    # Step 3: Back up the export to the off-site Nextcloud repository
+    log "Step 3: Running restic backup..."
+    $RESTIC backup /usr/src/paperless/export \\
         --tag paperless \\
         --tag "$(date +%Y-%m-%d)"
-    log "Primary restic backup completed."
+    log "Restic backup completed."
 
-    # Optional secondary backup to IDrive E2 if sidecar exists
-    if $KUBECTL get pod paperless-0 -o jsonpath='{{.spec.containers[*].name}}' | grep -q 'restic-idrive'; then
-        log "Secondary restic sidecar detected; running IDrive E2 backup..."
-        if $KUBECTL exec paperless-0 -c restic-idrive -- restic backup /usr/src/paperless/export \\
-            --tag paperless \\
-            --tag "$(date +%Y-%m-%d)"; then
-            log "Secondary restic backup (IDrive) completed."
-        else
-            log "IDrive backup failed"
-            SECONDARY_FAILED=1
-        fi
-    else
-        log "Secondary restic sidecar not present; skipping IDrive backup."
-    fi
-
-    # Step 3: Restic maintenance primary
-    log "Step 3: Running restic maintenance (primary)..."
-    $KUBECTL exec paperless-0 -c restic -- restic forget \\
+    # Step 4: Retention
+    log "Step 4: Running restic maintenance..."
+    $RESTIC forget \\
         --keep-daily {retention_daily} \\
         --keep-weekly {retention_weekly} \\
         --keep-monthly {retention_monthly} \\
         --prune
-    log "Primary maintenance completed."
+    log "Maintenance completed."
 
-    # Step 4: Restic maintenance secondary (if present)
-    if $KUBECTL get pod paperless-0 -o jsonpath='{{.spec.containers[*].name}}' | grep -q 'restic-idrive'; then
-        log "Running restic maintenance (IDrive)..."
-        if $KUBECTL exec paperless-0 -c restic-idrive -- restic forget \\
-            --keep-daily {retention_daily} \\
-            --keep-weekly {retention_weekly} \\
-            --keep-monthly {retention_monthly} \\
-            --prune; then
-            log "Secondary maintenance completed."
-        else
-            log "IDrive maintenance failed"
-            SECONDARY_FAILED=1
-        fi
-    fi
-
-    if [ "$SECONDARY_FAILED" -ne 0 ]; then
-        log "Backup process completed with secondary backup errors."
-        exit 1
-    fi
+    # Step 5: Verify repository structure so a damaged off-site copy fails the job
+    log "Step 5: Checking repository..."
+    $RESTIC check
 
     log "Backup process completed successfully."
     """
