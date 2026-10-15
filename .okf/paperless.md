@@ -9,7 +9,7 @@ resource: https://app.pulumi.com/jaypee-solutions/paperless/prod
 
 # State
 
-Prepared on 2026-10-15, **not applied**: the Pulumi stack `jaypee-solutions/paperless/prod` does not exist yet and no preview has run, because the preview resolves 1Password items that the user still has to create. Decisions and the gate are in ADR-0020. The workspace `services/paperless` was the donor's stack; this session replaced everything donor-specific.
+Prepared on 2026-10-15, **not applied**. The empty stack `jaypee-solutions/paperless/prod` exists and its preview shows 29 resources to create. Verified so far: both 1Password items resolve in the preview; the Nextcloud app password logs in and survived a WebDAV create, upload, download and delete cycle (quota unlimited); the QNAP share is **not yet mountable** from `k0s0` (`mount.nfs: access denied by server` for `qnap.4jp.de:/paperless-consume`: no export at that path or `10.10.8.1` not allowed on it). Decisions and the gate are in ADR-0020. The workspace `services/paperless` was the donor's stack; this session replaced everything donor-specific.
 
 What it will deploy into namespace `paperless`: a StatefulSet `paperless` (Paperless-ngx plus a `restic` sidecar, three Longhorn volumes `data`, `media`, `export`, the QNAP NFS share as `consume`, a shared scratch `restore` emptyDir), Redis, Tika and Gotenberg, a dedicated CloudNativePG cluster `paperless-db` (one instance on `openebs-lvm-postgres`, Barman plugin backups to prefix `paperless-db/` in `cnpg-backups`), a nightly backup CronJob, an IngressRoute for `https://paperless.4jp.de` and the dnsmasq record. Local accounts only; the `admin` password is generated and exported as a Pulumi secret (also in the Secret `paperless-config`).
 
@@ -23,7 +23,7 @@ What it will deploy into namespace `paperless`: a StatefulSet `paperless` (Paper
 
 # Prerequisites (user, outside Pulumi)
 
-1. 1Password item `Nextcloud Paperless Backup` in `Homelab`: `website` is the Nextcloud base URL, `username` the account, `password` an app password (Nextcloud Settings, Security).
+1. 1Password item `Nextcloud Paperless Backup` in `Homelab`: the website (read as `url`) is the Nextcloud base URL, `username` the account, and a custom field `app-password` an app password (Nextcloud Settings, Security). The item's own `password` is the account password, which Nextcloud rejects over WebDAV (`401 PasswordLoginForbidden`, because 2FA is on). The Pulumi resolver treats only `password`, `username`, `title`, `url` and `notes` as standard fields; every other label is looked up as a custom field, so `website` would fail.
 2. 1Password item `Paperless Backup` in `Homelab`: `password` is the restic repository password. Keep a copy outside the cluster: losing it makes the off-site copy unreadable.
 3. A share on the QNAP, proposed `/paperless-consume`, exported over NFS to `k0s0` (`10.10.8.1`), writable by uid 1000 (Paperless deletes consumed files). The server name `qnap.4jp.de` resolves to `10.10.0.10` through the Unbound override.
 

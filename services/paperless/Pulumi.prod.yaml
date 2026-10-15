@@ -44,14 +44,15 @@ config:
       restic-password:
         ref: op://Homelab/Paperless Backup/password
       nextcloud:
-        # Item `Nextcloud Paperless Backup`: website is the base URL, username the account, password
-        # an app password created in Nextcloud (Settings, Security).
+        # Item `Nextcloud Paperless Backup`: the website (url) is the base URL, username the account,
+        # and the custom field `app-password` an app password created in Nextcloud (Settings,
+        # Security). The item's `password` is the account password, which WebDAV rejects.
         url:
-          ref: op://Homelab/Nextcloud Paperless Backup/website
+          ref: op://Homelab/Nextcloud Paperless Backup/url
         username:
           ref: op://Homelab/Nextcloud Paperless Backup/username
         password:
-          ref: op://Homelab/Nextcloud Paperless Backup/password
+          ref: op://Homelab/Nextcloud Paperless Backup/app-password
     redis:
       # renovate: datasource=github-releases packageName=redis/redis versioning=semver
       version: 8.2.2
