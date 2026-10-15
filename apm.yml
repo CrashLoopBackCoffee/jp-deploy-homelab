@@ -13,6 +13,7 @@ dependencies:
     - jaypee-solutions/apm-homelab
     - jaypee-solutions/apm-okf
     - jaypee-solutions/apm-python
+    - mattpocock/skills
   mcp: []
 includes: auto
 scripts: {}
