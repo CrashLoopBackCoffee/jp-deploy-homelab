@@ -9,9 +9,9 @@ resource: https://app.pulumi.com/jaypee-solutions/paperless/prod
 
 # State
 
-Prepared on 2026-10-15, **not applied**. The empty stack `jaypee-solutions/paperless/prod` exists and its preview shows 29 resources to create. Verified so far: both 1Password items resolve in the preview; the Nextcloud app password logs in and survived a WebDAV create, upload, download and delete cycle (quota unlimited); the QNAP NFS share mounts from `k0s0` and accepts write, read, delete, mkdir and rmdir as uid 1000. All prerequisites are met, so the next step is the apply (needs user approval) and then the go-live gate. Decisions and the gate are in ADR-0020. The workspace `services/paperless` was the donor's stack; this session replaced everything donor-specific.
+Deployed on 2026-10-15 from branch `feature/paperless-prep` (29 resources, stack `jaypee-solutions/paperless/prod`, `pulumi preview --expect-no-changes` clean afterwards) at `https://paperless.4jp.de`. The **go-live gate passed**: the `paperless-db` cluster is healthy and its first backup completed; the backup job created the restic repository on the Nextcloud, saved snapshots, applied retention and `restic check` found no errors; a test document (a text file with a unique marker) was uploaded, appeared in the snapshot as original plus manifest, was deleted from Paperless including the trash, restored from the off-site repository and imported, and came back byte-identical (same SHA-256), searchable, with a thumbnail after `document_thumbnails`. The test document, its token and the manual jobs were removed; Paperless holds 0 documents. The restore found a third bug in the donor's restore procedure (ownership), now fixed in `restore.py` and the runbook below. Decisions and the gate are in ADR-0020. The workspace `services/paperless` was the donor's stack; this session replaced everything donor-specific.
 
-What it will deploy into namespace `paperless`: a StatefulSet `paperless` (Paperless-ngx plus a `restic` sidecar, three Longhorn volumes `data`, `media`, `export`, the QNAP NFS share as `consume`, a shared scratch `restore` emptyDir), Redis, Tika and Gotenberg, a dedicated CloudNativePG cluster `paperless-db` (one instance on `openebs-lvm-postgres`, Barman plugin backups to prefix `paperless-db/` in `cnpg-backups`), a nightly backup CronJob, an IngressRoute for `https://paperless.4jp.de` and the dnsmasq record. Local accounts only; the `admin` password is generated and exported as a Pulumi secret (also in the Secret `paperless-config`).
+What is running in namespace `paperless`: a StatefulSet `paperless` (Paperless-ngx plus a `restic` sidecar, three Longhorn volumes `data`, `media`, `export`, the QNAP NFS share as `consume` (mounted, 17 TB, 7.0 TB free), a shared scratch `restore` emptyDir), Redis, Tika and Gotenberg, a dedicated CloudNativePG cluster `paperless-db` (one instance on `openebs-lvm-postgres`, Barman plugin backups to prefix `paperless-db/` in `cnpg-backups`), a nightly 02:00 backup CronJob, an IngressRoute for `https://paperless.4jp.de` and the dnsmasq record. Local accounts only; the `admin` password is generated and exported as a Pulumi secret (also in the Secret `paperless-config-<hash>`; Pulumi appends a suffix to generated Secret names).
 
 # What changed from the donor
 
@@ -19,7 +19,7 @@ What it will deploy into namespace `paperless`: a StatefulSet `paperless` (Paper
 - Entra ID, Google OAuth, Gmail, allauth apps, the OIDC group, the Cloudflare key and the Google Drive and IDrive backups are removed.
 - The restic sidecar uses `rclone:nextcloud:paperless` over WebDAV. rclone only accepts an obscured password, so an init container writes `rclone.conf` with `rclone obscure` at pod start from the Secret `paperless-backup-secrets` (`NEXTCLOUD_URL` is the base URL, the WebDAV path is derived). Checked by running the generated shell with a stub: URL, user, special characters in the password and mode 0600 are right.
 - The backup job now also runs `restic check` each night, so a damaged off-site repository fails the job.
-- The donor's restore script had two bugs that would have broken a real restore, both fixed in `restore.py` but not yet exercised on a live system: the restic sidecar and the Paperless container have separate `/tmp`, so a shared emptyDir `/restore` was added; and `restic restore` recreates the absolute snapshot path, so it now restores `SNAPSHOT:/usr/src/paperless/export`.
+- The donor's restore script had three bugs that would have broken a real restore. Two were fixed up front: the restic sidecar and the Paperless container have separate `/tmp`, so a shared emptyDir `/restore` was added; and `restic restore` recreates the absolute snapshot path, so it now restores `SNAPSHOT:/usr/src/paperless/export`. The third only showed in the live test: the restored directory is `0700 root`, unreadable for the importer (uid 1000), so a `chown -R 1000:1000` step was added. All three are now exercised and work.
 
 # Prerequisites (user, outside Pulumi)
 
@@ -34,22 +34,26 @@ Then: `(cd services/paperless && direnv exec ../.. pulumi stack init jaypee-solu
 Paperless may go live before the HBS 3 test passes if all of this passes first, with only a test document in the instance:
 
 1. `kubectl -n paperless get cluster.postgresql.cnpg.io paperless-db` is healthy, and `kubectl -n paperless get backup.postgresql.cnpg.io` shows the first backup `completed`.
-2. Sign in at `https://paperless.4jp.de` as `admin` (`kubectl -n paperless get secret paperless-config -o jsonpath='{.data.PAPERLESS_ADMIN_PASSWORD}' | base64 -d`), upload a test document.
-3. Run the backup now: `kubectl -n paperless create job --from=cronjob/paperless-backup paperless-backup-manual` and read its log. It must end with `Backup process completed successfully.`, which includes `restic check`.
-4. Delete the test document in Paperless (also empty the trash).
-5. Restore it (the same steps as the unwired restore Job in `restore.py`):
+2. Sign in at `https://paperless.4jp.de` as `admin`, or use the REST API. Pulumi generates the Secret names with a suffix (`paperless-config-<hash>`), so look it up: `SECRET=$(kubectl -n paperless get secret -o name | grep '^secret/paperless-config')` and `kubectl -n paperless get "$SECRET" -o jsonpath='{.data.PAPERLESS_ADMIN_PASSWORD}' | base64 -d`. Upload a test document (UI, or `POST /api/documents/post_document/` with a token from `POST /api/token/`).
+3. Run the backup now: `kubectl -n paperless create job --from=cronjob/paperless-backup paperless-backup-manual` and read its log. It must end with `Backup process completed successfully.`, which includes `restic check`. `restic ls latest` should list the document's original and manifest.
+4. Delete the test document in Paperless and empty the trash (`POST /api/trash/` with `{"action":"empty"}`); the count must be 0.
+5. Restore it from the **latest snapshot, before any further backup** (the next export run deletes the document from the export directory). These are the steps of the unwired restore Job in `restore.py`:
 
 ```sh
 kubectl -n paperless exec paperless-0 -c restic -- restic restore latest:/usr/src/paperless/export --target /restore/paperless-restore
+kubectl -n paperless exec paperless-0 -c restic -- chown -R 1000:1000 /restore/paperless-restore
 kubectl -n paperless exec paperless-0 -c paperless -- document_importer /restore/paperless-restore --no-progress-bar
 kubectl -n paperless exec paperless-0 -c paperless -- rm -rf /restore/paperless-restore
 ```
 
-6. The test document is back, and opens. Archives and thumbnails are not exported, so they regenerate: `document_thumbnails`, `document_archiver`, `document_index reindex`.
+   The `chown` is required: the importer wrapper runs as uid 1000, but restic (root) restores the target directory as `drwx------ root`, which gave `CommandError: That path doesn't appear to be readable`.
+6. The test document is back with an identical SHA-256. Archives and thumbnails are not exported, so they regenerate: `document_thumbnails`, `document_archiver`, `document_index reindex`.
+
+**Passed on 2026-10-15** (see State). Clean up afterwards: delete the test document, empty the trash, delete the API token (`manage.py shell`, `Token.objects.all().delete()`; `DELETE /api/token/` is not supported) and the manual backup jobs.
 
 # After go-live
 
-- Add a Grafana alert for the `paperless-backup` CronJob not succeeding for 36 hours (kube-state-metrics `kube_cronjob_status_last_successful_time`); it was left out because it would fire while Paperless is not deployed. `cnpg-backup-stale` already covers `paperless-db`.
+- Add a Grafana alert for the `paperless-backup` CronJob not succeeding for 36 hours (kube-state-metrics `kube_cronjob_status_last_successful_time`); it was held back because it would have fired while Paperless was not deployed. Still to do. `cnpg-backup-stale` already covers `paperless-db`.
 - The three application volumes join Longhorn's nightly backup group in addition to the restic copy.
 - Volumes can be expanded in the stack config (needs a pod restart); `export` needs about the size of `media`.
 

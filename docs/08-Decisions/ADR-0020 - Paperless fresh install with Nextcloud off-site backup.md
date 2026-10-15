@@ -17,7 +17,7 @@ adr: 20
 
 ## Status
 
-Accepted on 2026-10-15 for preparing Paperless on k0s. **Preparing** is not **deploying**: nothing is applied until the go-live gate below passes. Supersedes the Paperless-related parts of the donor workspace (Bitnami PostgreSQL, SSO, Google Drive and IDrive backups).
+Accepted on 2026-10-15. Prepared and **deployed the same day** after the go-live gate below passed (see Consequences for the evidence). Supersedes the Paperless-related parts of the donor workspace (Bitnami PostgreSQL, SSO, Google Drive and IDrive backups).
 
 ## Context
 
@@ -39,6 +39,7 @@ Accepted on 2026-10-15 for preparing Paperless on k0s. **Preparing** is not **de
 - Disk use: `export` holds a full copy of the original documents, so `media` and `export` need similar sizes. Volumes can be expanded (needs a pod restart).
 - Prerequisites outside Pulumi, created by the user: 1Password items `Nextcloud Paperless Backup` (the website URL, the username and a custom field `app-password`; the item's own `password` is the account password, which Nextcloud rejects over WebDAV) and `Paperless Backup` (restic password), and the QNAP NFS share. The Pulumi 1Password resolver treats only `password`, `username`, `title`, `url` and `notes` as standard fields, so the config reads the URL from `url` and the app password from the custom field.
 - On 2026-10-15 the stack `jaypee-solutions/paperless/prod` was created (empty) and a preview showed 29 resources to create, none applied. The Nextcloud app password passed a WebDAV create, upload, download and delete cycle. The QNAP share first failed with `mount.nfs: access denied by server`; after the user exported it for `k0s0` it passed mount, write, read, delete, mkdir and rmdir as uid 1000 (the NAS squashes all users to `nobody`; the share is world-writable).
+- **Deployed and gate passed on 2026-10-15** (29 resources, `pulumi preview --expect-no-changes` clean afterwards). The `paperless-db` cluster is healthy and its first backup completed; the backup job created the restic repository on the Nextcloud, saved snapshots, applied retention and `restic check` found no errors; a test document was uploaded, found in the snapshot (original and manifest), deleted from Paperless including the trash, restored from the off-site repository, imported and verified byte-identical (SHA-256), searchable and with a regenerated thumbnail. The live restore exposed one more bug in the donor's procedure (the importer, running as uid 1000, could not read the directory restic restored as `0700 root`), fixed with a `chown` step. The test document, API token and manual jobs were removed.
 
 ## Alternatives considered
 

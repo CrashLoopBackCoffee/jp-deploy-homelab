@@ -41,6 +41,10 @@ RESTORE_SCRIPT = textwrap.dedent(
     $KUBECTL exec paperless-0 -c restic -- restic restore \\
         "$SNAPSHOT_ID:/usr/src/paperless/export" --target "$RESTORE_PATH"
 
+    # The restic sidecar runs as root and restores the target directory as 0700 root, but
+    # document_importer runs as the paperless user (uid 1000) and could not read it.
+    $KUBECTL exec paperless-0 -c restic -- chown -R 1000:1000 "$RESTORE_PATH"
+
     log "Data restored to $RESTORE_PATH"
 
     # Step 2: Import the restored documents
