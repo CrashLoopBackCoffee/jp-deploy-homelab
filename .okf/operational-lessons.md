@@ -40,6 +40,8 @@ tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 | Grafana | File-provisioned alert rules are read only at startup and are not deleted when their entry disappears | Roll the pod on content change (hash annotation) and list removed uids under `deleteRules` |
 | Grafana | Local `grafana.4jp.de` collided with the user's old Grafana, a public Cloudflare record | Check the name resolves nowhere (`dig` against router and public resolvers) before creating a host record; this stack uses `g.4jp.de` |
 | Alloy / Prometheus | A `pod` target label on the kube-state-metrics scrape overwrote the metric's own `pod` label (the real one became `exported_pod`), so pod-keyed queries and alert text were silently wrong | Never set `pod` or `namespace` target labels for a scrape whose series describe other objects; check a sample series' labels after adding a scrape |
+| CNPG / QuObjects | On 2026-10-16 both nightly base backups (`postgres-pilot`, `paperless-db`) failed at about 03:04 UTC with `NoSuchUpload ... The specified bucket does not exist` on `CompleteMultipartUpload`, and `paperless-db` had WAL archive failures from 01:43; the bucket worked again hours later, the alert `cnpg-backup-stale` fired at 36 hours without a success, and Mimir and Longhorn (other buckets) showed no errors | Treat as a transient object-store outage: confirm with an on-demand plugin backup (it completed in 6 s), check `ContinuousArchiving` and `pg_stat_archiver` (retried WAL files catch up by themselves), take a fresh base backup of every cluster with real data; the alert clears within about two minutes of a completed backup. The cause is on the QNAP side (unconfirmed) |
+| Mimir | `usage_stats` reports to `stats.grafana.org`, which resolves to `0.0.0.0` on the LAN resolver, so Mimir logs `connection refused` about once a minute | Not an object-store error; filter it out when searching Mimir logs for storage problems (disabling `usage_stats` is optional) |
 
 # Suggested standing instructions for agents
 
@@ -52,5 +54,6 @@ tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 - Never run `cd` in the shell tool, even inside a chained command; use the tool's `cwd` parameter.
 - Never commit APM-managed skills (`.agents/skills/`, `.claude/skills/`); `apm.yml` and `apm.lock.yaml` are tracked. Pre-commit scans the whole directory, so untracked files can block a commit.
 - Warn before any step that needs a 1Password biometric approval: `direnv` loading `.envrc` once, and the first SSH use of the `k0s` key through the 1Password agent.
+- Stage explicit file paths, never a directory: untracked tool folders such as `docs/.obsidian/` get rewritten in place by the pre-commit hooks (it happened on 2026-10-15; restore from the index, then unstage).
 
 See also [k0s0 node](./k0s0-node.md) and [Kubernetes platform stack](./kubernetes-platform-stack.md).
