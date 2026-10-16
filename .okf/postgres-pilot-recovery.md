@@ -9,7 +9,7 @@ resource: https://app.pulumi.com/jaypee-solutions/kubernetes/prod
 
 # Pilot state
 
-`postgres-pilot` is a single PostgreSQL 17.10 instance in namespace `postgres-pilot`, with a 2 GiB PVC on `openebs-lvm-postgres`. Pulumi owns the Cluster, Barman plugin, ObjectStore, backup Secret, and ScheduledBackup. The ObjectStore writes to `s3://cnpg-backups/postgres-pilot/` at `https://qnap.4jp.de:8443` using the `QuObjects CNPG Backup` item in the Homelab 1Password vault. It archives gzip-compressed WAL, schedules daily backups at `0 0 3 * * *`, and retains a 14-day recovery window. The first immediate backup failed; `postgres-pilot-backup-recovered` later completed with backup ID `20261012T183618`.
+`postgres-pilot` is a single PostgreSQL 17.10 instance in namespace `postgres-pilot`, with a 2 GiB PVC on `openebs-lvm-postgres`. Pulumi owns the Cluster, Barman plugin, ObjectStore, backup Secret, and ScheduledBackup. The ObjectStore writes to `s3://cnpg-backups/postgres-pilot/` at `https://qnap.4jp.de:8443` using the `QuObjects CNPG Backup` item in the Homelab 1Password vault. It archives gzip-compressed WAL, schedules daily backups at `0 0 21 * * *` (UTC; it was `0 0 3 * * *` until 2026-10-16, see ADR-0022), and retains a 14-day recovery window. The first immediate backup failed; `postgres-pilot-backup-recovered` later completed with backup ID `20261012T183618`.
 
 # Verified recovery (2026-10-12)
 
