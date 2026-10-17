@@ -307,3 +307,72 @@ loki.source.kubernetes_events "cluster_events" {
 	forward_to = [loki.write.loki.receiver]
 	log_format = "logfmt"
 }
+
+// ---------------------------------------------------------------------------
+// Syslog from the QNAP (QuLog Center, Log Sender, Send to Syslog Server)
+// ---------------------------------------------------------------------------
+
+// Only low-cardinality header fields become labels. The timestamp is the arrival time: an
+// RFC 3164 timestamp has no year and no time zone, and Loki rejects samples that lie in its future.
+loki.relabel "qnap_syslog" {
+	forward_to = []
+
+	rule {
+		source_labels = ["__syslog_message_hostname"]
+		target_label  = "host"
+	}
+
+	rule {
+		source_labels = ["__syslog_message_app_name"]
+		target_label  = "app"
+	}
+
+	rule {
+		source_labels = ["__syslog_message_severity"]
+		target_label  = "severity"
+	}
+
+	rule {
+		source_labels = ["__syslog_message_facility"]
+		target_label  = "facility"
+	}
+
+	rule {
+		source_labels = ["__syslog_connection_ip_address"]
+		target_label  = "source_ip"
+	}
+}
+
+// One listener per format and protocol; the ports are published by the alloy-syslog service.
+loki.source.syslog "qnap" {
+	listener {
+		address       = "0.0.0.0:SYSLOG_RFC5424_PORT"
+		protocol      = "tcp"
+		syslog_format = "rfc5424"
+		labels        = {job = "qnap-syslog", source = "qnap"}
+	}
+
+	listener {
+		address       = "0.0.0.0:SYSLOG_RFC5424_PORT"
+		protocol      = "udp"
+		syslog_format = "rfc5424"
+		labels        = {job = "qnap-syslog", source = "qnap"}
+	}
+
+	listener {
+		address       = "0.0.0.0:SYSLOG_RFC3164_PORT"
+		protocol      = "tcp"
+		syslog_format = "rfc3164"
+		labels        = {job = "qnap-syslog", source = "qnap"}
+	}
+
+	listener {
+		address       = "0.0.0.0:SYSLOG_RFC3164_PORT"
+		protocol      = "udp"
+		syslog_format = "rfc3164"
+		labels        = {job = "qnap-syslog", source = "qnap"}
+	}
+
+	relabel_rules = loki.relabel.qnap_syslog.rules
+	forward_to    = [loki.write.loki.receiver]
+}

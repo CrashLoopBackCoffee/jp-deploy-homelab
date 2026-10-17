@@ -26,6 +26,15 @@ config:
     alloy:
       # renovate: datasource=helm registryUrl=https://grafana.github.io/helm-charts packageName=alloy versioning=helm
       version: 1.13.1
+      syslog:
+        # QNAP (QuLog Center, Log Sender, Send to Syslog Server) sends to syslog.4jp.de, which
+        # resolves to this fixed MetalLB address. RFC 5424 arrives on port 1514, RFC 3164 on 1515,
+        # each over TCP and UDP. Only the QNAP's two NICs may send (ADR-0024).
+        host: syslog
+        address: 10.10.88.2
+        allowed-sources:
+          - 10.10.0.10/32
+          - 10.10.0.6/32
     grafana:
       # renovate: datasource=helm registryUrl=https://grafana-community.github.io/helm-charts packageName=grafana versioning=helm
       version: 13.5.1

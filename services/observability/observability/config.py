@@ -34,13 +34,28 @@ class GrafanaConfig(ChartConfig):
     pushover: PushoverConfig
 
 
+class SyslogConfig(utils.model.LocalBaseModel):
+    """Receiver for syslog from the QNAP on a fixed MetalLB address."""
+
+    # Hostname below the zone, e.g. `syslog` for syslog.4jp.de
+    host: str
+    # Fixed address from the MetalLB pool
+    address: str
+    # CIDRs allowed to send; enforced by kube-proxy for the LoadBalancer address
+    allowed_sources: list[str]
+
+
+class AlloyConfig(ChartConfig):
+    syslog: SyslogConfig
+
+
 class ComponentConfig(utils.model.LocalBaseModel):
     kubeconfig: utils.model.OnePasswordRef
     # DNS zone for the local records and the ingress hostname
     zone: str
     loki: LokiConfig
     mimir: MimirConfig
-    alloy: ChartConfig
+    alloy: AlloyConfig
     grafana: GrafanaConfig
     kube_state_metrics: ChartConfig
     node_exporter: ChartConfig
