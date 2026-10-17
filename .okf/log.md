@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-17
+* **Finding**: Neither donor (`mp-deploy-homelab`, `th-deploy-homelab`) defines Paperless rules or content configuration (tags, correspondents, document types, workflows, mail rules); both only deploy it. The user parked the topic (HANDOFF open item 9). The user confirmed the Authentik login works.
 * **Change**: Applied the Paperless SSO settings after the user fixed a typo in the Authentik application (discovery then returned 200: issuer `https://id.jaypee.solutions/application/o/paperless/`, RS256, `groups` claim). Preview and apply: 1 Secret replaced, 1 StatefulSet updated, 27 unchanged; `paperless-0` Running 2/2. Created the Paperless group `paperless` (`manage.py shell`, `get_or_create`); allauth lists provider `authentik`; a scripted POST to `/accounts/oidc/authentik/login/` returned 302 to the Authentik authorize endpoint with the registered redirect URI. The interactive login is the user's to confirm.
 * **Change**: Wrote the Paperless OIDC settings (`feature/paperless-sso`): allauth provider `authentik`, client from `Paperless OIDC`, group sync with `paperless-admins` as superuser group, local login kept. Previewed clean; not applied.
 * **Finding**: `https://id.jaypee.solutions/application/o/paperless/.well-known/openid-configuration` returns 404, identical to a nonexistent slug, while `tuweka` returns 200: the application or its provider assignment in Authentik does not match slug `paperless`. Applying now would restart Paperless and leave a broken sign-in button.
