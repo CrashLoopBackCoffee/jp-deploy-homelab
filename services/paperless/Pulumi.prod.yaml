@@ -13,6 +13,15 @@ config:
         # created on the NAS, outside Pulumi.
         server: qnap.4jp.de
         share: /paperless-consume
+      oidc:
+        # Item `Paperless OIDC` (Homelab vault): client id in `username`, secret in `password`.
+        client-id:
+          ref: op://Homelab/Paperless OIDC/username
+        client-secret:
+          ref: op://Homelab/Paperless OIDC/password
+        issuer-url: https://id.jaypee.solutions/application/o/paperless/
+        # Group names are the contract with the Authentik blueprint in AX41 (paperless.yaml.j2).
+        admins-group: paperless-admins
       storage:
         data-size: 5Gi
         media-size: 30Gi
