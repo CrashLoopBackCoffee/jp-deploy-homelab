@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Fast-forward the donor repositories that sit next to this one and show what changed.
+#
+# The donors are the reference for new work here, and they move daily (Renovate plus feature work),
+# so run this at least once a day and before reading them. It never discards local work: a
+# repository with uncommitted changes, on another branch or with local commits is skipped.
+set -u
+
+DONORS=(mp-deploy-homelab th-deploy-homelab)
+MAX_COMMITS=15
+
+parent=${DONOR_PARENT:-$(dirname "$(git rev-parse --show-toplevel)")}
+status=0
+
+for name in "${DONORS[@]}"; do
+    repo="${parent}/${name}"
+    echo "== ${name}"
+
+    if [ ! -d "${repo}/.git" ]; then
+        echo "   missing: ${repo}"
+        status=1
+        continue
+    fi
+
+    branch=$(git -C "${repo}" branch --show-current)
+    if [ "${branch}" != "main" ]; then
+        echo "   skipped: on branch '${branch}', not main"
+        status=1
+        continue
+    fi
+    if [ -n "$(git -C "${repo}" status --porcelain)" ]; then
+        echo "   skipped: uncommitted changes"
+        status=1
+        continue
+    fi
+    if ! git -C "${repo}" fetch --quiet origin; then
+        echo "   fetch failed"
+        status=1
+        continue
+    fi
+    if [ "$(git -C "${repo}" rev-list --count '@{u}..HEAD')" != "0" ]; then
+        echo "   skipped: local commits not on origin"
+        status=1
+        continue
+    fi
+
+    before=$(git -C "${repo}" rev-parse HEAD)
+    if ! git -C "${repo}" merge --ff-only --quiet '@{u}'; then
+        echo "   fast-forward failed"
+        status=1
+        continue
+    fi
+    after=$(git -C "${repo}" rev-parse HEAD)
+
+    if [ "${before}" = "${after}" ]; then
+        echo "   up to date at $(git -C "${repo}" log -1 --format='%h %ad' --date=short)"
+        continue
+    fi
+
+    echo "   updated $(git -C "${repo}" rev-list --count "${before}..${after}") commits"
+    echo "   changed services:"
+    git -C "${repo}" diff --name-only "${before}" "${after}" -- services utils \
+        | cut -d/ -f1-2 | sort | uniq -c | sed 's/^/     /'
+    echo "   latest changes (no merges):"
+    git -C "${repo}" log --no-merges --format='     %ad %h %s' --date=short \
+        -n "${MAX_COMMITS}" "${before}..${after}" | cut -c1-150
+done
+
+exit "${status}"
