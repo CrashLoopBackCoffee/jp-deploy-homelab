@@ -17,7 +17,7 @@ adr: 21
 
 ## Status
 
-Accepted on 2026-10-15. The Paperless 3.x upgrade it requires is **done and verified**. The single sign-on itself is **not yet applied**: it waits for the Authentik application and the 1Password item `Paperless OIDC` (see Consequences).
+Accepted on 2026-10-15. The Paperless 3.x upgrade it requires is **done and verified**. The Authentik side was rolled out by the user on 2026-10-17 (AX41 PR #97 merged, 1Password item `Paperless OIDC` created). The Paperless settings are in `feature/paperless-sso`; they are previewed (1 Secret replaced, 1 StatefulSet updated) but **not applied** until the issuer's discovery document returns 200.
 
 ## Context
 

@@ -48,12 +48,29 @@ class StorageConfig(utils.model.LocalBaseModel):
     export_size: str = '30Gi'
 
 
+class OidcConfig(utils.model.LocalBaseModel):
+    """Authentik provider for single sign-on.
+
+    The group names are the contract with the Authentik blueprint in the AX41 repository.
+    """
+
+    # Item `Paperless OIDC`: the client id in `username`, the client secret in `password`.
+    client_id: utils.model.OnePasswordRef
+    client_secret: utils.model.OnePasswordRef
+    # Issuer URL of the Authentik application, `https://<authentik>/application/o/<slug>/`
+    issuer_url: str
+    # Part of the redirect URI `/accounts/oidc/<provider_id>/login/callback/`
+    provider_id: str = 'authentik'
+    admins_group: str = 'paperless-admins'
+
+
 class PaperlessConfig(utils.model.LocalBaseModel):
     version: str
     # Hostname below the zone, e.g. `paperless` for paperless.4jp.de
     host: str = 'paperless'
     ocr_language: str = 'deu+eng'
     consume: ConsumeConfig
+    oidc: OidcConfig
     storage: StorageConfig = StorageConfig()
 
 

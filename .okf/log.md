@@ -1,6 +1,9 @@
 # Update Log
 
 ## 2026-10-17
+* **Change**: Wrote the Paperless OIDC settings (`feature/paperless-sso`): allauth provider `authentik`, client from `Paperless OIDC`, group sync with `paperless-admins` as superuser group, local login kept. Previewed clean; not applied.
+* **Finding**: `https://id.jaypee.solutions/application/o/paperless/.well-known/openid-configuration` returns 404, identical to a nonexistent slug, while `tuweka` returns 200: the application or its provider assignment in Authentik does not match slug `paperless`. Applying now would restart Paperless and leave a broken sign-in button.
+* **Finding**: Group sync uses `groups.set(existing Paperless groups named in the claim, clear=True)`, so the Paperless group `paperless` must exist before the first SSO login.
 * **Verification**: The 21:00 UTC base backups of 2026-10-16 (`postgres-pilot`, `paperless-db`) are `completed`. Neither donor repository (`mp-deploy-homelab`, `th-deploy-homelab`) had moved. PRs #17 to #21 and AX41 #97 are all still open; the 1Password item `Paperless OIDC` does not exist yet, so the Paperless single sign-on change waits on the user.
 * **Change**: Added the Grafana rule `paperless-backup-stale` (PR #22), checked against live data first, previewed (1 update, 1 replace) and applied; Grafana reports it `inactive`/`ok`.
 * **Verification**: A restore from a scheduled Longhorn backup works: `media-paperless-0` restored into a disposable volume matched the live volume's checksum. The test objects were deleted after the user's approval.
