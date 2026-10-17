@@ -3,9 +3,8 @@ import textwrap
 
 import pulumi as p
 import pulumi_kubernetes as k8s
-import pulumi_postgresql as postgresql
 import pulumi_random as random
-import utils.model
+import utils.cnpg
 import utils.opnsense.dnsmasq.host
 
 from paperless.backup import create_backup_cronjob
@@ -15,6 +14,28 @@ REDIS_PORT = 6379
 PAPERLESS_PORT = 8000
 TIKA_PORT = 9998
 GOTENBERG_PORT = 3000
+DATABASE_NAME = 'paperless'
+DATABASE_USER = 'paperless'
+RCLONE_CONFIG_DIR = '/rclone-config'
+RESTORE_PATH = '/restore'
+
+# rclone only accepts an obscured WebDAV password, so the config is written at pod start using the
+# rclone binary of the restic image. The Nextcloud values come from the backup Secret.
+RCLONE_CONFIG_SCRIPT = textwrap.dedent(
+    f"""\
+    set -eu
+    mkdir -p {RCLONE_CONFIG_DIR}
+    umask 077
+    cat > {RCLONE_CONFIG_DIR}/rclone.conf <<EOF
+    [nextcloud]
+    type = webdav
+    url = ${{NEXTCLOUD_URL%/}}/remote.php/dav/files/${{NEXTCLOUD_USER}}/
+    vendor = nextcloud
+    user = ${{NEXTCLOUD_USER}}
+    pass = $(rclone obscure "$NEXTCLOUD_PASSWORD")
+    EOF
+    """
+)
 
 
 class Paperless(p.ComponentResource):
@@ -23,35 +44,16 @@ class Paperless(p.ComponentResource):
         component_config: ComponentConfig,
         namespace: p.Input[str],
         k8s_provider: k8s.Provider,
-        postgres_provider: postgresql.Provider,
-        postgres_service: p.Input[str],
-        postgres_port: p.Input[int],
     ):
         super().__init__('paperless', 'paperless')
-        # Configure database
-        postgres_opts = p.ResourceOptions(provider=postgres_provider)
-        postgres_password = random.RandomPassword(
-            'synapse-password',
-            length=24,
-        )
-        postgres_user = postgresql.Role(
-            'synapse',
-            login=True,
-            password=postgres_password.result,
-            opts=postgres_opts,
-        )
-        database = postgresql.Database(
-            'synapse',
-            encoding='UTF8',
-            lc_collate='C',
-            lc_ctype='C',
-            owner=postgres_user.name,
-            opts=postgres_opts,
-        )
+        paperless_config = component_config.paperless
+        backup_config = component_config.backup
+        hostname = f'{paperless_config.host}.{component_config.zone}'
+
         admin_username = 'admin'
         admin_password = random.RandomPassword('admin-password', length=32, special=False).result
         p.export('admin_username', admin_username)
-        p.export('admin_password', admin_password)
+        p.export('admin_password', p.Output.secret(admin_password))
         namespaced_provider = k8s.Provider(
             'paperless-provider',
             kubeconfig=k8s_provider.kubeconfig,  # type: ignore
@@ -60,6 +62,25 @@ class Paperless(p.ComponentResource):
         k8s_opts = p.ResourceOptions(
             parent=self,
             provider=namespaced_provider,
+        )
+
+        database_config = component_config.database
+        database = utils.cnpg.create_cnpg_database(
+            database_config.name,
+            database=DATABASE_NAME,
+            owner=DATABASE_USER,
+            image_version=database_config.image_version,
+            storage_size=database_config.storage_size,
+            storage_class=database_config.storage_class,
+            backup=utils.cnpg.BackupTarget(
+                endpoint=database_config.backup.endpoint,
+                bucket=database_config.backup.bucket,
+                access_key_id=database_config.backup.access_key_id.value,
+                secret_access_key=database_config.backup.secret_access_key.value,
+                retention_policy=database_config.backup.retention_policy,
+                schedule=database_config.backup.schedule,
+            ),
+            k8s_opts=k8s_opts,
         )
         redis_service = create_redis(component_config, k8s_opts)
         tika_service = create_tika(component_config, k8s_opts)
@@ -74,30 +95,22 @@ class Paperless(p.ComponentResource):
             'PAPERLESS_CONSUMER_POLLING': '30',
             'PAPERLESS_TASK_WORKERS': '4',
             'PAPERLESS_THREADS_PER_WORKER': '4',
-            # Extend the polling delay to account for HP bitch iteratively updating its PDFs after
-            # scanning each page.
+            # Extend the polling delay to account for printers updating their PDFs after scanning
+            # each page.
             'PAPERLESS_CONSUMER_POLLING_DELAY': '30',
             # Wait up to 10min for the scan to finish
             'PAPERLESS_CONSUMER_POLLING_RETRY_COUNT': '20',
-            'PAPERLESS_URL': f'https://paperless.{component_config.cloudflare.zone}',
+            'PAPERLESS_URL': f'https://{hostname}',
             # https://docs.paperless-ngx.com/troubleshooting/#gunicorn-fails-to-start-with-is-not-a-valid-port-number
             'PAPERLESS_PORT': str(PAPERLESS_PORT),
             'PAPERLESS_ADMIN_USER': admin_username,
-            'PAPERLESS_OCR_LANGUAGE': 'deu+eng',
-            # Authentication
-            'PAPERLESS_APPS': ','.join(
-                (
-                    'allauth.socialaccount.providers.google',
-                    'allauth.socialaccount.providers.openid_connect',
-                )
-            ),
-            'PAPERLESS_ACCOUNT_EMAIL_VERIFICATION': 'none',
-            'PAPERLESS_OIDC_DEFAULT_GROUP': 'readers',
+            'PAPERLESS_OCR_LANGUAGE': paperless_config.ocr_language,
+            'PAPERLESS_TIME_ZONE': 'Europe/Berlin',
             'PAPERLESS_DBENGINE': 'postgresql',
-            'PAPERLESS_DBHOST': postgres_service,
-            'PAPERLESS_DBPORT': p.Output.from_input(postgres_port).apply(str),
-            'PAPERLESS_DBNAME': database.name,
-            'PAPERLESS_DBUSER': postgres_user.name,
+            'PAPERLESS_DBHOST': database.host,
+            'PAPERLESS_DBPORT': str(database.port),
+            'PAPERLESS_DBNAME': DATABASE_NAME,
+            'PAPERLESS_DBUSER': DATABASE_USER,
             'PAPERLESS_CONSUMER_ENABLE_BARCODES': 'true',
             'PAPERLESS_CONSUMER_ENABLE_ASN_BARCODE': 'true',
             'PAPERLESS_CONSUMER_BARCODE_SCANNER': 'ZXING',
@@ -123,7 +136,6 @@ class Paperless(p.ComponentResource):
             'PAPERLESS_TIKA_GOTENBERG_ENDPOINT': p.Output.format(
                 'http://{}:{}', gotenberg_service.metadata.name, GOTENBERG_PORT
             ),
-            'PAPERLESS_GMAIL_OAUTH_CLIENT_ID': component_config.mail.client_id,
             'PAPERLESS_WEBSERVER_WORKERS': '4',
         }
 
@@ -134,109 +146,24 @@ class Paperless(p.ComponentResource):
                     'paperless-secret-key', length=64, special=False
                 ).result,
                 'PAPERLESS_ADMIN_PASSWORD': admin_password,
-                'PAPERLESS_SOCIALACCOUNT_PROVIDERS': p.Output.json_dumps(
-                    {
-                        'google': {
-                            'APPS': [
-                                {
-                                    'client_id': component_config.google.client_id,
-                                    'secret': component_config.google.client_secret,
-                                    'key': '',
-                                    'settings': {
-                                        # You can fine tune these settings per app:
-                                        'scope': [
-                                            'profile',
-                                            'email',
-                                        ],
-                                        'auth_params': {
-                                            'access_type': 'online',
-                                        },
-                                    },
-                                },
-                            ],
-                            'SCOPE': [
-                                'profile',
-                                'email',
-                            ],
-                            'AUTH_PARAMS': {
-                                'access_type': 'online',
-                            },
-                        },
-                        'openid_connect': {
-                            'APPS': [
-                                {
-                                    'provider_id': 'microsoft',
-                                    'name': 'Microsoft Entra ID',
-                                    'client_id': component_config.entraid.client_id,
-                                    'secret': component_config.entraid.client_secret,
-                                    'settings': {
-                                        'server_url': p.Output.concat(
-                                            'https://login.microsoftonline.com/',
-                                            component_config.entraid.tenant_id,
-                                            '/v2.0',
-                                        ),
-                                        'authorization_url': p.Output.concat(
-                                            'https://login.microsoftonline.com/',
-                                            component_config.entraid.tenant_id,
-                                            '/oauth2/v2.0/authorize',
-                                        ),
-                                        'access_token_url': p.Output.concat(
-                                            'https://login.microsoftonline.com/',
-                                            component_config.entraid.tenant_id,
-                                            '/oauth2/v2.0/token',
-                                        ),
-                                        'userinfo_url': 'https://graph.microsoft.com/oidc/userinfo',
-                                        'jwks_uri': p.Output.concat(
-                                            'https://login.microsoftonline.com/',
-                                            component_config.entraid.tenant_id,
-                                            '/discovery/v2.0/keys',
-                                        ),
-                                        'scope': ['openid', 'email', 'profile'],
-                                        'extra_data': ['email', 'name', 'preferred_username'],
-                                    },
-                                }
-                            ]
-                        },
-                    }
-                ),
-                'PAPERLESS_DBPASS': postgres_password.result,
-                'PAPERLESS_GMAIL_OAUTH_CLIENT_SECRET': (
-                    p.Output.secret(component_config.mail.client_secret.secure.get_secret_value())
-                    if isinstance(component_config.mail.client_secret, utils.model.PulumiSecret)
-                    else component_config.mail.client_secret
-                ),
             },
             opts=k8s_opts,
-        )
-
-        # Generate rclone config dynamically
-        rclone_config = p.Output.format(
-            textwrap.dedent("""\
-                [gdrive]
-                type = drive
-                client_id = {0}
-                client_secret = {1}
-                scope = drive
-                token = {{"access_token":"{2}","token_type":"Bearer","refresh_token":"{3}","expiry":"{4}"}}
-                root_folder_id = {5}
-                """),
-            component_config.backup.google_drive.client_id.value,
-            component_config.backup.google_drive.client_secret.value,
-            component_config.backup.google_drive.access_token.value,
-            component_config.backup.google_drive.refresh_token.value,
-            component_config.backup.google_drive.token_expiry,
-            component_config.backup.google_drive.root_folder_id,
         )
 
         backup_secret = k8s.core.v1.Secret(
             'paperless-backup-secrets',
             string_data={
-                'restic-password': component_config.backup.restic_password.value,
-                'rclone.conf': rclone_config,
+                'restic-password': backup_config.restic_password.value,
+                'NEXTCLOUD_URL': backup_config.nextcloud.url.value,
+                'NEXTCLOUD_USER': backup_config.nextcloud.username.value,
+                'NEXTCLOUD_PASSWORD': backup_config.nextcloud.password.value,
             },
             opts=k8s_opts,
         )
 
+        restic_image = (
+            f'ghcr.io/crashloopbackcoffee/restic-rclone:{backup_config.restic_rclone_version}'
+        )
         app_labels = {'app': 'paperless'}
         sts = k8s.apps.v1.StatefulSet(
             'paperless',
@@ -251,38 +178,29 @@ class Paperless(p.ComponentResource):
                         'init_containers': [
                             {
                                 'name': 'setup-rclone-config',
-                                'image': 'alpine:latest',
-                                'command': ['/bin/sh'],
-                                'args': [
-                                    '-c',
-                                    textwrap.dedent("""\
-                                        set -e
-                                        echo "Setting up writable rclone config..."
-                                        mkdir -p /rclone-config
-                                        cp /rclone-config-source/rclone.conf /rclone-config/rclone.conf
-                                        chmod 644 /rclone-config/rclone.conf
-                                        echo "Writable rclone config ready"
-                                        """),
-                                ],
+                                'image': restic_image,
+                                'command': ['/bin/sh', '-c', RCLONE_CONFIG_SCRIPT],
+                                'env_from': [{'secret_ref': {'name': backup_secret.metadata.name}}],
                                 'volume_mounts': [
-                                    {
-                                        'name': 'rclone-config-source',
-                                        'mount_path': '/rclone-config-source',
-                                        'read_only': True,
-                                    },
-                                    {
-                                        'name': 'rclone-config-writable',
-                                        'mount_path': '/rclone-config',
-                                    },
+                                    {'name': 'rclone-config', 'mount_path': RCLONE_CONFIG_DIR},
                                 ],
                             },
                         ],
                         'containers': [
                             {
                                 'name': 'paperless',
-                                'image': f'ghcr.io/paperless-ngx/paperless-ngx:{component_config.paperless.version}',
+                                'image': f'ghcr.io/paperless-ngx/paperless-ngx:{paperless_config.version}',
                                 'env': [
                                     *[{'name': k, 'value': v} for k, v in env_vars.items()],
+                                    {
+                                        'name': 'PAPERLESS_DBPASS',
+                                        'value_from': {
+                                            'secret_key_ref': {
+                                                'name': database.app_secret_name,
+                                                'key': 'password',
+                                            },
+                                        },
+                                    },
                                 ],
                                 'env_from': [
                                     {
@@ -309,17 +227,18 @@ class Paperless(p.ComponentResource):
                                         'name': 'export',
                                         'mount_path': '/usr/src/paperless/export',
                                     },
+                                    {'name': 'restore', 'mount_path': RESTORE_PATH},
                                 ],
                             },
                             {
                                 'name': 'restic',
-                                'image': f'ghcr.io/crashloopbackcoffee/restic-rclone:{component_config.backup.restic_rclone_version}',
+                                'image': restic_image,
                                 'command': ['/bin/sh'],
                                 'args': ['-c', 'sleep infinity'],
                                 'env': [
                                     {
                                         'name': 'RESTIC_REPOSITORY',
-                                        'value': f'rclone:gdrive:{component_config.backup.repository_path}',
+                                        'value': f'rclone:nextcloud:{backup_config.repository_path}',
                                     },
                                     {
                                         'name': 'RESTIC_PASSWORD',
@@ -332,8 +251,9 @@ class Paperless(p.ComponentResource):
                                     },
                                     {
                                         'name': 'RCLONE_CONFIG',
-                                        'value': '/rclone-config/rclone.conf',
+                                        'value': f'{RCLONE_CONFIG_DIR}/rclone.conf',
                                     },
+                                    {'name': 'RESTIC_PROGRESS_FPS', 'value': '0'},
                                 ],
                                 'volume_mounts': [
                                     {
@@ -342,80 +262,13 @@ class Paperless(p.ComponentResource):
                                         'read_only': True,
                                     },
                                     {
-                                        'name': 'rclone-config-writable',
-                                        'mount_path': '/rclone-config',
+                                        'name': 'rclone-config',
+                                        'mount_path': RCLONE_CONFIG_DIR,
+                                        'read_only': True,
                                     },
+                                    {'name': 'restore', 'mount_path': RESTORE_PATH},
                                 ],
                             },
-                            # Optional secondary restic sidecar for IDrive E2 (S3-compatible)
-                            *(
-                                [
-                                    {
-                                        'name': 'restic-idrive',
-                                        'image': f'ghcr.io/crashloopbackcoffee/restic-rclone:{component_config.backup.restic_rclone_version}',
-                                        'command': ['/bin/sh'],
-                                        'args': ['-c', 'sleep infinity'],
-                                        'env': [
-                                            *(
-                                                [
-                                                    {
-                                                        'name': 'RESTIC_REPOSITORY',
-                                                        'value': p.Output.from_input(
-                                                            component_config.backup.idrive_endpoint.value
-                                                        ).apply(
-                                                            lambda ep: (
-                                                                f's3:{ep if ep.startswith("http") else "https://" + ep}/'
-                                                                f'{component_config.backup.idrive_bucket}/'
-                                                                f'{component_config.backup.repository_path}'
-                                                            )
-                                                        ),
-                                                    }
-                                                ]
-                                                if component_config.backup.idrive_endpoint
-                                                and component_config.backup.idrive_bucket
-                                                else []
-                                            ),
-                                            {
-                                                'name': 'RESTIC_PASSWORD',
-                                                'value_from': {
-                                                    'secret_key_ref': {
-                                                        'name': backup_secret.metadata.name,
-                                                        'key': 'restic-password',
-                                                    }
-                                                },
-                                            },
-                                            *(
-                                                [
-                                                    {
-                                                        'name': 'AWS_ACCESS_KEY_ID',
-                                                        'value': component_config.backup.idrive_access_key_id.value,
-                                                    },
-                                                    {
-                                                        'name': 'AWS_SECRET_ACCESS_KEY',
-                                                        'value': component_config.backup.idrive_secret_access_key.value,
-                                                    },
-                                                ]
-                                                if component_config.backup.idrive_access_key_id
-                                                and component_config.backup.idrive_secret_access_key
-                                                else []
-                                            ),
-                                            {
-                                                'name': 'RESTIC_PROGRESS_FPS',
-                                                'value': '0',
-                                            },
-                                        ],
-                                        'volume_mounts': [
-                                            {
-                                                'name': 'export',
-                                                'mount_path': '/usr/src/paperless/export',
-                                                'read_only': True,
-                                            },
-                                        ],
-                                    }
-                                ]
-                                if component_config.backup.idrive_enabled
-                                else []
-                            ),
                         ],
                         'volumes': [
                             {
@@ -423,21 +276,17 @@ class Paperless(p.ComponentResource):
                                 'csi': {
                                     'driver': 'nfs.csi.k8s.io',
                                     'volume_attributes': {
-                                        'server': component_config.paperless.consume_server,
-                                        'share': component_config.paperless.consume_share,
-                                        'mount_options': component_config.paperless.consume_mount_options,
+                                        'server': paperless_config.consume.server,
+                                        'share': paperless_config.consume.share,
+                                        'mount_options': paperless_config.consume.mount_options,
                                     },
                                 },
                             },
+                            {'name': 'rclone-config', 'empty_dir': {}},
+                            # Scratch space shared by the restic and paperless containers for restores
                             {
-                                'name': 'rclone-config-source',
-                                'secret': {
-                                    'secret_name': backup_secret.metadata.name,
-                                },
-                            },
-                            {
-                                'name': 'rclone-config-writable',
-                                'empty_dir': {},
+                                'name': 'restore',
+                                'empty_dir': {'size_limit': paperless_config.storage.export_size},
                             },
                         ],
                         'security_context': {
@@ -447,29 +296,22 @@ class Paperless(p.ComponentResource):
                 },
                 'volume_claim_templates': [
                     {
-                        'metadata': {'name': 'data'},
+                        'metadata': {'name': name},
                         'spec': {
                             'access_modes': ['ReadWriteOnce'],
-                            'resources': {'requests': {'storage': '100Gi'}},
+                            'resources': {'requests': {'storage': size}},
                         },
-                    },
-                    {
-                        'metadata': {'name': 'media'},
-                        'spec': {
-                            'access_modes': ['ReadWriteOnce'],
-                            'resources': {'requests': {'storage': '100Gi'}},
-                        },
-                    },
-                    {
-                        'metadata': {'name': 'export'},
-                        'spec': {
-                            'access_modes': ['ReadWriteOnce'],
-                            'resources': {'requests': {'storage': '100Gi'}},
-                        },
-                    },
+                    }
+                    for name, size in (
+                        ('data', paperless_config.storage.data_size),
+                        ('media', paperless_config.storage.media_size),
+                        ('export', paperless_config.storage.export_size),
+                    )
                 ],
             },
-            opts=k8s_opts,
+            opts=p.ResourceOptions.merge(
+                k8s_opts, p.ResourceOptions(depends_on=[database.cluster])
+            ),
         )
 
         service_paperless = k8s.core.v1.Service(
@@ -483,17 +325,16 @@ class Paperless(p.ComponentResource):
         )
 
         # Create local DNS record
-        traefic_service = k8s.core.v1.Service.get(
+        traefik_service = k8s.core.v1.Service.get(
             'traefik-service', 'traefik/traefik', opts=k8s_opts
         )
-        record = utils.opnsense.dnsmasq.host.Host(
+        utils.opnsense.dnsmasq.host.Host(
             'paperless',
-            host='paperless',
-            domain=component_config.cloudflare.zone,
-            ipaddress=traefic_service.status.load_balancer.ingress[0].ip,
+            host=paperless_config.host,
+            domain=component_config.zone,
+            ipaddress=traefik_service.status.load_balancer.ingress[0].ip,
         )
 
-        fqdn = f'paperless.{component_config.cloudflare.zone}'
         k8s.apiextensions.CustomResource(
             'ingress',
             api_version='traefik.io/v1alpha1',
@@ -506,7 +347,7 @@ class Paperless(p.ComponentResource):
                 'routes': [
                     {
                         'kind': 'Rule',
-                        'match': p.Output.concat('Host(`', fqdn, '`)'),
+                        'match': f'Host(`{hostname}`)',
                         'services': [
                             {
                                 'name': service_paperless.metadata.name,
@@ -522,10 +363,7 @@ class Paperless(p.ComponentResource):
             opts=k8s_opts,
         )
 
-        p.export(
-            'paperless_url',
-            p.Output.format('https://{}.{}', record.host, record.domain),
-        )
+        p.export('paperless_url', f'https://{hostname}')
 
         # Create backup CronJob
         create_backup_cronjob(component_config, k8s_opts)

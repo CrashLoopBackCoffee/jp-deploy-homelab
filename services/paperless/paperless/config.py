@@ -1,16 +1,4 @@
-import pydantic
 import utils.model
-
-
-class EntraIdConfig(utils.model.LocalBaseModel):
-    tenant_id: str = 'ac1df362-04cf-4e6e-839b-031c16ada473'
-    client_id: str
-    client_secret: str | utils.model.PulumiSecret
-
-
-class GoogleConfig(utils.model.LocalBaseModel):
-    client_id: str
-    client_secret: str | utils.model.PulumiSecret
 
 
 class RedisConfig(utils.model.LocalBaseModel):
@@ -25,64 +13,79 @@ class GotenbergConfig(utils.model.LocalBaseModel):
     version: str
 
 
-class PostgresConfig(utils.model.LocalBaseModel):
-    version: str
+class DatabaseBackupConfig(utils.model.LocalBaseModel):
+    endpoint: str
+    bucket: str
+    access_key_id: utils.model.OnePasswordRef
+    secret_access_key: utils.model.OnePasswordRef
+    # Six-field CloudNativePG cron expression (seconds first)
+    schedule: str = '0 0 3 * * *'
+    retention_policy: str = '14d'
 
 
-class MailConfig(utils.model.LocalBaseModel):
-    client_id: str
-    client_secret: str | utils.model.PulumiSecret
+class DatabaseConfig(utils.model.LocalBaseModel):
+    """Dedicated CloudNativePG cluster; its backups go to their own prefix in the bucket."""
+
+    name: str = 'paperless-db'
+    image_version: str
+    storage_size: str = '5Gi'
+    storage_class: str = 'openebs-lvm-postgres'
+    backup: DatabaseBackupConfig
+
+
+class ConsumeConfig(utils.model.LocalBaseModel):
+    """NFS share the scanners drop files into."""
+
+    server: str
+    share: str
+    mount_options: str = 'nfsvers=4.1,sec=sys'
+
+
+class StorageConfig(utils.model.LocalBaseModel):
+    data_size: str = '5Gi'
+    media_size: str = '30Gi'
+    # The exporter writes a full copy of the original documents, so it needs about the media size.
+    export_size: str = '30Gi'
 
 
 class PaperlessConfig(utils.model.LocalBaseModel):
     version: str
+    # Hostname below the zone, e.g. `paperless` for paperless.4jp.de
+    host: str = 'paperless'
+    ocr_language: str = 'deu+eng'
+    consume: ConsumeConfig
+    storage: StorageConfig = StorageConfig()
 
-    consume_server: str = pydantic.Field(alias='consume-server')
-    consume_share: str = pydantic.Field(alias='consume-share')
-    consume_mount_options: str = pydantic.Field(
-        alias='consume-mount-options', default='nfsvers=4.1,sec=sys'
-    )
 
+class NextcloudConfig(utils.model.LocalBaseModel):
+    """Off-site WebDAV target; use an app password, not the account password."""
 
-class RcloneGoogleDriveConfig(utils.model.LocalBaseModel):
-    client_id: utils.model.OnePasswordRef
-    client_secret: utils.model.OnePasswordRef
-    access_token: utils.model.OnePasswordRef
-    refresh_token: utils.model.OnePasswordRef
-    token_expiry: str = pydantic.Field(alias='token-expiry')
-    root_folder_id: str = pydantic.Field(alias='root-folder-id')
+    # Base URL of the Nextcloud server, e.g. https://cloud.example.org; the WebDAV path is derived.
+    url: utils.model.OnePasswordRef
+    username: utils.model.OnePasswordRef
+    password: utils.model.OnePasswordRef
 
 
 class BackupConfig(utils.model.LocalBaseModel):
-    restic_rclone_version: str = pydantic.Field(alias='restic-rclone-version')
-    kubectl_version: str = pydantic.Field(alias='kubectl-version')
-    restic_password: utils.model.OnePasswordRef = pydantic.Field(alias='restic-password')
-    repository_path: str = pydantic.Field(alias='repository-path', default='paperless')
-    schedule: str = pydantic.Field(default='0 2 * * *')
-    retention_daily: int = pydantic.Field(alias='retention-daily', default=7)
-    retention_weekly: int = pydantic.Field(alias='retention-weekly', default=4)
-    retention_monthly: int = pydantic.Field(alias='retention-monthly', default=6)
-    google_drive: RcloneGoogleDriveConfig = pydantic.Field(alias='google-drive')
-    # Optional secondary S3-compatible repository (IDrive E2) for redundancy.
-    # When enabled, a second restic repository will be configured pointing at the
-    # provided bucket. Backups will be pushed to both remote locations.
-    idrive_enabled: bool = False
-    idrive_endpoint: utils.model.OnePasswordRef | None = None
-    idrive_bucket: str | None = None
-    idrive_access_key_id: utils.model.OnePasswordRef | None = None
-    idrive_secret_access_key: utils.model.OnePasswordRef | None = None
+    restic_rclone_version: str
+    kubectl_version: str
+    restic_password: utils.model.OnePasswordRef
+    repository_path: str = 'paperless'
+    schedule: str = '0 2 * * *'
+    retention_daily: int = 7
+    retention_weekly: int = 4
+    retention_monthly: int = 6
+    nextcloud: NextcloudConfig
 
 
 class ComponentConfig(utils.model.LocalBaseModel):
     kubeconfig: utils.model.OnePasswordRef
-    cloudflare: utils.model.CloudflareConfig
+    # DNS zone for the local record and the ingress hostname
+    zone: str
     paperless: PaperlessConfig
+    database: DatabaseConfig
     backup: BackupConfig
     redis: RedisConfig
-    entraid: EntraIdConfig
-    google: GoogleConfig
-    mail: MailConfig
-    postgres: PostgresConfig
     tika: TikaConfig
     gotenberg: GotenbergConfig
 
