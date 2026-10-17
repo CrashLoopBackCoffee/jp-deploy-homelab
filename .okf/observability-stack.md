@@ -46,6 +46,12 @@ Verified 2026-10-17 with test messages: RFC 5424 and RFC 3164, over TCP and UDP,
 
 Real QNAP messages arrive from `10.10.0.6` as host `qnap`, app `qulogd:` (the colon is part of the tag). **Node ports bypass `loadBalancerSourceRanges`:** kube-proxy applies the source ranges to the load balancer address only, so a node port on `10.10.8.1` accepted a message from the workstation. The Service now has `allocateLoadBalancerNodePorts: false`; that flag does not release ports that are already allocated, so the Service was recreated (`delete_before_replace`, as its name and address are fixed). Check with `nc -z <node> <former nodePort>` from a host that is not allowed.
 
+# Probes and scrapes of external targets
+
+Decision: ADR-0025. **Prepared, not applied** (it waits for three 1Password items). The legacy Prometheus' internet-facing probes (27 `http`, 1 `slow`, 3 `icmp`, 2 `tcp`) and its `ax51` (3 HTTPS endpoints) and `pretix` scrapes move into Alloy. The targets are not in the repository, because it is public and about 20 probed sites are customer domains: the Secure Note `Monitoring Targets` holds one `<group> <target>` per line, the Logins `Prometheus AX51 Scrape` and `Prometheus Pretix Scrape` the basic-auth credentials. `targets.py` parses the note strictly and writes the Secret `alloy-targets` (fixed name, mounted at `/etc/alloy-targets`); `config.alloy` reads it with `discovery.file` and `local.file`, so a changed note reaches Alloy within about a minute without a restart. Probe series keep the legacy shape: `instance` is the probed address and `job` is `blackbox`, `blackbox-slow`, `blackbox-icmp` or `blackbox-tcp`. The helper `/tmp/create-monitoring-items.sh` (not in the repository) builds the items from the legacy Ansible vault without printing a value.
+
+The 1Password resolver reads a Secure Note through the field `note_value`; the provider has no `notes` attribute, which the resolver once listed by mistake.
+
 # Pitfalls found
 
 - **Longhorn ships NetworkPolicies** (`longhorn-system`, chart 1.13) that admit only Longhorn pods to the manager, so Alloy, a probe pod and the API server proxy all got `connection refused` on port 9500. `longhorn_access.py` adds an additive policy letting only Alloy reach port 9500.

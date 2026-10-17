@@ -35,6 +35,20 @@ config:
         allowed-sources:
           - 10.10.0.10/32
           - 10.10.0.6/32
+        # Secure Note with one `<group> <target>` line per probe or scrape target (kept out of the
+        # repository on purpose, see targets.py), and the basic-auth logins of the two scraped endpoints.
+        targets:
+          ref: op://Homelab/Monitoring Targets/note_value
+        ax51:
+          username:
+            ref: op://Homelab/Prometheus AX51 Scrape/username
+          password:
+            ref: op://Homelab/Prometheus AX51 Scrape/password
+        pretix:
+          username:
+            ref: op://Homelab/Prometheus Pretix Scrape/username
+          password:
+            ref: op://Homelab/Prometheus Pretix Scrape/password
     grafana:
       # renovate: datasource=helm registryUrl=https://grafana-community.github.io/helm-charts packageName=grafana versioning=helm
       version: 13.5.1

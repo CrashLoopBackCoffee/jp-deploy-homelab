@@ -376,3 +376,160 @@ loki.source.syslog "qnap" {
 	relabel_rules = loki.relabel.qnap_syslog.rules
 	forward_to    = [loki.write.loki.receiver]
 }
+
+// ---------------------------------------------------------------------------
+// Probes and scrapes of external targets
+// ---------------------------------------------------------------------------
+
+// The targets live in a 1Password Secret mounted at TARGETS_PATH (see targets.py); discovery.file
+// re-reads a changed file without a restart.
+discovery.file "probe_targets" {
+	files = ["TARGETS_PATH/blackbox-targets.json"]
+}
+
+// The effective timeout of a probe is capped at 10 seconds in the embedded exporter.
+prometheus.exporter.blackbox "probes" {
+	config = `
+modules:
+  http_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      preferred_ip_protocol: ip4
+  tcp_connect:
+    prober: tcp
+    timeout: 10s
+  icmp:
+    prober: icmp
+    timeout: 5s
+    icmp:
+      preferred_ip_protocol: ip4
+`
+	targets = discovery.file.probe_targets.targets
+}
+
+// `instance` is the probed address and the job names are those of the legacy Prometheus, because
+// the migrated alert rules and dashboards select on them.
+discovery.relabel "probes" {
+	targets = prometheus.exporter.blackbox.probes.targets
+
+	rule {
+		source_labels = ["__param_target"]
+		target_label  = "instance"
+	}
+
+	rule {
+		source_labels = ["group"]
+		regex         = "http"
+		target_label  = "job"
+		replacement   = "blackbox"
+	}
+
+	rule {
+		source_labels = ["group"]
+		regex         = "slow"
+		target_label  = "job"
+		replacement   = "blackbox-slow"
+	}
+
+	rule {
+		source_labels = ["group"]
+		regex         = "icmp"
+		target_label  = "job"
+		replacement   = "blackbox-icmp"
+	}
+
+	rule {
+		source_labels = ["group"]
+		regex         = "tcp"
+		target_label  = "job"
+		replacement   = "blackbox-tcp"
+	}
+}
+
+discovery.relabel "probes_fast" {
+	targets = discovery.relabel.probes.output
+
+	rule {
+		source_labels = ["group"]
+		regex         = "http|icmp|tcp"
+		action        = "keep"
+	}
+}
+
+discovery.relabel "probes_slow" {
+	targets = discovery.relabel.probes.output
+
+	rule {
+		source_labels = ["group"]
+		regex         = "slow"
+		action        = "keep"
+	}
+}
+
+prometheus.scrape "probes_fast" {
+	targets         = discovery.relabel.probes_fast.output
+	forward_to      = [prometheus.remote_write.mimir.receiver]
+	scrape_interval = "60s"
+	scrape_timeout  = "20s"
+}
+
+prometheus.scrape "probes_slow" {
+	targets         = discovery.relabel.probes_slow.output
+	forward_to      = [prometheus.remote_write.mimir.receiver]
+	scrape_interval = "120s"
+	scrape_timeout  = "20s"
+}
+
+// AX51 (node exporter, Docker metrics, cAdvisor) and Pretix publish metrics over HTTPS with basic auth.
+local.file "ax51_username" {
+	filename = "TARGETS_PATH/ax51-username"
+}
+
+local.file "ax51_password" {
+	filename  = "TARGETS_PATH/ax51-password"
+	is_secret = true
+}
+
+discovery.file "ax51" {
+	files = ["TARGETS_PATH/ax51-targets.json"]
+}
+
+prometheus.scrape "ax51" {
+	targets         = discovery.file.ax51.targets
+	forward_to      = [prometheus.remote_write.mimir.receiver]
+	scheme          = "https"
+	scrape_interval = "30s"
+
+	basic_auth {
+		username = local.file.ax51_username.content
+		password = local.file.ax51_password.content
+	}
+}
+
+local.file "pretix_username" {
+	filename = "TARGETS_PATH/pretix-username"
+}
+
+local.file "pretix_password" {
+	filename  = "TARGETS_PATH/pretix-password"
+	is_secret = true
+}
+
+discovery.file "pretix" {
+	files = ["TARGETS_PATH/pretix-targets.json"]
+}
+
+prometheus.scrape "pretix" {
+	targets         = discovery.file.pretix.targets
+	forward_to      = [prometheus.remote_write.mimir.receiver]
+	scheme          = "https"
+	scrape_interval = "60s"
+	// Pretix needs the explicit text format, as it did on the legacy Prometheus.
+	scrape_protocols = ["PrometheusText1.0.0", "PrometheusText0.0.4"]
+
+	basic_auth {
+		username = local.file.pretix_username.content
+		password = local.file.pretix_password.content
+	}
+}
