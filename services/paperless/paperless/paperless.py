@@ -48,6 +48,7 @@ class Paperless(p.ComponentResource):
         super().__init__('paperless', 'paperless')
         paperless_config = component_config.paperless
         backup_config = component_config.backup
+        oidc_config = paperless_config.oidc
         hostname = f'{paperless_config.host}.{component_config.zone}'
 
         admin_username = 'admin'
@@ -146,6 +147,17 @@ class Paperless(p.ComponentResource):
                 'http://{}:{}', gotenberg_service.metadata.name, GOTENBERG_PORT
             ),
             'PAPERLESS_WEBSERVER_WORKERS': '4',
+            # Single sign-on through the shared Authentik. Local login stays as break-glass
+            # (`PAPERLESS_DISABLE_REGULAR_LOGIN` and `PAPERLESS_REDIRECT_LOGIN_TO_SSO` unset).
+            'PAPERLESS_APPS': 'allauth.socialaccount.providers.openid_connect',
+            # A first SSO login creates the account; Authentik's application bindings decide who
+            # gets that far.
+            'PAPERLESS_SOCIAL_AUTO_SIGNUP': 'true',
+            # Every login replaces the user's Paperless groups with those of the same name in the
+            # `groups` claim (only existing Paperless groups can be joined) and sets superuser from
+            # the admin group.
+            'PAPERLESS_SOCIAL_ACCOUNT_SYNC_GROUPS': 'true',
+            'PAPERLESS_SOCIAL_ACCOUNT_SYNC_SUPERUSER_GROUP': oidc_config.admins_group,
         }
 
         config_secret = k8s.core.v1.Secret(
@@ -155,6 +167,24 @@ class Paperless(p.ComponentResource):
                     'paperless-secret-key', length=64, special=False
                 ).result,
                 'PAPERLESS_ADMIN_PASSWORD': admin_password,
+                # holds the client secret
+                'PAPERLESS_SOCIALACCOUNT_PROVIDERS': p.Output.json_dumps(
+                    {
+                        'openid_connect': {
+                            'APPS': [
+                                {
+                                    # part of the redirect URI registered in Authentik
+                                    'provider_id': oidc_config.provider_id,
+                                    'name': 'Authentik',
+                                    'client_id': oidc_config.client_id.value,
+                                    'secret': oidc_config.client_secret.value,
+                                    # allauth appends `/.well-known/openid-configuration`
+                                    'settings': {'server_url': oidc_config.issuer_url.rstrip('/')},
+                                }
+                            ]
+                        }
+                    }
+                ),
             },
             opts=k8s_opts,
         )
