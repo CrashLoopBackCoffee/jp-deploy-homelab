@@ -33,6 +33,7 @@ Against live data: Node Exporter Full has data on 111 of 124 panels (no systemd 
 - QuObjects write path: after `POST /ingester/flush`, a block (`index`, `chunks/000001`, `meta.json`) appeared under `blocks/anonymous/` in `mimir-metrics` with no `InvalidDigest`. Listing needs the `aws` CLI with `AWS_REQUEST_CHECKSUM_CALCULATION=when_required`; a `curl --aws-sigv4` probe returned 403 even for the known-good CNPG key. The store-gateway read path for data older than the ingester window has not been exercised.
 - Loki returns pod logs; both datasources report healthy; 15 rules loaded and healthy; every rule expression returns live series; the Pushover test notification succeeded.
 - 2026-10-14: all alert rules inactive and no `ALERTS` series firing; the first scheduled Longhorn backups of the five observability volumes completed.
+- 2026-10-17: rule `paperless-backup-stale` added (16 rules). It alerts when `kube_cronjob_status_last_successful_time` of the `paperless` CronJob `paperless-backup` is older than 36 hours; with no series (CronJob missing or never succeeded) it alerts too (`no_data_state='Alerting'`). Evaluated against live data first (value 0), then applied after a preview; Grafana reported it `inactive`/`ok`. Grafana's image has no shell, so query its API from a `curlimages/curl` pod against `http://grafana/api/prometheus/grafana/api/v1/rules`.
 
 # Pitfalls found
 

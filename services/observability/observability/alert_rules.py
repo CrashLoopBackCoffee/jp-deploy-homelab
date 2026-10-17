@@ -145,6 +145,19 @@ RULES = [
         no_data_state='Alerting',
     ),
     AlertRule(
+        uid='paperless-backup-stale',
+        title='No Paperless restic backup for 36 hours',
+        expr=(
+            '(time() - max by (namespace, cronjob)'
+            ' (kube_cronjob_status_last_successful_time{namespace="paperless", cronjob="paperless-backup"}))'
+            ' > bool 129600'
+        ),
+        summary='The {{ $labels.cronjob }} CronJob has not succeeded in 36 hours, or does not exist',
+        for_='0s',
+        severity='critical',
+        no_data_state='Alerting',
+    ),
+    AlertRule(
         uid='certificate-expiring',
         title='Certificate expires within 14 days',
         expr='(certmanager_certificate_expiration_timestamp_seconds - time()) < bool 1209600',
