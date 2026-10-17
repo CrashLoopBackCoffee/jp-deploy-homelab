@@ -92,7 +92,7 @@ Each phase ends with a verification; destructive steps need the user's approval;
 
 0. **Read-only discovery on the host: done 2026-10-17** (two scripts, results above). Optional leftovers: when the QNAP overload of 2026-10-15 began (query the legacy Prometheus from 12:00 UTC) and where `water_level` comes from.
 1. **Prepare Mimir: done 2026-10-17.** Retention is 400 days (PR #26; one preview, one apply, ingestion continued). Block upload and the gateway body size stay for the backfill, when the real block file sizes are known.
-2. **Port stage 1 targets** into Alloy and `alert_rules.py` in small steps; each step is compared with the legacy value (`probe_success` parity, target health) during a dual run of about two weeks, with a deliberate alert test through the Pushover contact point.
+2. **Port stage 1 targets: done 2026-10-17** (PR #28, ADR-0025, ADR-0026). 33 probes (27 http, 1 slow, 3 icmp, 2 tcp; all succeed) and the `ax51` and `pretix` scrapes run in Alloy, with three new Grafana rules. It needed the node's inotify limit raised to 1024 and the API server's histogram buckets dropped (Mimir's series limit was reached). The dual run with the legacy Prometheus starts now; the migrated jobs are removed from the legacy side in phase 5.
 3. **Speedtest and dashboards**: deploy the exporter, port `Internet Speed`, `Prometheus Blackbox Exporter`, `Status`, `Pretix` and `WordPress Core Updates`, drop the replaced and dead ones.
 4. **Grafana login**: AX41 pull request (blueprint), the user creates the Authentik application and the 1Password item `Grafana OIDC`, then the Helm values change.
 5. **Cut over the names** (dnsmasq record, Cloudflare record, IngressRoute host, redirect) and remove the migrated jobs and rules from the legacy Prometheus (an Ansible apply that restarts the legacy stack).
@@ -101,6 +101,7 @@ Each phase ends with a verification; destructive steps need the user's approval;
 
 # Open questions for the user
 
-- The QNAP still has to be pointed at the new receiver (QuLog Center, Log Sender, Send to Syslog Server: host `syslog.4jp.de`, port 1514 over TCP for RFC 5424, port 1515 for RFC 3164); see ADR-0024. Once logs arrive, look in Loki (`{job="qnap-syslog"}`) and in the QNAP's own logs for what drove the load average to 112 on 2026-10-15 to 2026-10-16.
+- The QNAP now sends its logs to the receiver (ADR-0024, test message arrived 2026-10-17). Once real events arrive, look in Loki (`{job="qnap-syslog"}`) and in the QNAP's own logs for what drove the load average to 112 on 2026-10-15 to 2026-10-16; the logs of that night predate the receiver.
+- The probes run in Alloy and the legacy Prometheus still runs the same ones (dual run). When should the migrated jobs and rules be removed from the legacy Prometheus (phase 5), and is two weeks of comparison enough?
 
 Related: [Observability stack](./observability-stack.md), [Paperless](./paperless.md), ADR-0019, ADR-0021, ADR-0023.
