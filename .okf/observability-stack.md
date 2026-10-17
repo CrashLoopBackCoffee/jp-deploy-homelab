@@ -42,7 +42,7 @@ Against live data: Node Exporter Full has data on 111 of 124 panels (no systemd 
 - **nginx gateways name their proxy port `http-metrics`** (Loki and Mimir), which the generic port-name scrape rule would hit and report as `up == 0`; the Alloy config drops containers named `gateway` or `nginx`.
 - **The old `grafana/grafana` chart repository is deprecated**; use `grafana-community.github.io/helm-charts` (chart 13.x).
 - **Never set `pod` or `namespace` target labels on a scrape whose series describe other objects.** The kube-state-metrics relabel did, which renamed the real pod label to `exported_pod` and broke every pod-keyed query and alert text (found when a community dashboard returned nothing). Fixed 2026-10-15; history before then still has `exported_pod`.
-- `longhorn-volume-backup-stale` stays pending for 26 hours on a brand-new volume (its backup timestamp is 0 until the first nightly job). The first scheduled run, 2026-10-14 02:00 UTC, completed backups for all five volumes (`Completed` Longhorn `Backup` objects, 02:00:06 to 02:02:32) and no alert fired. A restore from these backups is untested.
+- `longhorn-volume-backup-stale` stays pending for 26 hours on a brand-new volume (its backup timestamp is 0 until the first nightly job). The first scheduled run, 2026-10-14 02:00 UTC, completed backups for all five volumes (`Completed` Longhorn `Backup` objects, 02:00:06 to 02:02:32) and no alert fired. A restore from a scheduled backup passed on 2026-10-17 (see the platform note).
 
 # Operations
 
