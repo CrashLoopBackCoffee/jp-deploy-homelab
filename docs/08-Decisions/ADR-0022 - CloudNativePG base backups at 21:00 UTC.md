@@ -34,4 +34,4 @@ The nightly base backups of `postgres-pilot` and `paperless-db` ran at 03:00 UTC
 - CloudNativePG cron runs in UTC. When DST ends on 2026-10-25, 21:00 UTC becomes 22:00 CET; change the value to `0 0 22 * * *` to keep 23:00 local, or accept the shift.
 - WAL archiving continues all day, so the schedule only decides when the base backup happens. A base backup that fails still raises `cnpg-backup-stale` after 36 hours.
 - The cause of the 2026-10-16 outage is unconfirmed. If the new window also fails, the problem is not the HBS schedule; check the QNAP's QuObjects logs.
-- The first backup in the new window is on 2026-10-16 at 21:00 UTC; verify it completed.
+- Verified 2026-10-17: the first backups in the new window, `postgres-pilot-backup-20261016210000` and `paperless-db-backup-20261016210000`, are `completed`. One clean night does not show the 03:00 failure was the HBS window; keep watching `cnpg-backup-stale`.

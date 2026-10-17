@@ -1,5 +1,11 @@
 # Update Log
 
+## 2026-10-17
+* **Verification**: The 21:00 UTC base backups of 2026-10-16 (`postgres-pilot`, `paperless-db`) are `completed`. Neither donor repository (`mp-deploy-homelab`, `th-deploy-homelab`) had moved. PRs #17 to #21 and AX41 #97 are all still open; the 1Password item `Paperless OIDC` does not exist yet, so the Paperless single sign-on change waits on the user.
+* **Change**: Added the Grafana rule `paperless-backup-stale` (PR #22), checked against live data first, previewed (1 update, 1 replace) and applied; Grafana reports it `inactive`/`ok`.
+* **Verification**: A restore from a scheduled Longhorn backup works: `media-paperless-0` restored into a disposable volume matched the live volume's checksum. The test objects were deleted after the user's approval.
+* **Finding**: `scripts/pull-donors` exists only on `chore/pull-donors` (PR #18) until it merges; the starter prompt assumed it was on every branch.
+
 ## 2026-10-16
 * **Finding**: Alert `No PostgreSQL base backup for 36 hours` fired (2026-10-16, 16:00 UTC). Cause: the 03:00 UTC base backups of both `postgres-pilot` and `paperless-db` failed with `NoSuchUpload ... bucket does not exist`, and `paperless-db` also had WAL archive failures from 01:43 UTC; `postgres-pilot`'s previous success was 10-15 03:00, so 36 hours expired at 15:00. The `cnpg-backups` bucket was healthy again later (an on-demand backup of `postgres-pilot` completed in 6 s); Mimir (other bucket) and Longhorn showed no errors, so the outage was transient and most likely on the QNAP. Not caused by the Paperless v3 upgrade.
 * **Update**: Took on-demand backups of `postgres-pilot` and `paperless-db` (both `completed`), `ContinuousArchiving=True` and the archiver is current on both clusters, and no Grafana rule is firing. Open: ask what runs on the QNAP between 01:30 and 03:10 UTC (HBS 3, snapshot, QuObjects restart) and move the 03:00 schedules if it is a regular window.

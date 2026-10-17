@@ -54,7 +54,7 @@ kubectl -n paperless exec paperless-0 -c paperless -- rm -rf /restore/paperless-
 # After go-live
 
 - Paperless now holds real data: a scanned document arrived through the QNAP intake on the evening of 2026-10-15 (document id 2). The live delete-and-restore gate above was only safe while the instance was empty; with real documents use the scratch-instance test below instead.
-- Add a Grafana alert for the `paperless-backup` CronJob not succeeding for 36 hours (kube-state-metrics `kube_cronjob_status_last_successful_time`); it was held back because it would have fired while Paperless was not deployed. Still to do. `cnpg-backup-stale` already covers `paperless-db`.
+- The Grafana alert `paperless-backup-stale` (kube-state-metrics `kube_cronjob_status_last_successful_time` older than 36 hours, or missing) exists since 2026-10-17 (PR #22). `cnpg-backup-stale` already covers `paperless-db`. The media volume was also restored from a scheduled Longhorn backup on 2026-10-17 with an identical checksum.
 - The three application volumes join Longhorn's nightly backup group in addition to the restic copy.
 - Volumes can be expanded in the stack config (needs a pod restart); `export` needs about the size of `media`.
 - The startup log shows `chown ... Operation not permitted` for the NFS consume folder (the NAS squashes users); harmless.
