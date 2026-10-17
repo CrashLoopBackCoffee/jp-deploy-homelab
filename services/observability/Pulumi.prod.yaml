@@ -11,7 +11,9 @@ config:
     mimir:
       # renovate: datasource=helm registryUrl=https://grafana.github.io/helm-charts packageName=mimir-distributed versioning=helm
       version: 6.2.1
-      retention-days: 30
+      # Long enough for the backfill of the legacy Prometheus history (oldest block 2025-10-10, ADR-0023).
+      # The mimir-metrics bucket is not part of the HBS 3 off-site job, so this history has no off-site copy.
+      retention-days: 400
       endpoint: qnap.4jp.de:8443
       bucket: mimir-metrics
       access-key-id:
