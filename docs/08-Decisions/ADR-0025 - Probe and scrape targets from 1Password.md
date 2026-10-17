@@ -17,7 +17,7 @@ adr: 25
 
 ## Status
 
-Accepted on 2026-10-17. The code is written and checked; it is **not applied** until the user has created the three 1Password items below.
+Accepted on 2026-10-17 and **applied the same day**, after two corrections (see the first-apply consequence below): all 33 probes succeed, `ax51` and `pretix` are scraped, ICMP works from a pod without extra privileges.
 
 ## Context
 

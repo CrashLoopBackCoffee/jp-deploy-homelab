@@ -19,10 +19,24 @@ loki.write "loki" {
 // Cluster components
 // ---------------------------------------------------------------------------
 
+// The API server's histograms alone were 66,000 of its 82,700 series (2026-10-17) and used up most
+// of Mimir's per-tenant limit of 150,000 active series. Nothing here uses them, so the buckets are
+// dropped; `_count`, `_sum` and `apiserver_request_total` stay. Keep a bucket back if a latency
+// panel needs `histogram_quantile`.
+prometheus.relabel "apiserver" {
+	forward_to = [prometheus.remote_write.mimir.receiver]
+
+	rule {
+		source_labels = ["__name__"]
+		regex         = ".+_bucket"
+		action        = "drop"
+	}
+}
+
 prometheus.scrape "apiserver" {
 	targets = [{"__address__" = "kubernetes.default.svc:443"}]
 
-	forward_to        = [prometheus.remote_write.mimir.receiver]
+	forward_to        = [prometheus.relabel.apiserver.receiver]
 	job_name          = "apiserver"
 	scheme            = "https"
 	scrape_interval   = "30s"
@@ -502,8 +516,10 @@ discovery.file "ax51" {
 }
 
 prometheus.scrape "ax51" {
-	targets         = discovery.file.ax51.targets
-	forward_to      = [prometheus.remote_write.mimir.receiver]
+	targets    = discovery.file.ax51.targets
+	forward_to = [prometheus.remote_write.mimir.receiver]
+	// The default job name is the component name; the dashboards and rules use the legacy one.
+	job_name        = "ax51"
 	scheme          = "https"
 	scrape_interval = "30s"
 
@@ -531,8 +547,10 @@ discovery.file "pretix" {
 }
 
 prometheus.scrape "pretix" {
-	targets         = discovery.file.pretix.targets
-	forward_to      = [prometheus.remote_write.mimir.receiver]
+	targets    = discovery.file.pretix.targets
+	forward_to = [prometheus.remote_write.mimir.receiver]
+	// The default job name is the component name; the dashboards and rules use the legacy one.
+	job_name        = "pretix"
 	scheme          = "https"
 	scrape_interval = "60s"
 	// Pretix needs the explicit text format, as it did on the legacy Prometheus.
