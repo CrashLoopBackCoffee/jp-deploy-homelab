@@ -1,5 +1,9 @@
 # Update Log
 
+## 2026-10-16
+* **Finding**: Alert `No PostgreSQL base backup for 36 hours` fired (2026-10-16, 16:00 UTC). Cause: the 03:00 UTC base backups of both `postgres-pilot` and `paperless-db` failed with `NoSuchUpload ... bucket does not exist`, and `paperless-db` also had WAL archive failures from 01:43 UTC; `postgres-pilot`'s previous success was 10-15 03:00, so 36 hours expired at 15:00. The `cnpg-backups` bucket was healthy again later (an on-demand backup of `postgres-pilot` completed in 6 s); Mimir (other bucket) and Longhorn showed no errors, so the outage was transient and most likely on the QNAP. Not caused by the Paperless v3 upgrade.
+* **Update**: Took on-demand backups of `postgres-pilot` and `paperless-db` (both `completed`), `ContinuousArchiving=True` and the archiver is current on both clusters, and no Grafana rule is firing. Open: ask what runs on the QNAP between 01:30 and 03:10 UTC (HBS 3, snapshot, QuObjects restart) and move the 03:00 schedules if it is a regular window.
+
 ## 2026-10-15
 * **Decision**: The user asked for proper Authentik integration for Paperless. They already run Authentik at `https://id.jaypee.solutions` (AX41 repo, identity broker for Mailcow, MFA enforced at Mailcow), so no second Authentik is deployed. Chosen: group `paperless-admins` mapped to Paperless superuser (needs Paperless 3.1+, so upgrade to 3.3.1), local login kept as break-glass, mail (Paperless ingestion and notifications) postponed. ADR-0021.
 * **Finding**: The donor clones were stale: they had last been pulled on 2026-10-02. After the user pulled them, MP's Paperless client blueprint for Authentik (3 October) and TH's working Paperless 3.x settings (running since 23 September) showed up. Added `scripts/pull-donors` and a daily-pull rule (PR #18).
