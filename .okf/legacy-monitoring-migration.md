@@ -93,7 +93,7 @@ Each phase ends with a verification; destructive steps need the user's approval;
 0. **Read-only discovery on the host: done 2026-10-17** (two scripts, results above). Optional leftovers: when the QNAP overload of 2026-10-15 began (query the legacy Prometheus from 12:00 UTC) and where `water_level` comes from.
 1. **Prepare Mimir: done 2026-10-17.** Retention is 400 days (PR #26; one preview, one apply, ingestion continued). Block upload and the gateway body size stay for the backfill, when the real block file sizes are known.
 2. **Port stage 1 targets: done 2026-10-17** (PR #28, ADR-0025, ADR-0026). 33 probes (27 http, 1 slow, 3 icmp, 2 tcp; all succeed) and the `ax51` and `pretix` scrapes run in Alloy, with three new Grafana rules. It needed the node's inotify limit raised to 1024 and the API server's histogram buckets dropped (Mimir's series limit was reached). The dual run with the legacy Prometheus starts now; the migrated jobs are removed from the legacy side in phase 5.
-3. **Speedtest and dashboards**: deploy the exporter, port `Internet Speed`, `Prometheus Blackbox Exporter`, `Status`, `Pretix` and `WordPress Core Updates`, drop the replaced and dead ones.
+3. **Speedtest and dashboards: done 2026-10-17** (PR #29, ADR-0027). The exporter runs in `observability` (Alloy scrapes it every 30 minutes), `Internet Speed` is rebuilt in code, and `Prometheus Blackbox Exporter`, `Status`, `Pretix` and `WordPress Core Updates` are vendored from the legacy Grafana; 14 dashboards in Grafana and all 24 panel queries of the ported ones return data.
 4. **Grafana login**: AX41 pull request (blueprint), the user creates the Authentik application and the 1Password item `Grafana OIDC`, then the Helm values change.
 5. **Cut over the names** (dnsmasq record, Cloudflare record, IngressRoute host, redirect) and remove the migrated jobs and rules from the legacy Prometheus (an Ansible apply that restarts the legacy stack).
 6. **Backfill test** with one week; if queries match the legacy Prometheus, continue later in stage 2.
@@ -102,6 +102,7 @@ Each phase ends with a verification; destructive steps need the user's approval;
 # Open questions for the user
 
 - The QNAP now sends its logs to the receiver (ADR-0024, test message arrived 2026-10-17). Once real events arrive, look in Loki (`{job="qnap-syslog"}`) and in the QNAP's own logs for what drove the load average to 112 on 2026-10-15 to 2026-10-16; the logs of that night predate the receiver.
-- The probes run in Alloy and the legacy Prometheus still runs the same ones (dual run). When should the migrated jobs and rules be removed from the legacy Prometheus (phase 5), and is two weeks of comparison enough?
+- Dual run: decided on 2026-10-17, two weeks. The migrated jobs and rules are removed from the legacy Prometheus in phase 5 no earlier than 2026-10-31.
+- Is the speed test cadence of 30 minutes acceptable? One test moves about 156 MB, so about 7.5 GB a day; 60 minutes would halve it (ADR-0027).
 
 Related: [Observability stack](./observability-stack.md), [Paperless](./paperless.md), ADR-0019, ADR-0021, ADR-0023.
