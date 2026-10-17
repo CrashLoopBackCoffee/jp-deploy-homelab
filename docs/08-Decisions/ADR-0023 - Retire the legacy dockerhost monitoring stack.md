@@ -17,7 +17,7 @@ adr: 23
 
 ## Status
 
-Accepted on 2026-10-17. The migration is **planned, not started**; the runbook, inventory and gates are in `.okf/legacy-monitoring-migration.md`.
+Accepted on 2026-10-17. Stage 1 is **under way**: phases 1 to 3 (Mimir retention, QNAP syslog, probes and scrapes, speed test and dashboards) were applied on 2026-10-17 ([[ADR-0024 - QNAP syslog into Loki]] to [[ADR-0027 - Speedtest exporter and legacy dashboards]]); the two-week dual run with the legacy Prometheus began that day, and the migrated jobs are removed from the legacy side no earlier than 2026-10-31. The Grafana login, the name cutover, the backfill and stage 2 are still to come. The runbook, inventory and gates are in `.okf/legacy-monitoring-migration.md`.
 
 ## Context
 
