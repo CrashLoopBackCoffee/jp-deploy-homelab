@@ -1,0 +1,16 @@
+- name: Raise the inotify instance limit on k0s nodes
+  hosts: k0s_nodes
+  become: true
+  gather_facts: false
+  tasks:
+    # The limit is per user, so k0s, the kubelet, containerd and every pod running as root share
+    # it. The Ubuntu default of 128 was exhausted on 2026-10-17: a new Alloy pod failed to start
+    # with "couldn't initialize inotify: too many open files" while the old pod was still running.
+    - name: Raise fs.inotify.max_user_instances
+      ansible.posix.sysctl:
+        name: fs.inotify.max_user_instances
+        value: "1024"
+        sysctl_file: /etc/sysctl.d/90-k0s-inotify.conf
+        sysctl_set: true
+        reload: true
+        state: present

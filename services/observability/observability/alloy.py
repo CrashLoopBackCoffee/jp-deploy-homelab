@@ -7,6 +7,7 @@ import utils.opnsense.dnsmasq.host
 from observability.config import ComponentConfig
 from observability.loki import LOKI_GATEWAY_URL
 from observability.mimir import MIMIR_GATEWAY_URL
+from observability.targets import MOUNT_PATH, SECRET_NAME
 
 ALLOY_CONFIG = pathlib.Path(__file__).parent.parent / 'assets' / 'alloy' / 'config.alloy'
 
@@ -36,6 +37,7 @@ def create_alloy(
     config = config.replace('LOKI_PUSH_URL', f'{LOKI_GATEWAY_URL}/loki/api/v1/push')
     config = config.replace('SYSLOG_RFC5424_PORT', str(SYSLOG_PORTS['rfc5424']))
     config = config.replace('SYSLOG_RFC3164_PORT', str(SYSLOG_PORTS['rfc3164']))
+    config = config.replace('TARGETS_PATH', MOUNT_PATH)
 
     return k8s.helm.v3.Release(
         'alloy',
@@ -44,8 +46,17 @@ def create_alloy(
         version=component_config.alloy.version,
         repository_opts={'repo': 'https://grafana.github.io/helm-charts'},
         values={
-            'controller': {'type': 'deployment', 'replicas': 1},
-            'alloy': {'configMap': {'content': config}},
+            'controller': {
+                'type': 'deployment',
+                'replicas': 1,
+                'volumes': {'extra': [{'name': 'targets', 'secret': {'secretName': SECRET_NAME}}]},
+            },
+            'alloy': {
+                'configMap': {'content': config},
+                'mounts': {
+                    'extra': [{'name': 'targets', 'mountPath': MOUNT_PATH, 'readOnly': True}]
+                },
+            },
         },
         opts=p.ResourceOptions.merge(k8s_opts, p.ResourceOptions(depends_on=depends_on)),
     )
