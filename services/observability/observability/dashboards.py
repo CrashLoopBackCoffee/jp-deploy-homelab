@@ -31,6 +31,15 @@ COMMUNITY_DASHBOARDS = {
     'longhorn.json': (16888, 35),
     'traefik.json': (17347, 7),
 }
+# Dashboards exported from the legacy Grafana (ADR-0023). They name their datasource by its old name
+# or UID, which is pointed at Mimir when they are rendered.
+LEGACY_DASHBOARDS = (
+    'blackbox-exporter.json',  # "Prometheus Blackbox Exporter"
+    'status.json',  # "Status"
+    'pretix.json',  # "Pretix"
+    'wordpress-core-updates.json',  # "WordPress Core Updates"
+)
+_LEGACY_PROMETHEUS_DATASOURCES = {'Prometheus', 'PBFA97CFB590B2093'}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -370,6 +379,31 @@ SELF_HEALTH_PANELS = [
     ),
 ]
 
+# The exporter runs one real speed test per scrape (every 30 minutes), so the series are sparse. Its
+# `speedtest_download_bytes` and `speedtest_upload_bytes` are bytes per second. Despite their names
+# (and the typo `jittter`), `speedtest_latency_seconds` and `speedtest_jittter_seconds` are milliseconds:
+# a test on 2026-10-17 reported 7.99 and 0.401 for a link with a latency of about 8 ms.
+SPEEDTEST_PANELS = [
+    Panel(
+        'Download and upload',
+        'speedtest_download_bytes * 8',
+        'bps',
+        legend='download',
+        extra=(('speedtest_upload_bytes * 8', 'upload'),),
+    ),
+    Panel(
+        'Latency and jitter',
+        'speedtest_latency_seconds',
+        'ms',
+        legend='latency',
+        extra=(('speedtest_jittter_seconds', 'jitter'),),
+    ),
+    Panel('Download, last test', 'speedtest_download_bytes * 8', 'bps', kind='stat'),
+    Panel('Upload, last test', 'speedtest_upload_bytes * 8', 'bps', kind='stat'),
+    Panel('Test duration', 'script_duration_seconds{job="speedtest"}', 's'),
+    Panel('Last test succeeded', 'script_success{job="speedtest"}', kind='stat'),
+]
+
 LOGS_VARIABLES = [
     _query_variable('namespace', 'label_values(namespace)', 'loki'),
     _query_variable('pod', 'label_values({namespace=~"$namespace"}, pod)', 'loki'),
@@ -417,6 +451,8 @@ def _adapt_community(raw: str) -> str:
 
     def resolve(value: t.Any) -> t.Any:
         uid = value.get('uid') if isinstance(value, dict) else value
+        if uid in _LEGACY_PROMETHEUS_DATASOURCES:
+            return _datasource('prometheus')
         match = placeholder.match(uid) if isinstance(uid, str) else None
         if not match or match.group(1) not in datasource_names:
             return value
@@ -459,7 +495,10 @@ def provisioning_files() -> dict[str, str]:
             'homelab-self-health', 'Observability self-health', SELF_HEALTH_PANELS
         ),
         'logs.json': _dashboard('homelab-logs', 'Logs explorer', LOGS_PANELS, LOGS_VARIABLES),
+        'internet-speed.json': _dashboard(
+            'homelab-internet-speed', 'Internet Speed', SPEEDTEST_PANELS
+        ),
     }
-    for name in COMMUNITY_DASHBOARDS:
+    for name in (*COMMUNITY_DASHBOARDS, *LEGACY_DASHBOARDS):
         files[name] = _adapt_community((COMMUNITY_DIR / name).read_text())
     return files

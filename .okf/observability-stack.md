@@ -56,6 +56,12 @@ Series budget (ADR-0026): Mimir allows 150,000 active series per tenant. The API
 
 The 1Password resolver reads a Secure Note through the field `note_value`; the provider has no `notes` attribute, which the resolver once listed by mistake.
 
+# Internet speed test and ported dashboards
+
+Decision: ADR-0027. **Applied 2026-10-17.** The Deployment and Service `speedtest-exporter` (`billimek/prometheus-speedtest-exporter` 1.3.1, port 9469, container port named `probe` so the generic pod scrape ignores it) run in `observability`; Alloy scrapes `/probe?script=speedtest` every 30 minutes with a 3-minute timeout (job `speedtest`), and every scrape runs a real test. A test took 12 s and measured about 193 Mbit/s down and 40 Mbit/s up, moving about 138 MB down and 18 MB up (about 7.5 GB a day at this cadence). The exporter's `speedtest_latency_seconds` and `speedtest_jittter_seconds` are milliseconds, whatever their names say, and its download and upload are bytes per second. To test it by hand, `curl "http://speedtest-exporter:9469/probe?script=speedtest"` from a pod.
+
+Dashboards: the generated `Internet Speed` (uid `homelab-internet-speed`) and the four exported from the legacy Grafana, `Prometheus Blackbox Exporter`, `Status`, `Pretix` and `WordPress Core Updates`, vendored unchanged in `assets/grafana/dashboards/` (`LEGACY_DASHBOARDS` in `dashboards.py`); the adapter points their datasource, named `Prometheus` or by its old UID `PBFA97CFB590B2093`, at Mimir. Grafana lists 14 dashboards. All 24 panel queries of the four ported dashboards return data against Mimir (checked with the variables filled in, using a throwaway script). The ConfigMap holding the dashboards is 489 KB of the 1 MiB limit.
+
 # Pitfalls found
 
 - **Longhorn ships NetworkPolicies** (`longhorn-system`, chart 1.13) that admit only Longhorn pods to the manager, so Alloy, a probe pod and the API server proxy all got `connection refused` on port 9500. `longhorn_access.py` adds an additive policy letting only Alloy reach port 9500.
