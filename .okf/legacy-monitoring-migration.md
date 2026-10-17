@@ -59,8 +59,9 @@ From a pod on k0s, every probe to `192.168.178.0/24` timed out on 2026-10-17 (do
 | Grafana login | Authentik OIDC | AX41 blueprint (groups `grafana-admins`, `grafana`, bindings) plus a UI-created application and a 1Password item; `auth.generic_oauth` in the Helm values with the secret from `grafana-secrets` |
 | History | Mimir backfill | See below |
 | Hostname | `grafana.4jp.de` | See below |
+| QNAP logs | Alloy `loki.source.syslog` in Loki | Done 2026-10-17 (ADR-0024, PR #27): RFC 5424 and RFC 3164 over TCP and UDP on `10.10.88.2` / `syslog.4jp.de`; the QNAP's Log Sender still has to be configured by the user |
 
-Dashboards, decided by the user on 2026-10-17: **keep and port** the UI-only `Prometheus Blackbox Exporter`, `Status` and `Pretix` (they use only `probe_*` and `pretix_*` metrics, so they work in stage 1) plus `WordPress Core Updates` and `Internet Speed` (rebuilt on Mimir). **Drop** `Docker and system monitoring`, `Traefik3` and `coffee` (with its alert `Low Water Level`, to be confirmed), the provisioned `Blackbox Exporter (HTTP prober)` (a duplicate of the kept one), `SwitchBot Meter` and `Temperature` (no data), the three stale files on the host, and the views the new stack already has (`Node Exporter Full`, the Docker and cAdvisor views for the cluster, `Loki Dashboard quick search`, a Traefik view). The UI dashboards use the datasource UID `PBFA97CFB590B2093` and the name `Prometheus`; the dashboard adapter must point them at the `mimir` datasource. Per the lessons file each ported dashboard is checked against live data before it is accepted.
+Dashboards, decided by the user on 2026-10-17: **keep and port** the UI-only `Prometheus Blackbox Exporter`, `Status` and `Pretix` (they use only `probe_*` and `pretix_*` metrics, so they work in stage 1) plus `WordPress Core Updates` and `Internet Speed` (rebuilt on Mimir). **Drop** `Docker and system monitoring`, `Traefik3` and `coffee` (with its alert `Low Water Level`: confirmed, Home Assistant handles the coffee machine now), the provisioned `Blackbox Exporter (HTTP prober)` (a duplicate of the kept one), `SwitchBot Meter` and `Temperature` (no data), the three stale files on the host, and the views the new stack already has (`Node Exporter Full`, the Docker and cAdvisor views for the cluster, `Loki Dashboard quick search`, a Traefik view). The UI dashboards use the datasource UID `PBFA97CFB590B2093` and the name `Prometheus`; the dashboard adapter must point them at the `mimir` datasource. Per the lessons file each ported dashboard is checked against live data before it is accepted.
 
 # Deferred with the LAN (stays on the legacy stack)
 
@@ -90,7 +91,7 @@ Constraints specific to this setup:
 Each phase ends with a verification; destructive steps need the user's approval; every Pulumi change is previewed first.
 
 0. **Read-only discovery on the host: done 2026-10-17** (two scripts, results above). Optional leftovers: when the QNAP overload of 2026-10-15 began (query the legacy Prometheus from 12:00 UTC) and where `water_level` comes from.
-1. **Prepare Mimir** (the `observability` stack): retention 400 days, block upload enabled, gateway body size, volume sizes. One preview, one apply; check ingestion and queries afterwards.
+1. **Prepare Mimir: done 2026-10-17.** Retention is 400 days (PR #26; one preview, one apply, ingestion continued). Block upload and the gateway body size stay for the backfill, when the real block file sizes are known.
 2. **Port stage 1 targets** into Alloy and `alert_rules.py` in small steps; each step is compared with the legacy value (`probe_success` parity, target health) during a dual run of about two weeks, with a deliberate alert test through the Pushover contact point.
 3. **Speedtest and dashboards**: deploy the exporter, port `Internet Speed`, `Prometheus Blackbox Exporter`, `Status`, `Pretix` and `WordPress Core Updates`, drop the replaced and dead ones.
 4. **Grafana login**: AX41 pull request (blueprint), the user creates the Authentik application and the 1Password item `Grafana OIDC`, then the Helm values change.
@@ -100,8 +101,6 @@ Each phase ends with a verification; destructive steps need the user's approval;
 
 # Open questions for the user
 
-- Confirm that the `coffee` dashboard and the alert `Low Water Level` are dropped (you did not list them among the dashboards to keep).
-- Is the `mimir-metrics` bucket part of the HBS 3 off-site job? (Free space is not a concern: the QNAP has more than 6 TB.)
-- Please check the QNAP's logs for 2026-10-15 from about 19:00 UTC to 2026-10-16 07:00 UTC (Resource Monitor, HBS, QuObjects, storage tasks): which job drove the load average to 112?
+- The QNAP still has to be pointed at the new receiver (QuLog Center, Log Sender, Send to Syslog Server: host `syslog.4jp.de`, port 1514 over TCP for RFC 5424, port 1515 for RFC 3164); see ADR-0024. Once logs arrive, look in Loki (`{job="qnap-syslog"}`) and in the QNAP's own logs for what drove the load average to 112 on 2026-10-15 to 2026-10-16.
 
 Related: [Observability stack](./observability-stack.md), [Paperless](./paperless.md), ADR-0019, ADR-0021, ADR-0023.

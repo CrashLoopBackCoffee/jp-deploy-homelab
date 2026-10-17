@@ -46,11 +46,13 @@ The legacy stack scrapes 13 jobs (about 55 targets, 32 of them HTTP probes). Man
 ## Update 2026-10-17 (discovery and answers)
 
 - The read-only discovery on `dockerhost` confirmed the inventory (see the note) and corrected two points: Mimir retention must be 400 days, and the `Traefik2` dashboard has data because dockerhost's own Traefik is scraped under the job `node-exporter`.
-- The user accepted that `ZweiradGarage` and `WarmWaterOutage` stay on the legacy stack only until the LAN work. The Grafana rule `Low Water Level` (coffee machine) is the same kind of case.
+- The user accepted that `ZweiradGarage` and `WarmWaterOutage` stay on the legacy stack only until the LAN work. The coffee machine (dashboard `coffee`, Grafana rule `Low Water Level`) is now handled by Home Assistant and is dropped.
 - Dashboards kept and ported: the UI-only `Prometheus Blackbox Exporter`, `Status` and `Pretix`, plus `WordPress Core Updates` and a rebuilt `Internet Speed`. Dropped: `Docker and system monitoring`, `Traefik3`, `coffee`, the duplicate provisioned blackbox dashboard, `SwitchBot Meter` and `Temperature`.
-- The QNAP has more than 6 TB free, so the backfill is not capacity-limited. Whether the `mimir-metrics` bucket is in the HBS 3 off-site job is still unknown.
+- The QNAP has more than 6 TB free, so the backfill is not capacity-limited. The `mimir-metrics` bucket is **not** part of the HBS 3 off-site job and the user will not add it: the history has no off-site copy, metrics may be lost with the QNAP, and retention may be reduced later.
 - The Home Assistant role on `dockerhost` is dead (no container runs; SwitchBot moved to Home Assistant on Proxmox) and the user wants it deleted. It is removed in stage 2 with the other deletions, each with approval; the InfluxDB database `home_assistant` is archived first.
 - Side finding for [[ADR-0022 - CloudNativePG base backups at 21:00 UTC]]: the legacy Prometheus shows the QNAP overloaded on the night of the 2026-10-16 outage (see that ADR).
+- Phase 1 is done: Mimir retention is 400 days (PR #26, previewed and applied; block upload stays off and the gateway body size is set at the backfill, from the real block file sizes).
+- The user asked for the QNAP's logs in the new Loki to make the next incident visible; see [[ADR-0024 - QNAP syslog into Loki]] (RFC 5424 and RFC 3164, deployed and verified with test messages, PR #27).
 
 ## Alternatives considered
 
