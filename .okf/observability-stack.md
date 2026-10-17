@@ -44,6 +44,8 @@ On the QNAP (QuLog Center, Log Sender, Send to Syslog Server): enable it and add
 
 Verified 2026-10-17 with test messages: RFC 5424 and RFC 3164, over TCP and UDP, all four arrived in Loki with the labels above (0 parse errors); a sender outside the range could not connect. Test with a busybox pod against the Service (`nc -w2 alloy-syslog 1514` with `printf '<14>1 <ISO time> host app 1 ID - message\n'`, and `nc -u` for UDP); in Loki query `{job="qnap-syslog"}`. Pitfalls found: the Alloy chart's `extraPorts` list only the TCP ports on the chart's own Service (a same-numbered UDP entry is dropped), so test through `alloy-syslog`, which carries both; and the workstation cannot test the LoadBalancer address, because it is deliberately not an allowed source.
 
+Real QNAP messages arrive from `10.10.0.6` as host `qnap`, app `qulogd:` (the colon is part of the tag). **Node ports bypass `loadBalancerSourceRanges`:** kube-proxy applies the source ranges to the load balancer address only, so a node port on `10.10.8.1` accepted a message from the workstation. The Service now has `allocateLoadBalancerNodePorts: false`; that flag does not release ports that are already allocated, so the Service was recreated (`delete_before_replace`, as its name and address are fixed). Check with `nc -z <node> <former nodePort>` from a host that is not allowed.
+
 # Pitfalls found
 
 - **Longhorn ships NetworkPolicies** (`longhorn-system`, chart 1.13) that admit only Longhorn pods to the manager, so Alloy, a probe pod and the API server proxy all got `connection refused` on port 9500. `longhorn_access.py` adds an additive policy letting only Alloy reach port 9500.

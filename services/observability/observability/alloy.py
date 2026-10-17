@@ -90,6 +90,9 @@ def create_syslog_service(
             # Keeps the sender's address, which loadBalancerSourceRanges are matched against.
             'external_traffic_policy': 'Local',
             'load_balancer_source_ranges': syslog.allowed_sources,
+            # MetalLB does not need node ports, and kube-proxy applies the source ranges only to the
+            # load balancer address: an allocated node port would admit any host that reaches the node.
+            'allocate_load_balancer_node_ports': False,
             'selector': {
                 'app.kubernetes.io/name': 'alloy',
                 'app.kubernetes.io/instance': 'alloy',
@@ -99,7 +102,10 @@ def create_syslog_service(
                 for name, port, protocol in _syslog_ports()
             ],
         },
-        opts=p.ResourceOptions.merge(k8s_opts, p.ResourceOptions(depends_on=[alloy])),
+        # The name and the load balancer address are fixed, so a replacement cannot coexist with the original.
+        opts=p.ResourceOptions.merge(
+            k8s_opts, p.ResourceOptions(depends_on=[alloy], delete_before_replace=True)
+        ),
     )
     utils.opnsense.dnsmasq.host.Host(
         'syslog',
