@@ -41,6 +41,7 @@ The legacy values came from an Ansible vault (the two basic-auth passwords) and 
 - Pulumi marks the 1Password values as secrets, so a preview shows `[secret]` for the Secret's content; the Alloy config diff stays visible.
 - ICMP probes from a pod need either `NET_RAW` or an allowed unprivileged ping socket; whether they work is verified after the first apply, and a failing module is replaced by HTTP or TCP probes rather than given extra privileges.
 - During the dual run both the legacy Prometheus and Alloy alert on the same targets; migrated jobs are removed from the legacy Prometheus when they are cut over.
+- **First apply, 2026-10-17:** the Secret and the Grafana rules were applied, but the new Alloy pod crash-looped with `too many open files` (the per-user inotify instance limit of 128 on `k0s0` was exhausted), and the run was killed at the tool's 290 s limit. The old Alloy pod kept serving. Alloy's Helm release was rolled back to its last deployed revision and a 3-hour Grafana silence covered `Website or service probe failing`, which alerts on no data and had no probes yet. The fix is the kernel setting in `services/k0s/ansible/tune-kernel-inotify.yaml` (1024 instances), to be run by the user because the SSH key sits behind a 1Password approval; the credential files are also polled instead of watched.
 
 ## Alternatives considered
 

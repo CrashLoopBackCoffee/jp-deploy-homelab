@@ -482,13 +482,19 @@ prometheus.scrape "probes_slow" {
 }
 
 // AX51 (node exporter, Docker metrics, cAdvisor) and Pretix publish metrics over HTTPS with basic auth.
+// The credential files are polled instead of watched: every inotify watcher counts against a
+// per-user limit that the node shares between k0s, the kubelet, containerd and all root pods.
 local.file "ax51_username" {
-	filename = "TARGETS_PATH/ax51-username"
+	filename       = "TARGETS_PATH/ax51-username"
+	detector       = "poll"
+	poll_frequency = "1m"
 }
 
 local.file "ax51_password" {
-	filename  = "TARGETS_PATH/ax51-password"
-	is_secret = true
+	filename       = "TARGETS_PATH/ax51-password"
+	detector       = "poll"
+	poll_frequency = "1m"
+	is_secret      = true
 }
 
 discovery.file "ax51" {
@@ -508,12 +514,16 @@ prometheus.scrape "ax51" {
 }
 
 local.file "pretix_username" {
-	filename = "TARGETS_PATH/pretix-username"
+	filename       = "TARGETS_PATH/pretix-username"
+	detector       = "poll"
+	poll_frequency = "1m"
 }
 
 local.file "pretix_password" {
-	filename  = "TARGETS_PATH/pretix-password"
-	is_secret = true
+	filename       = "TARGETS_PATH/pretix-password"
+	detector       = "poll"
+	poll_frequency = "1m"
+	is_secret      = true
 }
 
 discovery.file "pretix" {
