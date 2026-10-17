@@ -31,7 +31,7 @@ The legacy stack scrapes 13 jobs (about 55 targets, 32 of them HTTP probes). Man
 - **Keep the history by backfilling the Prometheus TSDB into Mimir.** Mimir's retention rises from 30 to 400 days (the oldest Prometheus block starts on 2025-10-10, more than 365 days back), TSDB block upload is enabled, and the blocks, which span up to 20 days, are re-sliced to at most 24 hours aligned to UTC days, because Mimir rejects longer blocks. Storage for blocks, the store-gateway and the compactor is sized for it first.
 - **Replace the speedtest-to-InfluxDB script with an in-cluster Prometheus speedtest exporter** and rebuild the internet-speed dashboard on Mimir. The other InfluxDB-backed dashboards (Power, Power small, the InfluxDB part of Solax) depend on LAN-side sources and move to Prometheus metrics with the LAN work.
 - **Grafana signs in through Authentik OIDC**, following [[ADR-0021 - Paperless single sign-on through the shared Authentik]]: an AX41 blueprint owns the groups and bindings, the provider and secret stay in the Authentik UI, and a 1Password item holds the client credentials. Entra ID is dropped.
-- **`grafana.4jp.de` points at the new Grafana.** One hostname is canonical (recommended `g.4jp.de`, with `grafana.4jp.de` redirecting) because an OIDC redirect URI is bound to the Grafana `root_url`.
+- **`grafana.4jp.de` points at the new Grafana.** `g.4jp.de` is canonical and `grafana.4jp.de` redirects to it, because an OIDC redirect URI is bound to the Grafana `root_url`.
 - Alert rules are ported by judgement, not copied: duplicates of the 16 rules already in the new stack and rules that cannot fire are dropped.
 
 ## Consequences
@@ -42,6 +42,15 @@ The legacy stack scrapes 13 jobs (about 55 targets, 32 of them HTTP probes). Man
 - Backfill needs a free path to Mimir and the data side by side. The workstation has 43 GB free and cannot stage 93 GB, so the upload runs on `dockerhost` through an SSH reverse tunnel to a `kubectl port-forward`, which adds no exposed endpoint.
 - Block upload is an experimental Mimir feature. The first run is a one-week test on a copy; the full run follows only if the test queries correctly.
 - Decommissioning deletes data on `dockerhost` and DNS records. Each destructive step needs the user's approval, and the TSDB and Grafana database are archived first.
+
+## Update 2026-10-17 (discovery and answers)
+
+- The read-only discovery on `dockerhost` confirmed the inventory (see the note) and corrected two points: Mimir retention must be 400 days, and the `Traefik2` dashboard has data because dockerhost's own Traefik is scraped under the job `node-exporter`.
+- The user accepted that `ZweiradGarage` and `WarmWaterOutage` stay on the legacy stack only until the LAN work. The Grafana rule `Low Water Level` (coffee machine) is the same kind of case.
+- Dashboards kept and ported: the UI-only `Prometheus Blackbox Exporter`, `Status` and `Pretix`, plus `WordPress Core Updates` and a rebuilt `Internet Speed`. Dropped: `Docker and system monitoring`, `Traefik3`, `coffee`, the duplicate provisioned blackbox dashboard, `SwitchBot Meter` and `Temperature`.
+- The QNAP has more than 6 TB free, so the backfill is not capacity-limited. Whether the `mimir-metrics` bucket is in the HBS 3 off-site job is still unknown.
+- The Home Assistant role on `dockerhost` is dead (no container runs; SwitchBot moved to Home Assistant on Proxmox) and the user wants it deleted. It is removed in stage 2 with the other deletions, each with approval; the InfluxDB database `home_assistant` is archived first.
+- Side finding for [[ADR-0022 - CloudNativePG base backups at 21:00 UTC]]: the legacy Prometheus shows the QNAP overloaded on the night of the 2026-10-16 outage (see that ADR).
 
 ## Alternatives considered
 
