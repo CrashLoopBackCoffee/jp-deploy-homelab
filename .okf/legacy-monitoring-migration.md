@@ -17,7 +17,7 @@ The host stays in service after the retirement: Traefik, NetBox, InfluxDB, Home 
 | --- | --- |
 | Prometheus | 13 scrape jobs, about 55 targets; retention 365 days (`--storage.tsdb.retention.size=256GB` is not a real guard); about 93 GB in August; `external_labels: monitor=dockerhost`; remote write and read are commented out |
 | Alertmanager | Pushover; route `notification=none` goes to a muted receiver; `qnap:9100` is muted 00:00-04:10 and 22:00-24:00 (UTC unless configured otherwise); `QNAPPowerOff` inhibits `Target unreachable` for other instances |
-| Grafana | Entra ID login, 4 datasources (Prometheus, Loki, InfluxDB `vzlogger`, InfluxDB `home_assistant`), 18 file-provisioned dashboards, plugins piechart, clock, simple-json; the database in `data/grafana` was not inspected |
+| Grafana | Entra ID login (unused since 2025-03-31), 5 datasources (Prometheus, Loki, InfluxDB `vzlogger`, InfluxDB `home_assistant`, InfluxDB `influxdb-pve`), 25 dashboards (19 file-provisioned, 6 created in the UI), plugins piechart, clock, simple-json |
 | Loki 2.4.1 + Promtail | 14-day compactor retention; Promtail reads `/var/log/*log`, the journal, and receives syslog on `1514` (the `BackupNAS` host sends its HBS sync logs there); 2 Loki ruler rules |
 | blackbox-exporter | modules `http_2xx`, `icmp_ipv4`, `tcp_connect` and others; 32 HTTP targets (27 public, 5 `*.4jp.de`), 2 slow, 4 ICMP, 2 TCP (TeamSpeak) |
 | fritz-exporter | two devices: Fritz!Box `192.168.178.1` and the modem `192.168.1.1` |
@@ -27,13 +27,21 @@ The host stays in service after the retirement: Traefik, NetBox, InfluxDB, Home 
 
 Scrape jobs: `prometheus`, `cadvisor`, `node-exporter` (6 targets: `dockerhost`, `jp-altens-de`, QNAP `192.168.178.60`, `wireguard`, `192.168.178.125:8080`, `JPM1`), `ax51` (3 HTTPS targets with basic auth), `pretix` (HTTPS, basic auth), `blackbox`, `blackbox-slow`, `blackbox-icmp`, `check_teamspeak`, `jexporter` (`192.168.178.171:9303`: mypv, SwitchBot, Zweiradgarage), `watchtower`, `fritz-exporter`, `ohmgraphite` (`192.168.178.28:4445`, the Windows desktop).
 
-# Findings in the configuration
+# Findings
 
-- `InternalServerErrors` and `RunningOutOfDiskSpace` select `job="ax41"`, but no scrape job has that name (it is `ax51`), so by the config they can never fire. Confirm against the live rule list before dropping them.
-- The `Traefik2` dashboard needs `traefik_*` series and no job in the config scrapes a Traefik. [INFERENCE] it shows no data.
+Live results of the read-only discovery on `dockerhost` (2026-10-17, script output; the host has been up 236 days, root disk 215 GB of 503 GB used):
+
+- **Versions and flags.** Prometheus is **3.15.0** (image tag `latest`), retention `1y` and `256GiB`, admin API and lifecycle API off, head 40,366 series. Docker 28.0.1 with Compose v1.29.2 and v2.33.1 side by side.
+- **Prometheus data** is 90 GB in 24 blocks (95.4 GB by file size). Block spans are 2 h, 6 h, **162 h and 486 h**. The oldest block starts 2025-10-10 12:00 UTC; the largest is 7.7 GB with 9.8 million series (heavy churn). Grafana's data is 515 MB, Loki's 542 MB.
+- **Targets.** All 13 jobs are up except three long-dead ones that the `Target unreachable` rule excludes: `node-exporter` `jp-altens-de:9100` (DNS lookup fails) and `JPM1:9100` (`192.168.178.49` unreachable), and `ohmgraphite` `JP` (the desktop). The `node-exporter` job also scrapes `192.168.178.125:8080`, which is cAdvisor, not a node exporter.
+- **Alerts.** All 18 alert rules are `inactive` and healthy; Alertmanager has 0 active alerts and 0 silences.
+- **`InternalServerErrors` and `RunningOutOfDiskSpace` are dead:** `up{job="ax41"}` has 0 series. But `traefik_entrypoint_requests_total` has 29 series from some other job (probably the `docker-metrics.ax51...` target), so the 5xx alert has a valid intent and nobody is watching it. The `Traefik2` dashboard therefore does have data (my earlier inference was wrong). The job label of those series was not captured.
+- **`switchbot_*` has 0 series**, so the `SwitchBot Meter` and `Temperature` dashboards show nothing. `mypv_temp1` and `zweiradgarage_locked` have 1 series each, so `WarmWaterOutage` and `ZweiradGarage` are live; `jexporter` exports 110 series. `wordpress_core_*` has 40 series.
+- **The QNAP has no nightly shutdown.** Its node exporter was up in every 15-minute sample, in all 24 UTC hours, over 14 days. `QNAPPowerOff`, the 22:00-04:10 mute window and the inhibit rule are obsolete (the matcher `instance="qnap:9100"` could not match anyway, because a relabel rewrites the instance to `qnap`). So on 2026-10-16 the QNAP was powered on; whatever failed at 01:43-03:10 UTC was a service (QuObjects, HBS), which fits ADR-0022. The legacy Prometheus holds QNAP load history for that night.
+- **`BackupNAS` sent 0 syslog lines in the last 7 days**, and the Loki rule `sum(count_over_time(...)) < 11` returns no data when no lines arrive, so it cannot alert on silence. The replacement must alert on absence.
+- **Grafana's database holds things that are not in Ansible:** 6 dashboards created in the UI (`Docker and system monitoring`, `Traefik3`, `Prometheus Blackbox Exporter`, `Status`, `coffee`, `Pretix`), 1 Grafana-managed alert rule, a third InfluxDB datasource `influxdb-pve`, 1 playlist and 4,655 annotations. 19 of 25 dashboards are file-provisioned. They must be exported before anything is deleted. There are two users: `admin` (last seen 2026-10-15) and `microsoft@alten.de`, whose last login was **2025-03-31**; Entra ID is effectively unused.
 - `bearer_token: TOP_SECRET` for Watchtower sits in plain text in `prometheus.yml`.
-- The Loki rules `Finished backup job lower than 10` and `Failed backup` watch the HBS sync logs of `BackupNAS`. This is the monitoring of HBS jobs that ADR-0016 asks for.
-- `QNAPPowerOff` (`hour() >= 20 or hour() < 4`) plus the mute window suggest the QNAP once powered off nightly. The new stack shows no WAL archiving failures on `postgres-pilot` in the last five days (`paperless-db` had failures from 2026-10-15 21:18 to 2026-10-16 01:48 UTC), so there is no sign of a nightly shutdown now. [INFERENCE] ask the user whether the schedule still exists.
+- `docker ps` needs `sudo` (the script ran without it), so the container list is still missing.
 
 # Network gate
 
@@ -47,12 +55,12 @@ From a pod on k0s, every probe to `192.168.178.0/24` timed out on 2026-10-17 (do
 | `ax51` (3 HTTPS targets) and `pretix` | Alloy scrape with basic auth | The two passwords move from the Ansible vault into 1Password items created by the user |
 | WordPress core update metrics | `ax51` node exporter textfile metrics, vendored dashboard | Arrive through the `ax51` job (see the legacy ADR-001) |
 | Speedtest | in-cluster `prometheus-speedtest-exporter` | The donor `services/monitoring/monitoring/speedtest.py` already deploys billimek's exporter 1.3.1; rebuild the Internet Speed dashboard on Mimir. Note that it measures the new uplink path |
-| Alert rules | `alert_rules.py` | Port `ServiceDown`, `ServiceDownSlow`, `SSLCertExpiringSoon`; node CPU, memory and disk rules are already covered for the cluster and need only the `ax51` target added; drop the dead `ax41` rules |
+| Alert rules | `alert_rules.py` | Port `ServiceDown`, `ServiceDownSlow`, `SSLCertExpiringSoon`. Port `InternalServerErrors` with the correct job once the Traefik series' job is known. The generic CPU, memory and disk rules already cover the cluster and cover `ax51` once it is scraped, which makes `RunningOutOfDiskSpace` redundant. Drop `QNAPPowerOff` with its mute and inhibit logic |
 | Grafana login | Authentik OIDC | AX41 blueprint (groups `grafana-admins`, `grafana`, bindings) plus a UI-created application and a 1Password item; `auth.generic_oauth` in the Helm values with the secret from `grafana-secrets` |
 | History | Mimir backfill | See below |
 | Hostname | `grafana.4jp.de` | See below |
 
-Community dashboards the new stack already has replace `Node Exporter Full`, the Docker and cAdvisor views (for the cluster) and `Loki Dashboard quick search` (the new Logs explorer). `Blackbox Exporter (HTTP prober)` and `WordPress Core Updates` are ported; per the lessons file each is checked against live data before it is accepted.
+Community dashboards the new stack already has replace `Node Exporter Full`, the Docker and cAdvisor views (for the cluster) and `Loki Dashboard quick search` (the new Logs explorer). `Blackbox Exporter (HTTP prober)`, `WordPress Core Updates` and a Traefik view for the AX51 data are ported (the new Traefik dashboard may work with a job variable; check); per the lessons file each is checked against live data before it is accepted. The `SwitchBot Meter` and `Temperature` dashboards have no data and are dropped. The six UI-only dashboards need a decision (see the open questions).
 
 # Deferred with the LAN (stays on the legacy stack)
 
@@ -66,8 +74,8 @@ Facts from the Mimir documentation (checked 2026-10-17): block upload is experim
 
 Constraints specific to this setup:
 
-1. Prometheus with 365 days of retention writes blocks of up to 31 days, so they must first be re-cut into daily UTC-aligned blocks. [INFERENCE] `promtool tsdb dump` into `promtool tsdb create-blocks-from openmetrics` with a 24-hour maximum block duration can do this (promtool is in the `prom/prometheus` image); it is slow for 93 GB, so prove it on one week first.
-2. Mimir currently keeps 30 days (`retention-days`) and has a 5 GiB store-gateway and a 10 GiB compactor volume; raise retention to 365 days before the upload (older blocks would be rejected) and size the volumes and the QuObjects bucket for about 100 GB. The free space on the QNAP volume is not known to me.
+1. The Prometheus blocks span 2 h to 486 h (about 20 days), so they must first be re-cut into daily UTC-aligned blocks. [INFERENCE] `promtool tsdb dump` into `promtool tsdb create-blocks-from openmetrics` with a 24-hour maximum block duration can do this (promtool is in the `prom/prometheus` image); it is slow for 95 GB, so prove it on one week first. A daily block averages about 0.25 GB; the largest source block is 7.7 GB with 9.8 million series.
+2. Mimir currently keeps 30 days (`retention-days`) and has a 5 GiB store-gateway and a 10 GiB compactor volume. The oldest block starts on 2025-10-10, which is more than 365 days back, so retention must be **at least 372 days (use 400)** before the upload, or those blocks are rejected. Size the volumes and the QuObjects bucket for about 100 GB. The free space on the QNAP volume is not known to me.
 3. The workstation has 43 GB free and neither tool installed, so the upload runs on `dockerhost` next to the data: a static `mimirtool` binary there, with `kubectl -n observability port-forward svc/mimir-gateway 18080:80` on the workstation and `ssh -R 18080:localhost:18080 alten@192.168.178.125`. Nothing new is exposed.
 4. The last two to three hours sit in the head and in no block. Either accept the gap at the final cut or enable `--web.enable-admin-api` for a snapshot that includes the head (that is a legacy restart).
 5. Run the backfill at the final cut (stage 2) so the legacy Prometheus has stopped writing; a test with one week runs earlier.
@@ -81,8 +89,8 @@ Constraints specific to this setup:
 
 Each phase ends with a verification; destructive steps need the user's approval; every Pulumi change is previewed first.
 
-0. **Read-only discovery on the host (needs a terminal with LAN access or the user).** This terminal gets `No route to host` to `192.168.178.125` (known macOS Local Network permission gotcha, or the host is off; undetermined). Collect: `curl :9090/api/v1/targets` (which targets are down), `/api/v1/rules` and `/api/v1/alerts` (what fires, which rules are dead), `du -sh /opt/monitoring/data/*`, the Grafana database (users, orgs, annotations, dashboards not provisioned from files, API keys), where `jexporter` runs and what feeds `zweiradgarage_locked`, which dashboards were opened lately, and whether the QNAP still has a power schedule.
-1. **Prepare Mimir** (the `observability` stack): retention 365 days, block upload enabled, gateway body size, volume sizes. One preview, one apply; check ingestion and queries afterwards.
+0. **Read-only discovery on the host: done 2026-10-17** (results above). Still open, in a second read-only script: `sudo docker ps`, the JSON of the six UI-only dashboards and the one Grafana alert rule, what `influxdb-pve` is fed by, the job label of the Traefik series, the metric names and origin of `jexporter`, and the QNAP load history for 2026-10-15 20:00 to 2026-10-16 04:00 UTC.
+1. **Prepare Mimir** (the `observability` stack): retention 400 days, block upload enabled, gateway body size, volume sizes. One preview, one apply; check ingestion and queries afterwards.
 2. **Port stage 1 targets** into Alloy and `alert_rules.py` in small steps; each step is compared with the legacy value (`probe_success` parity, target health) during a dual run of about two weeks, with a deliberate alert test through the Pushover contact point.
 3. **Speedtest and dashboards**: deploy the exporter, port the two dashboards, drop the replaced ones.
 4. **Grafana login**: AX41 pull request (blueprint), the user creates the Authentik application and the 1Password item `Grafana OIDC`, then the Helm values change.
@@ -95,6 +103,6 @@ Each phase ends with a verification; destructive steps need the user's approval;
 - Which hostname is canonical for Grafana (recommended `g.4jp.de`)?
 - Is it acceptable that `ZweiradGarage` and `WarmWaterOutage` live only on the legacy stack until the LAN work?
 - How much free space does the QNAP volume behind the `mimir-metrics` bucket have, and is that bucket part of the HBS 3 off-site job?
-- Does the QNAP still have a power schedule?
+- Which of the six UI-only dashboards (`Docker and system monitoring`, `Traefik3`, `Prometheus Blackbox Exporter`, `Status`, `coffee`, `Pretix`) do you still use, and what is the Grafana alert rule and `influxdb-pve` for?
 
 Related: [Observability stack](./observability-stack.md), [Paperless](./paperless.md), ADR-0019, ADR-0021, ADR-0023.
