@@ -70,6 +70,7 @@ class ComponentConfig(utils.model.LocalBaseModel):
     grafana: GrafanaConfig
     kube_state_metrics: ChartConfig
     node_exporter: ChartConfig
+    speedtest_exporter: ChartConfig
 
 
 class StackConfig(utils.model.LocalBaseModel):

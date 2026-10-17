@@ -561,3 +561,19 @@ prometheus.scrape "pretix" {
 		password = local.file.pretix_password.content
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Internet speed test
+// ---------------------------------------------------------------------------
+
+// Every scrape of /probe runs one real speed test of 15 to 100 seconds, so the interval is long (the
+// legacy script ran every 30 minutes too) and the timeout leaves room for a slow test.
+prometheus.scrape "speedtest" {
+	targets         = [{"__address__" = "speedtest-exporter.observability.svc:9469"}]
+	forward_to      = [prometheus.remote_write.mimir.receiver]
+	job_name        = "speedtest"
+	metrics_path    = "/probe"
+	params          = {"script" = ["speedtest"]}
+	scrape_interval = "30m"
+	scrape_timeout  = "3m"
+}
