@@ -17,7 +17,7 @@ adr: 21
 
 ## Status
 
-Accepted on 2026-10-15. The Paperless 3.x upgrade it requires is **done and verified**. The Authentik side was rolled out by the user on 2026-10-17 (AX41 PR #97 merged, 1Password item `Paperless OIDC` created). The Paperless settings are in `feature/paperless-sso`; they are previewed (1 Secret replaced, 1 StatefulSet updated) but **not applied** until the issuer's discovery document returns 200.
+Accepted on 2026-10-15. The Paperless 3.x upgrade it requires is **done and verified**. The Authentik side was rolled out by the user on 2026-10-17 (AX41 PR #97 merged, application `paperless`, 1Password item `Paperless OIDC`). The Paperless settings (`feature/paperless-sso`) were applied on 2026-10-17 (1 Secret replaced, 1 StatefulSet updated) after the discovery document returned 200. Verified: the allauth provider `authentik` loads, the Paperless group `paperless` exists, and the login start redirects to Authentik with the registered redirect URI. The first interactive login, a superuser check for `paperless-admins` and the permissions of the `paperless` group are still to be confirmed.
 
 ## Context
 
