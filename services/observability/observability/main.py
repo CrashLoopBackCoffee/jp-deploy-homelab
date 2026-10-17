@@ -8,6 +8,7 @@ from observability.grafana import create_grafana
 from observability.loki import create_loki
 from observability.longhorn_access import create_longhorn_metrics_access
 from observability.mimir import create_mimir
+from observability.targets import create_targets_secret
 
 
 def main():
@@ -30,7 +31,8 @@ def main():
     mimir = create_mimir(component_config, k8s_opts)
     create_kube_state_metrics(component_config, k8s_opts)
     create_node_exporter(component_config, k8s_opts)
-    alloy = create_alloy(component_config, k8s_opts, depends_on=[loki, mimir])
+    targets = create_targets_secret(component_config, k8s_opts)
+    alloy = create_alloy(component_config, k8s_opts, depends_on=[loki, mimir, targets])
     create_node_proxy_access(k8s_opts, alloy)
     create_syslog_service(component_config, k8s_opts, alloy)
     create_longhorn_metrics_access(k8s_provider)

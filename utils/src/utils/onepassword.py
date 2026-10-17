@@ -49,8 +49,9 @@ def resolve_secret_ref(secret_ref: str) -> p.Output[str]:
     item_ref = _parse_op_ref(secret_ref)
     item = _fetch_item(item_ref)
 
-    # Standard 1Password fields that can be accessed directly
-    standard_fields = {'password', 'username', 'title', 'url', 'notes'}
+    # Standard 1Password fields that can be accessed directly. `note_value` is the content of a
+    # Secure Note; the provider exposes no `notes` attribute.
+    standard_fields = {'password', 'username', 'title', 'url', 'note_value'}
 
     if item_ref.field in standard_fields:
         return p.Output.secret(getattr(item, item_ref.field))

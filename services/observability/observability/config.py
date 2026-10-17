@@ -45,8 +45,19 @@ class SyslogConfig(utils.model.LocalBaseModel):
     allowed_sources: list[str]
 
 
+class ScrapeCredentials(utils.model.LocalBaseModel):
+    """Basic-auth login of a metrics endpoint that Alloy scrapes over HTTPS."""
+
+    username: utils.model.OnePasswordRef
+    password: utils.model.OnePasswordRef
+
+
 class AlloyConfig(ChartConfig):
     syslog: SyslogConfig
+    # Secure Note listing the probe and scrape targets, one `<group> <target>` per line
+    targets: utils.model.OnePasswordRef
+    ax51: ScrapeCredentials
+    pretix: ScrapeCredentials
 
 
 class ComponentConfig(utils.model.LocalBaseModel):

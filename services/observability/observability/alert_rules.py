@@ -165,6 +165,33 @@ RULES = [
         for_='1h',
         severity='critical',
     ),
+    # Ported from the legacy Prometheus (ServiceDown, ServiceDownSlow, SSLCertExpiringSoon). The
+    # probes come from Alloy's blackbox exporter, with the legacy job names.
+    AlertRule(
+        uid='probe-failing',
+        title='Website or service probe failing',
+        expr='probe_success{job="blackbox"} == bool 0',
+        summary='{{ $labels.instance }} has failed its probe for 10 minutes',
+        for_='10m',
+        severity='critical',
+        # No series at all means the target list or the probes themselves are broken.
+        no_data_state='Alerting',
+    ),
+    AlertRule(
+        uid='probe-failing-slow',
+        title='Slow-probed website failing',
+        expr='probe_success{job="blackbox-slow"} == bool 0',
+        summary='{{ $labels.instance }} has failed its probe for 15 minutes',
+        for_='15m',
+        severity='critical',
+    ),
+    AlertRule(
+        uid='probe-certificate-expiring',
+        title='Probed certificate expires within 7 days',
+        expr='(probe_ssl_earliest_cert_expiry{job=~"blackbox|blackbox-slow"} - time()) < bool 604800',
+        summary='The certificate of {{ $labels.instance }} expires in under 7 days',
+        for_='10m',
+    ),
 ]
 
 
