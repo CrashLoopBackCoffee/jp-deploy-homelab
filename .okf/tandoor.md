@@ -9,7 +9,7 @@ resource: https://app.pulumi.com/jaypee-solutions/tandoor/prod
 
 # State
 
-Written on branch `feature/tandoor` (ADR-0028). The stack `jaypee-solutions/tandoor/prod` exists; `pulumi preview` shows 16 resources to create and nothing is applied. It needs no new 1Password item. The legacy instance runs on `dockerhost` (`/opt/tandoor`: PostgreSQL 12, `vabene1111/recipes` untagged, a separate nginx) and is untouched. The motivation is in [dockerhost-services](./dockerhost-services.md): `dockerhost` has no backup, so moving the service is a gain by itself.
+Written on branch `feature/tandoor` (ADR-0028). The stack `jaypee-solutions/tandoor/prod` exists; `pulumi preview` shows 16 resources to create and nothing is applied. It needs no new 1Password item. The legacy instance runs on `dockerhost` (`/opt/tandoor`) as `tandoor_db_recipes_1` (`postgres:17-alpine`), `tandoor_web_recipes_1` (`ghcr.io/tandoorrecipes/recipes:latest`) and `tandoor_adminer_recipes_1` (`adminer:latest`) and is untouched. The Ansible role in the repository (PostgreSQL 12, `vabene1111/recipes`, separate nginx) is out of date, so trust the host, not the role. The motivation is in [dockerhost-services](./dockerhost-services.md): `dockerhost` has no backup, so moving the service is a gain by itself.
 
 # What the stack creates
 
@@ -21,12 +21,20 @@ Image facts that mattered: the Tandoor 2 image serves everything on port 80 (ngi
 
 # Prerequisites (user)
 
-Facts from `dockerhost` (read-only, in your own terminal because the agent cannot sign with the SSH agent), to decide the pinned version and the settings:
+Facts from `dockerhost`, read on 2026-10-18 (see the results below). Read-only, in your own terminal because the agent cannot sign with the SSH agent. Container names are known (`tandoor_web_recipes_1`, `tandoor_db_recipes_1`); the host paths are not known in advance, because the host drifted from its Ansible role, so the script reads them from the mounts. It prints no secret: the preference list is a fixed allow-list.
 
-- container names: `sudo docker ps --filter name=recipes --format '{{.Names}}  {{.Image}}'`
-- schema state: `sudo docker exec <web container> sh -c 'cd /opt/recipes && . venv/bin/activate && python manage.py showmigrations cookbook | tail -3'`
-- sizes: `sudo du -sh /opt/tandoor/mediafiles /opt/tandoor/postgresql`
-- non-secret preferences: `sudo grep -E '^(FRACTION_PREF_DEFAULT|COMMENT_PREF_DEFAULT|SHOPPING_MIN_AUTOSYNC_INTERVAL|ENABLE_PDF_EXPORT|ENABLE_METRICS|DEBUG|REVERSE_PROXY_AUTH|TIMEZONE)=' /opt/tandoor/.env` (never paste the file: it holds `SECRET_KEY` and the database password)
+```bash
+W=tandoor_web_recipes_1; D=tandoor_db_recipes_1
+echo "== image"; sudo docker image inspect ghcr.io/tandoorrecipes/recipes:latest --format '{{.Created}} {{index .RepoDigests 0}}'
+echo "== version"; sudo docker exec $W sh -c 'cat /opt/recipes/recipes/version.py 2>/dev/null || find /opt/recipes -maxdepth 2 -name version.py'
+echo "== migrations"; sudo docker exec $W sh -c 'cd /opt/recipes && . venv/bin/activate && python manage.py showmigrations cookbook | tail -3'
+echo "== mounts"; sudo docker inspect -f '{{.Name}}{{"\n"}}{{range .Mounts}}  {{.Type}} {{.Source}} -> {{.Destination}}{{"\n"}}{{end}}' $W $D
+echo "== sizes"; for s in $(sudo docker inspect -f '{{range .Mounts}}{{.Source}} {{end}}' $W $D); do sudo du -sh "$s"; done
+echo "== database"; sudo docker exec $D sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "select version(); select pg_size_pretty(pg_database_size(current_database()));"'
+echo "== preferences"; sudo docker exec $W printenv | grep -E '^(FRACTION_PREF_DEFAULT|COMMENT_PREF_DEFAULT|SHOPPING_MIN_AUTOSYNC_INTERVAL|ENABLE_PDF_EXPORT|ENABLE_METRICS|DEBUG|REVERSE_PROXY_AUTH|TIMEZONE|TZ|ALLOWED_HOSTS|GUNICORN_MEDIA|CSRF_TRUSTED_ORIGINS)='
+```
+
+Results (2026-10-18): image `ghcr.io/tandoorrecipes/recipes:latest` built 2026-09-07 (the 2.6.15 release date); newest applied migration `cookbook 0242_space_household_setup_completed` (the newest in the 2.6.15 source, so no schema upgrade); PostgreSQL 17.11, database 16 MB; media `/opt/tandoor/mediafiles` 988 KB, database directory `/opt/tandoor/postgresql` 71 MB, the static files volume is rebuilt by `collectstatic` and is not migrated; preferences `FRACTION_PREF_DEFAULT=0`, `COMMENT_PREF_DEFAULT=1`, `SHOPPING_MIN_AUTOSYNC_INTERVAL=5`, `ENABLE_PDF_EXPORT=1`, `ENABLE_METRICS=1`, `DEBUG=0`, `TZ=Europe/Berlin`, `GUNICORN_MEDIA=0`, `ALLOWED_HOSTS=*`. The first four are in the stack config; `ENABLE_METRICS` is left out on purpose.
 
 # Runbook: import and cutover
 
@@ -34,7 +42,7 @@ Rehearse first with the legacy instance running, then repeat after stopping it s
 
 1. Deploy with `pulumi up` (preview first). The first start migrates an empty database.
 2. Scale the application to zero: `kubectl -n tandoor scale deploy/tandoor --replicas=0`.
-3. Dump on `dockerhost`: `sudo docker exec <db container> sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > ~/tandoor.dump`, and pack the media: `sudo tar -C /opt/tandoor/mediafiles -cf ~/tandoor-media.tar .`. Copy both to the workstation.
+3. Dump on `dockerhost`: `sudo docker exec tandoor_db_recipes_1 sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > ~/tandoor.dump`, and pack the media: `sudo tar -C /opt/tandoor/mediafiles -cf ~/tandoor-media.tar .`. Copy both to the workstation (together about 17 MB).
 4. Restore the database: copy the dump into the `tandoor-db-1` pod and run `pg_restore --clean --if-exists --no-owner --role=tandoor -d tandoor`.
 5. Restore the media: start a short helper Pod that mounts the PVC `mediafiles`, unpack the tar into it, set the group to `65534`, delete the Pod.
 6. Scale the application back to one replica. The `migrate` init container brings the schema to the pinned version. Test with `curl --resolve tandoor.4jp.de:443:10.10.88.1 https://tandoor.4jp.de/` and by signing in (a browser needs a hosts entry for the test).
@@ -44,8 +52,7 @@ Rehearse first with the legacy instance running, then repeat after stopping it s
 
 # Open points
 
-- The legacy schema version and image are unknown until the prerequisite commands have run.
-- ENABLE_METRICS would expose Tandoor's `/metrics`; it is not wired. Decide after the preferences are known.
+- PDF export (`ENABLE_PDF_EXPORT=1`) may need more than the 1 Gi memory limit; check the first export and raise the limit if the pod is killed.
 - A restore of `tandoor-db` from its QNAP backup has not been rehearsed for this cluster; the method is the verified one of ADR-0017 and ADR-0018.
 
 Related: ADR-0028, ADR-0018, ADR-0023, [dockerhost-services](./dockerhost-services.md), [Paperless](./paperless.md), [Retiring the legacy dockerhost monitoring stack](./legacy-monitoring-migration.md).

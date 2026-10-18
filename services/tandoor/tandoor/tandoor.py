@@ -11,7 +11,7 @@ DATABASE_NAME = 'tandoor'
 DATABASE_USER = 'tandoor'
 STATIC_PATH = '/opt/recipes/staticfiles'
 MEDIA_PATH = '/opt/recipes/mediafiles'
-IMAGE = 'vabene1111/recipes'
+IMAGE = 'ghcr.io/tandoorrecipes/recipes'
 
 MIGRATE_SCRIPT = """\
 set -e
