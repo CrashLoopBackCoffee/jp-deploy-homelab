@@ -12,5 +12,6 @@ okf_version: "0.1"
 * [Observability stack](observability-stack.md) - LGTM on k0s, Grafana at g.4jp.de, Pushover alert routing, verification evidence, and metric and provisioning pitfalls.
 * [Paperless](paperless.md) - fresh-install Paperless on k0s (prepared, not deployed): CloudNativePG database, restic to an off-site Nextcloud, QNAP intake, prerequisites and the go-live gate runbook.
 * [Retiring the legacy dockerhost monitoring stack](legacy-monitoring-migration.md) - inventory of the old Ansible-managed Prometheus, Grafana and Loki, mapping to the k0s stack, findings, the network gate, the Mimir backfill constraints and the gated plan (ADR-0023).
-* [Tandoor](tandoor.md) - migration of Tandoor Recipes from dockerhost: CloudNativePG database, restic to the off-site Nextcloud, prerequisites, and the import and cutover runbook (ADR-0028).
+* [Tandoor](tandoor.md) - migration of Tandoor Recipes from dockerhost: CloudNativePG database, Longhorn media volume, prerequisites, and the import and cutover runbook (ADR-0028).
+* [Services on dockerhost](dockerhost-services.md) - what runs on the unbacked-up host dockerhost, why moving a service to k0s already improves its protection, and the migration status per service.
 * [Operational lessons](operational-lessons.md) - pitfalls from the first rollout with the rule for each, plus suggested standing agent instructions.

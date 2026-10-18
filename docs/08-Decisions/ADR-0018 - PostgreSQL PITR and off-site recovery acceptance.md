@@ -17,7 +17,7 @@ adr: 18
 
 ## Status
 
-Accepted on 2026-10-13 after the user approved the PITR test. The PITR check is **verified** (see Verification). The HBS 3 off-site check is deferred by the user because the remote NAS is offline and its reconfiguration still has to be scheduled; it remains unverified. No application database migrates before it passes. The user chose to continue with monitoring meanwhile ([[ADR-0019 - LGTM observability stack on k0s]]).
+Accepted on 2026-10-13 after the user approved the PITR test. The PITR check is **verified** (see Verification). The HBS 3 off-site check is deferred by the user because the remote NAS is offline and its reconfiguration still has to be scheduled; it remains unverified. Originally no application database was to migrate before it passed; **amended on 2026-10-18** (see Amendment): it is no longer a precondition for services that move off `dockerhost`. The user chose to continue with monitoring meanwhile ([[ADR-0019 - LGTM observability stack on k0s]]).
 
 ## Context
 
@@ -44,6 +44,15 @@ Accepted on 2026-10-13 after the user approved the PITR test. The PITR check is 
 - The PITR test mutated the pilot only by inserting three tiny rows (probe IDs 3–5, which stay in the pilot). The restore Cluster costs one 2 GiB LVM volume while it exists.
 - The off-site test needs user actions on the QNAP side (new restore bucket, scoped key stored in the `Homelab` vault, HBS job runs). These cannot be previewed with Pulumi; each is described to the user before it is needed.
 - Until both checks pass, the pilot is recoverable from a same-site failure only in the sense of ADR-0017; loss of the QNAP loses all backups.
+
+## Amendment 2026-10-18: HBS 3 no longer gates services moving off `dockerhost`
+
+`dockerhost`, the host that runs the user's other services (NetBox, InfluxDB, Tandoor, Portainer, mosquitto and more; see `.okf/dockerhost-services.md`), has **no backup at all**: everything sits on a single SSD (stated by the user). On k0s a service has its data on the node and a second copy on the QNAP's RAID5 volume (CloudNativePG base backups with WAL archiving, and Longhorn's nightly volume backups, both restore-verified), and the HBS 3 job to the remote NAS follows soon. Moving a service therefore improves its protection even before HBS 3 runs, and waiting would keep it on the unprotected host.
+
+- **The rule "no application database migrates before the HBS 3 off-site copy is verified" is lifted for services moving from `dockerhost`.** The restore and PITR checks above stay the technical precondition and are met.
+- **HBS 3 stays an acceptance criterion, not a gate:** the criteria and the restore proof in this ADR still define when the off-site copy counts as established, and they cover all migrated services at once when the job runs. Until then the QNAP holds the only copy besides the node; a RAID5 volume does not protect against deletion, ransomware or loss of the QNAP.
+- A new application whose data does not come from `dockerhost` is not covered by this amendment; decide it case by case.
+- Services need no extra off-site copy of their own for this reason ([[ADR-0028 - Migrate Tandoor to k0s]]); Paperless keeps the Nextcloud copy it already has ([[ADR-0020 - Paperless fresh install with Nextcloud off-site backup]]).
 
 ## Verification
 

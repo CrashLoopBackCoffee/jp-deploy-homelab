@@ -32,34 +32,12 @@ class DatabaseConfig(utils.model.LocalBaseModel):
     backup: DatabaseBackupConfig
 
 
-class NextcloudConfig(utils.model.LocalBaseModel):
-    """Off-site WebDAV target; use an app password, not the account password."""
-
-    # Base URL of the Nextcloud server, e.g. https://cloud.example.org; the WebDAV path is derived.
-    url: utils.model.OnePasswordRef
-    username: utils.model.OnePasswordRef
-    password: utils.model.OnePasswordRef
-
-
-class BackupConfig(utils.model.LocalBaseModel):
-    restic_rclone_version: str
-    restic_password: utils.model.OnePasswordRef
-    repository_path: str = 'tandoor'
-    # Standard five-field cron expression, evaluated in UTC by the cluster
-    schedule: str = '30 1 * * *'
-    retention_daily: int = 7
-    retention_weekly: int = 4
-    retention_monthly: int = 6
-    nextcloud: NextcloudConfig
-
-
 class ComponentConfig(utils.model.LocalBaseModel):
     kubeconfig: utils.model.OnePasswordRef
     # DNS zone for the ingress hostname
     zone: str
     tandoor: TandoorConfig
     database: DatabaseConfig
-    backup: BackupConfig
 
 
 class StackConfig(utils.model.LocalBaseModel):

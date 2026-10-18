@@ -3,7 +3,6 @@ import pulumi_kubernetes as k8s
 import pulumi_random as random
 import utils.cnpg
 
-from tandoor.backup import create_backup_cronjob
 from tandoor.config import ComponentConfig
 
 # The Tandoor 2 image runs nginx (static and media files) in front of gunicorn.
@@ -203,16 +202,6 @@ class Tandoor(p.ComponentResource):
                 'tls': {},
             },
             opts=k8s_opts,
-        )
-
-        create_backup_cronjob(
-            component_config,
-            database_host=database.host,
-            database_name=DATABASE_NAME,
-            database_user=DATABASE_USER,
-            database_secret_name=database.app_secret_name,
-            media_claim_name=media_claim.metadata.name,
-            k8s_opts=k8s_opts,
         )
 
         p.export('tandoor_url', f'https://{hostname}')

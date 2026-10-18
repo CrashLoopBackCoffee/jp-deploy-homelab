@@ -27,23 +27,3 @@ config:
         # Clear of the QNAP's HBS sync window (see ADR-0022).
         schedule: "0 0 21 * * *"
         retention-policy: 14d
-    backup:
-      # renovate: datasource=docker packageName=ghcr.io/crashloopbackcoffee/restic-rclone versioning=docker
-      restic-rclone-version: 0.18.0-1.70.3
-      repository-path: tandoor
-      # 01:30 UTC, after the CloudNativePG backup at 21:00 and before the QNAP's 03:00 task
-      schedule: "30 1 * * *"
-      retention-daily: 7
-      retention-weekly: 4
-      retention-monthly: 6
-      restic-password:
-        ref: op://Homelab/Tandoor Backup/password
-      nextcloud:
-        # The same Nextcloud account and app password as the Paperless backup; the repository is a
-        # separate folder with its own restic password.
-        url:
-          ref: op://Homelab/Nextcloud Paperless Backup/url
-        username:
-          ref: op://Homelab/Nextcloud Paperless Backup/username
-        password:
-          ref: op://Homelab/Nextcloud Paperless Backup/app-password

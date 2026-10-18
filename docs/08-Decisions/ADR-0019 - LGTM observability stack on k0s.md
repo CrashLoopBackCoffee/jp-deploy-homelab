@@ -39,7 +39,7 @@ The k0s cluster has no monitoring. Backups, WAL archiving, certificates, storage
 - Alerting cannot report its own failure. Grafana, Alloy or Mimir being down silences every alert until someone looks; a Pushover heartbeat or an external check is a later decision.
 - QuObjects previously rejected boto3's optional checksum headers (`InvalidDigest`). Mimir uses a Go S3 client, so a write and read smoke test of the bucket is part of acceptance.
 - Acceptance: preview shows only creations; all pods Ready; Mimir receives samples (`up` returns every target); Loki returns recent pod logs; Grafana loads through `https://g.4jp.de`; a test notification reaches the phone via Pushover.
-- The off-site HBS 3 check of ADR-0018 remains unverified and outstanding. This ADR does not lift the rule that no application database migrates before it passes.
+- The off-site HBS 3 check of ADR-0018 remains unverified and outstanding. This ADR did not lift the rule that no application database migrates before it passes; ADR-0018 was amended on 2026-10-18 and no longer applies that rule to services moving off `dockerhost`.
 
 ## Verification
 

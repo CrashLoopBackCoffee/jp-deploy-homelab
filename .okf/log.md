@@ -1,9 +1,9 @@
 # Update Log
 
 ## 2026-10-18
-* **Decision**: The user chose to migrate Tandoor next (ADR-0028). Because it holds real data, the HBS 3 gate of ADR-0018 is waived on condition of an own off-site copy (restic to the Nextcloud) that is restored successfully before the legacy instance is switched off; accounts stay local and Authentik comes later.
-* **Finding**: Legacy Tandoor on `dockerhost` is PostgreSQL 12 plus the untagged `vabene1111/recipes` image plus a separate nginx; `tandoor.4jp.de` resolves to `192.168.178.125` through the public Cloudflare record on the LAN as well. The donor TH has a `tandoor` workspace (2.6.15); MP has none.
-* **Change**: Wrote `services/tandoor` (branch `feature/tandoor`, not applied): Deployment, Longhorn media volume, CloudNativePG `tandoor-db`, IngressRoute, and a backup CronJob (`pg_dump` plus media to restic on the Nextcloud). Checks pass; the stack `jaypee-solutions/tandoor/prod` was created empty. A preview waits for the 1Password item `Tandoor Backup`.
+* **Decision**: The user chose to migrate Tandoor next (ADR-0028). Tandoor has real data, but `dockerhost` has **no backup at all** (single SSD), so moving it to k0s (node copy plus QNAP RAID5 through CloudNativePG and Longhorn, HBS 3 to follow) is a gain by itself. Decided: the HBS 3 gate of ADR-0018 no longer applies to services moving off `dockerhost` (ADR-0018 amended; ADR-0017, ADR-0019, ADR-0020 and ADR-0023 got pointers), no extra off-site copy for Tandoor (the first draft with restic to the Nextcloud was rejected), accounts stay local and Authentik comes later. Inventory and status in `dockerhost-services.md`.
+* **Finding**: Legacy Tandoor on `dockerhost` is PostgreSQL 12 plus the untagged `vabene1111/recipes` image plus a separate nginx; `tandoor.4jp.de` resolves to `192.168.178.125` through the public Cloudflare record on the LAN as well. The donor TH has a `tandoor` workspace (2.6.15); MP has none. Until stage 2, the legacy monitoring history, Grafana's UI-only dashboards and InfluxDB exist once on that SSD.
+* **Change**: Wrote `services/tandoor` (branch `feature/tandoor`, not applied): Deployment, Longhorn media volume, CloudNativePG `tandoor-db`, IngressRoute. `pulumi preview` shows 16 resources to create; checks pass; the stack `jaypee-solutions/tandoor/prod` was created empty. The backup CronJob of the first draft was removed again.
 
 ## 2026-10-17
 * **Decision**: The user agreed on two weeks of dual running of the migrated probes and scrapes before they are removed from the legacy Prometheus (phase 5, no earlier than 2026-10-31).
