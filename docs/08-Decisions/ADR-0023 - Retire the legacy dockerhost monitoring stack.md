@@ -54,6 +54,11 @@ The legacy stack scrapes 13 jobs (about 55 targets, 32 of them HTTP probes). Man
 - Phase 1 is done: Mimir retention is 400 days (PR #26, previewed and applied; block upload stays off and the gateway body size is set at the backfill, from the real block file sizes).
 - The user asked for the QNAP's logs in the new Loki to make the next incident visible; see [[ADR-0024 - QNAP syslog into Loki]] (RFC 5424 and RFC 3164, deployed and verified with test messages, PR #27).
 
+## Update 2026-10-18 (no backup on dockerhost)
+
+- `dockerhost` has no backup at all (stated by the user); everything on it lives on one SSD. Retiring the monitoring stack and moving the other services off the host therefore also gains protection, and the HBS 3 gate of ADR-0018 no longer applies to them (amended 2026-10-18; see `.okf/dockerhost-services.md` for the inventory).
+- Until the backfill and the archive of stage 2 have run, the legacy history (the Prometheus TSDB of about 93 GB, Grafana's database with the six dashboards that exist only in its UI, Loki, InfluxDB) exists once, on that SSD. The one-week backfill test and an early copy of Grafana's database (515 MB) to the QNAP would reduce the risk before stage 2; both are the user's decision.
+
 ## Alternatives considered
 
 - **Migrate the LAN targets at the same time:** needs an OPNsense decision (a narrow allow rule from `k0s0`, or a push agent with an authenticated write endpoint) that the user chose to postpone.

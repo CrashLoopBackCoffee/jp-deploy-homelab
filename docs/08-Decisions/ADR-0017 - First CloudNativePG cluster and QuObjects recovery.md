@@ -17,7 +17,7 @@ adr: 17
 
 ## Status
 
-Accepted on 2026-10-12 for the first PostgreSQL pilot. Do not migrate durable application data until a base backup, WAL archive, and independent recovery have been verified.
+Accepted on 2026-10-12 for the first PostgreSQL pilot. Do not migrate durable application data until a base backup, WAL archive, and independent recovery have been verified. Verified on 2026-10-12 and 2026-10-13 ([[ADR-0018 - PostgreSQL PITR and off-site recovery acceptance]]); the HBS 3 off-site copy no longer gates services moving off `dockerhost` (ADR-0018, amended 2026-10-18).
 
 ## Context
 

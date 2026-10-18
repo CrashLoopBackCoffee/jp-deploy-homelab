@@ -1,0 +1,36 @@
+config:
+  tandoor:config:
+    kubeconfig:
+      ref: op://Homelab/Kubeconfig prod/password
+    zone: 4jp.de
+    tandoor:
+      # renovate: datasource=github-releases packageName=TandoorRecipes/recipes versioning=semver
+      version: 2.6.15
+      host: tandoor
+      # The legacy data is under 1 MB of media; the volume can be expanded later.
+      media-size: 2Gi
+      # Non-secret preferences carried over from the legacy instance (read 2026-10-18). Left out on
+      # purpose: `ALLOWED_HOSTS=*` (the stack sets the hostname).
+      settings:
+        FRACTION_PREF_DEFAULT: "0"
+        COMMENT_PREF_DEFAULT: "1"
+        SHOPPING_MIN_AUTOSYNC_INTERVAL: "5"
+        ENABLE_PDF_EXPORT: "1"
+        # Prometheus endpoint `/metrics`, scraped by Alloy; the ingress does not route it.
+        ENABLE_METRICS: "1"
+    database:
+      name: tandoor-db
+      # renovate: datasource=docker packageName=ghcr.io/cloudnative-pg/postgresql versioning=semver
+      image-version: "17.10"
+      storage-size: 2Gi
+      backup:
+        endpoint: https://qnap.4jp.de:8443
+        bucket: cnpg-backups
+        access-key-id:
+          ref: op://Homelab/QuObjects CNPG Backup/username
+        secret-access-key:
+          ref: op://Homelab/QuObjects CNPG Backup/password
+        # 21:00 UTC is 23:00 CEST; use "0 0 22 * * *" after DST ends to keep 23:00 local.
+        # Clear of the QNAP's HBS sync window (see ADR-0022).
+        schedule: "0 0 21 * * *"
+        retention-policy: 14d

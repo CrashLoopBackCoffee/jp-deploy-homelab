@@ -11,7 +11,7 @@ resource: /Users/alten/Documents/dockerhost
 
 Ansible repository `/Users/alten/Documents/dockerhost` (local git, no remote; its own `CLAUDE.md`, `handoff.md` and `.okf`). One host, `dockerhost` at `192.168.178.125` (Ubuntu, user `alten`, key auth, passwordless sudo). Role `ansible/roles/monitoring` renders a Docker Compose project into `/opt/monitoring/` and runs it as the systemd unit `monitoring` (`docker-compose rm --force` then `up`, so **applying the role restarts every container**). Two vault passwords are needed (`~/.vault/dockerhost` and `~/.vault/ax41`); on macOS export `no_proxy=*`. `./deploy` also runs `basics.yml`, which upgrades every package.
 
-The host stays in service after the retirement: Traefik, NetBox, InfluxDB, Home Assistant, mosquitto, `mqtt2influxdb`, `tesla-logger`, Watchtower and Tandoor run there too. Only the monitoring role is retired; its node exporter role is separate.
+The host stays in service after the retirement, until its other services have moved: Traefik, NetBox, InfluxDB, mosquitto, `mqtt2influxdb`, `tesla-logger`, Portainer, Watchtower and Tandoor run there too (a Home Assistant role exists, but no container runs). Only the monitoring role is retired; its node exporter role is separate. The host has no backup; see [dockerhost-services](./dockerhost-services.md).
 
 | Legacy component | Configuration worth knowing |
 | --- | --- |

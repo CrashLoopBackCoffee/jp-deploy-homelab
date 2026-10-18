@@ -62,6 +62,10 @@ Decision: ADR-0027. **Applied 2026-10-17.** The Deployment and Service `speedtes
 
 Dashboards: the generated `Internet Speed` (uid `homelab-internet-speed`) and the four exported from the legacy Grafana, `Prometheus Blackbox Exporter`, `Status`, `Pretix` and `WordPress Core Updates`, vendored unchanged in `assets/grafana/dashboards/` (`LEGACY_DASHBOARDS` in `dashboards.py`); the adapter points their datasource, named `Prometheus` or by its old UID `PBFA97CFB590B2093`, at Mimir. Grafana lists 14 dashboards. All 24 panel queries of the four ported dashboards return data against Mimir (checked with the variables filled in, using a throwaway script). The ConfigMap holding the dashboards is 489 KB of the 1 MiB limit.
 
+# Tandoor
+
+Decision: ADR-0028. Alloy scrapes `tandoor.tandoor.svc:80/metrics` every 30 seconds as job `tandoor` (django-prometheus, enabled with `ENABLE_METRICS=1`). The endpoint is unauthenticated, so Tandoor's IngressRoute does not route `/metrics` and the Service name is in Tandoor's `ALLOWED_HOSTS` (Django rejects other Host headers, and a pod-IP scrape would get a 400). `Scrape target down` covers the job. Written 2026-10-18; the apply waits for the Tandoor import, because the application is scaled to zero during it.
+
 # Pitfalls found
 
 - **Longhorn ships NetworkPolicies** (`longhorn-system`, chart 1.13) that admit only Longhorn pods to the manager, so Alloy, a probe pod and the API server proxy all got `connection refused` on port 9500. `longhorn_access.py` adds an additive policy letting only Alloy reach port 9500.
