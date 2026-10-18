@@ -64,7 +64,13 @@ Dashboards: the generated `Internet Speed` (uid `homelab-internet-speed`) and th
 
 # Tandoor
 
-Decision: ADR-0028. Alloy scrapes `tandoor.tandoor.svc:80/metrics` every 30 seconds as job `tandoor` (django-prometheus, enabled with `ENABLE_METRICS=1`). The endpoint is unauthenticated, so Tandoor's IngressRoute does not route `/metrics` and the Service name is in Tandoor's `ALLOWED_HOSTS` (Django rejects other Host headers, and a pod-IP scrape would get a 400). `Scrape target down` covers the job. Written 2026-10-18; the apply waits for the Tandoor import, because the application is scaled to zero during it.
+Decision: ADR-0028. Alloy scrapes `tandoor.tandoor.svc:80/metrics` every 30 seconds as job `tandoor` (django-prometheus, enabled with `ENABLE_METRICS=1`); applied 2026-10-18, `up{job="tandoor"} == 1`, 261 series and growing with the views that are used. The endpoint is unauthenticated, so Tandoor's IngressRoute does not route `/metrics` and the Service name is in Tandoor's `ALLOWED_HOSTS` (Django rejects other Host headers, and a pod-IP scrape would get a 400). `Scrape target down` covers the job.
+
+Dashboard `Tandoor` (uid `homelab-tandoor`, generated, 17 panels): scrape up, requests per second, responses by status, 5xx, request latency p50/p95/p99, top views by rate and by mean latency, records created per hour by model, CPU, memory against the 1 Gi limit (PDF export runs a browser), restarts, media volume use, database size, the age of the last CloudNativePG backup and of the last Longhorn backup of `mediafiles`, error count and the log. Findings from validating it against live data: Tandoor's overall latency histogram (`django_http_requests_latency_including_middlewares_seconds`) never counts a request, so the quantiles use the per-view histogram summed by bucket (17 buckets per view and method, a few thousand series at most); an idle view divides by zero in a mean (`+Inf`), so the denominator is filtered with `> 0`; the Longhorn backup age panel shows no data until the first nightly backup instead of "56 years" (`longhorn_volume_last_backup_at` is 0 for never).
+
+# Docker containers dashboard
+
+Dashboard `Docker containers` (uid `homelab-docker-containers`, generated, variable `name`, 12 panels) for the Docker hosts outside the cluster, from the cAdvisor of the `ax51` job (78 running containers on 2026-10-18): running, restarted and OOM-killed containers, shortest uptime, CPU and CPU throttling, memory working set and use against the limit, network in and out, threads and memory pressure. Only cAdvisor series carry the `name` label, so the selector (`name!=""`) leaves the node exporter and Docker engine targets of the same job out. The `container_label_*` labels are gone since the label fix (ADR-0026), so panels select on `name` and `image`. 16 dashboards in total, 501 KB of the 1 MiB ConfigMap limit.
 
 # Pitfalls found
 

@@ -404,6 +404,215 @@ SPEEDTEST_PANELS = [
     Panel('Last test succeeded', 'script_success{job="speedtest"}', kind='stat'),
 ]
 
+# Tandoor (django-prometheus, ENABLE_METRICS=1) scraped from `tandoor.tandoor.svc` as job `tandoor`.
+# Latency comes from the per-view histogram summed by bucket: the overall histogram
+# (`..._including_middlewares_seconds`) never counts a request in Tandoor (checked 2026-10-18). The
+# per-view histogram has 17 buckets per view and method, so its series count grows with the pages
+# that are used (about 190 series for 11 views; a few thousand if every view is opened).
+_TANDOOR = 'job="tandoor"'
+_TANDOOR_LATENCY = 'django_http_requests_latency_seconds_by_view_method'
+_TANDOOR_POD = 'namespace="tandoor", container="tandoor"'
+TANDOOR_PANELS = [
+    Panel('Scrape up', f'up{{{_TANDOOR}}}', kind='stat'),
+    Panel(
+        'Requests per second',
+        f'sum(rate(django_http_requests_total_by_method_total{{{_TANDOOR}}}[5m]))',
+        'reqps',
+        legend='requests',
+    ),
+    Panel(
+        'Responses by status',
+        f'sum by (status) (rate(django_http_responses_total_by_status_total{{{_TANDOOR}}}[5m]))',
+        'reqps',
+        legend='{{status}}',
+        stack=True,
+    ),
+    Panel(
+        'Server errors per second (5xx)',
+        'sum(rate(django_http_responses_total_by_status_total'
+        f'{{{_TANDOOR}, status=~"5.."}}[5m])) or vector(0)',
+        'reqps',
+        legend='5xx',
+    ),
+    Panel(
+        'Request latency',
+        f'histogram_quantile(0.5, sum by (le) (rate({_TANDOOR_LATENCY}_bucket{{{_TANDOOR}}}[5m])))',
+        's',
+        legend='p50',
+        extra=(
+            (
+                f'histogram_quantile(0.95, sum by (le) (rate({_TANDOOR_LATENCY}_bucket{{{_TANDOOR}}}[5m])))',
+                'p95',
+            ),
+            (
+                f'histogram_quantile(0.99, sum by (le) (rate({_TANDOOR_LATENCY}_bucket{{{_TANDOOR}}}[5m])))',
+                'p99',
+            ),
+        ),
+    ),
+    Panel(
+        'Requests by view (top 8)',
+        'topk(8, sum by (view) (rate(django_http_requests_total_by_view_transport_method_total'
+        f'{{{_TANDOOR}}}[5m])))',
+        'reqps',
+        legend='{{view}}',
+    ),
+    Panel(
+        'Slowest views, mean latency (top 8)',
+        f'topk(8, sum by (view) (rate({_TANDOOR_LATENCY}_sum{{{_TANDOOR}}}[5m]))'
+        f' / (sum by (view) (rate({_TANDOOR_LATENCY}_count{{{_TANDOOR}}}[5m])) > 0))',
+        's',
+        legend='{{view}}',
+    ),
+    Panel(
+        'Records created per hour by model (top 8)',
+        f'topk(8, sum by (model) (increase(django_model_inserts_total{{{_TANDOOR}}}[1h])))',
+        legend='{{model}}',
+    ),
+    Panel(
+        'CPU used vs requested (cores)',
+        f'sum(rate(container_cpu_usage_seconds_total{{{_TANDOOR_POD}}}[5m]))',
+        legend='used',
+        extra=(
+            (
+                f'sum(kube_pod_container_resource_requests{{resource="cpu", {_TANDOOR_POD}}})',
+                'requested',
+            ),
+        ),
+    ),
+    # The memory limit matters because PDF export (ENABLE_PDF_EXPORT) runs a browser.
+    Panel(
+        'Memory working set vs limit',
+        f'sum(container_memory_working_set_bytes{{{_TANDOOR_POD}}})',
+        'bytes',
+        legend='used',
+        extra=(
+            (
+                f'sum(kube_pod_container_resource_limits{{resource="memory", {_TANDOOR_POD}}})',
+                'limit',
+            ),
+        ),
+    ),
+    Panel(
+        'Container restarts (last hour)',
+        'sum(increase(kube_pod_container_status_restarts_total{namespace="tandoor"}[1h])) or vector(0)',
+        kind='stat',
+    ),
+    Panel(
+        'Media volume used',
+        'kubelet_volume_stats_used_bytes{namespace="tandoor", persistentvolumeclaim="mediafiles"}'
+        ' / kubelet_volume_stats_capacity_bytes{namespace="tandoor", persistentvolumeclaim="mediafiles"}',
+        'percentunit',
+        kind='stat',
+    ),
+    Panel(
+        'Database size',
+        'cnpg_pg_database_size_bytes{namespace="tandoor", datname="tandoor"}',
+        'bytes',
+        legend='{{datname}}',
+    ),
+    Panel(
+        'Database base backup age',
+        'time() - max(cnpg_backup_stopped_at_seconds{cluster="tandoor-db", phase="completed"})',
+        's',
+        kind='stat',
+    ),
+    Panel(
+        'Media volume backup age (Longhorn)',
+        'time() - longhorn_volume_last_backup_at{pvc_namespace="tandoor", pvc="mediafiles"}'
+        ' and longhorn_volume_last_backup_at{pvc_namespace="tandoor", pvc="mediafiles"} > 0',
+        's',
+        kind='stat',
+    ),
+    Panel(
+        'Errors in the log (per interval)',
+        f'sum(count_over_time({{{_TANDOOR_POD}}} |~ "(?i)(error|fatal|traceback)" [$__interval]))',
+        datasource='loki',
+        legend='errors',
+    ),
+    Panel('Logs', f'{{{_TANDOOR_POD}}}', kind='logs', datasource='loki'),
+]
+
+# Docker containers on hosts outside the cluster, from cAdvisor (job `ax51`; the Docker hosts of
+# dockerhost join when its LAN targets move). Only cAdvisor series carry the `name` label, so the
+# selector also keeps the node exporter and Docker engine targets of the same job out. The
+# `container_label_*` labels are dropped in Alloy and are not available here.
+_DOCKER = 'job="ax51", name=~"$name", name!=""'
+DOCKER_VARIABLES = [
+    _query_variable('name', 'label_values(container_last_seen{job="ax51", name!=""}, name)'),
+]
+DOCKER_PANELS = [
+    Panel(
+        'Running containers',
+        'count(time() - container_last_seen{job="ax51", name!=""} < 120)',
+        kind='stat',
+    ),
+    Panel(
+        'Containers restarted (last hour)',
+        f'count(changes(container_start_time_seconds{{{_DOCKER}}}[1h]) > 0) or vector(0)',
+        kind='stat',
+    ),
+    Panel(
+        'OOM kills (last hour)',
+        f'sum(increase(container_oom_events_total{{{_DOCKER}}}[1h])) or vector(0)',
+        kind='stat',
+    ),
+    Panel(
+        'Shortest uptime (bottom 15)',
+        f'bottomk(15, time() - container_start_time_seconds{{{_DOCKER}}})',
+        's',
+        legend='{{name}}',
+    ),
+    Panel(
+        'CPU used (cores, top 15)',
+        f'topk(15, sum by (name) (rate(container_cpu_usage_seconds_total{{{_DOCKER}}}[5m])))',
+        legend='{{name}}',
+    ),
+    Panel(
+        'CPU throttled (share of periods, top 10)',
+        f'topk(10, sum by (name) (rate(container_cpu_cfs_throttled_periods_total{{{_DOCKER}}}[5m]))'
+        f' / sum by (name) (rate(container_cpu_cfs_periods_total{{{_DOCKER}}}[5m])))',
+        'percentunit',
+        legend='{{name}}',
+    ),
+    Panel(
+        'Memory working set (top 15)',
+        f'topk(15, sum by (name) (container_memory_working_set_bytes{{{_DOCKER}}}))',
+        'bytes',
+        legend='{{name}}',
+    ),
+    Panel(
+        'Memory used vs limit (containers with a limit, top 15)',
+        f'topk(15, sum by (name) (container_memory_working_set_bytes{{{_DOCKER}}})'
+        f' / (sum by (name) (container_spec_memory_limit_bytes{{{_DOCKER}}}) > 0))',
+        'percentunit',
+        legend='{{name}}',
+    ),
+    Panel(
+        'Network received (top 15)',
+        f'topk(15, sum by (name) (rate(container_network_receive_bytes_total{{{_DOCKER}}}[5m])))',
+        'Bps',
+        legend='{{name}}',
+    ),
+    Panel(
+        'Network sent (top 15)',
+        f'topk(15, sum by (name) (rate(container_network_transmit_bytes_total{{{_DOCKER}}}[5m])))',
+        'Bps',
+        legend='{{name}}',
+    ),
+    Panel(
+        'Processes and threads (top 10)',
+        f'topk(10, sum by (name) (container_threads{{{_DOCKER}}}))',
+        legend='{{name}}',
+    ),
+    Panel(
+        'Memory pressure, time stalled (top 10)',
+        f'topk(10, sum by (name) (rate(container_pressure_memory_stalled_seconds_total{{{_DOCKER}}}[5m])))',
+        's',
+        legend='{{name}}',
+    ),
+]
+
 LOGS_VARIABLES = [
     _query_variable('namespace', 'label_values(namespace)', 'loki'),
     _query_variable('pod', 'label_values({namespace=~"$namespace"}, pod)', 'loki'),
@@ -497,6 +706,10 @@ def provisioning_files() -> dict[str, str]:
         'logs.json': _dashboard('homelab-logs', 'Logs explorer', LOGS_PANELS, LOGS_VARIABLES),
         'internet-speed.json': _dashboard(
             'homelab-internet-speed', 'Internet Speed', SPEEDTEST_PANELS
+        ),
+        'tandoor.json': _dashboard('homelab-tandoor', 'Tandoor', TANDOOR_PANELS),
+        'docker-containers.json': _dashboard(
+            'homelab-docker-containers', 'Docker containers', DOCKER_PANELS, DOCKER_VARIABLES
         ),
     }
     for name in (*COMMUNITY_DASHBOARDS, *LEGACY_DASHBOARDS):
