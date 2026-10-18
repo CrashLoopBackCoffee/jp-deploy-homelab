@@ -90,7 +90,8 @@ class Tandoor(p.ComponentResource):
             'POSTGRES_DB': DATABASE_NAME,
             'POSTGRES_USER': DATABASE_USER,
             'ALLOWED_HOSTS': p.Output.format('{},{}', hostname, scrape_host),
-            'TIMEZONE': 'Europe/Berlin',
+            # `TIMEZONE` is deprecated in Tandoor 2
+            'TZ': 'Europe/Berlin',
             'TANDOOR_PORT': str(TANDOOR_PORT),
             # nginx in the image serves the media files
             'GUNICORN_MEDIA': '0',
