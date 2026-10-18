@@ -1,6 +1,6 @@
 ---
 type: Service
-title: Tandoor (Pulumi, prepared, not deployed)
+title: Tandoor (Pulumi, applied, data not yet imported)
 description: Migration of Tandoor Recipes from dockerhost to k0s with a dedicated CloudNativePG database and a Longhorn media volume, the prerequisites, and the data import and cutover runbook (ADR-0028).
 timestamp: 2026-10-18T00:00:00Z
 tags: [homelab, kubernetes, tandoor, cloudnativepg, longhorn, migration]
@@ -9,7 +9,7 @@ resource: https://app.pulumi.com/jaypee-solutions/tandoor/prod
 
 # State
 
-Written on branch `feature/tandoor` (ADR-0028). The stack `jaypee-solutions/tandoor/prod` exists; `pulumi preview` shows 16 resources to create and nothing is applied. It needs no new 1Password item. The legacy instance runs on `dockerhost` (`/opt/tandoor`) as `tandoor_db_recipes_1` (`postgres:17-alpine`), `tandoor_web_recipes_1` (`ghcr.io/tandoorrecipes/recipes:latest`) and `tandoor_adminer_recipes_1` (`adminer:latest`) and is untouched. The Ansible role in the repository (PostgreSQL 12, `vabene1111/recipes`, separate nginx) is out of date, so trust the host, not the role. The motivation is in [dockerhost-services](./dockerhost-services.md): `dockerhost` has no backup, so moving the service is a gain by itself.
+Applied on 2026-10-18 from branch `feature/tandoor` (PR #31, ADR-0028): stack `jaypee-solutions/tandoor/prod`, 16 resources, pod `1/1`, `tandoor-db` healthy, `mediafiles` bound. It runs against an empty database (the `migrate` init container created the schema); no data has been imported and no local DNS record exists, so `tandoor.4jp.de` still points at `dockerhost`. It needed no new 1Password item. Verified: through the ingress `/` returns 302 and `/metrics` returns 404; inside the pod `/metrics` returns 200 with 240 `django_*` lines for `Host: tandoor.tandoor.svc` and 400 for a pod-IP Host. The legacy instance runs on `dockerhost` (`/opt/tandoor`) as `tandoor_db_recipes_1` (`postgres:17-alpine`), `tandoor_web_recipes_1` (`ghcr.io/tandoorrecipes/recipes:latest`) and `tandoor_adminer_recipes_1` (`adminer:latest`) and is untouched. The Ansible role in the repository (PostgreSQL 12, `vabene1111/recipes`, separate nginx) is out of date, so trust the host, not the role. The motivation is in [dockerhost-services](./dockerhost-services.md): `dockerhost` has no backup, so moving the service is a gain by itself.
 
 # What the stack creates
 

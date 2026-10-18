@@ -17,7 +17,7 @@ adr: 28
 
 ## Status
 
-Accepted on 2026-10-18. The Pulumi stack is written and previews cleanly (16 resources to create); nothing is deployed and no data has moved yet. Amended the same day: the first draft added an own off-site copy (restic to the Nextcloud); the user rejected it, see Decision.
+Accepted on 2026-10-18. The Pulumi stack is applied (16 resources, PR #31) and runs against an empty database; no data has moved yet. Amended the same day: the first draft added an own off-site copy (restic to the Nextcloud); the user rejected it, see Decision.
 
 ## Context
 
