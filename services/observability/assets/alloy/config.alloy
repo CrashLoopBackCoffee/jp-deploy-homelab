@@ -515,9 +515,23 @@ discovery.file "ax51" {
 	files = ["TARGETS_PATH/ax51-targets.json"]
 }
 
+// cAdvisor turns every Docker label of a container into a `container_label_*` label. The AX51
+// containers carry 20 and more of them (Compose, Traefik, Watchtower), which pushed some series over
+// Mimir's limit of 30 label names per series (`err-mimir-max-label-names-per-series`, 2026-10-17).
+// Mimir rejects such a series with a 400 and Alloy drops the whole batch of 2,000 samples, so about
+// 1% of all samples were lost. Nothing here uses these labels; `name`, `image` and `id` stay.
+prometheus.relabel "ax51" {
+	forward_to = [prometheus.remote_write.mimir.receiver]
+
+	rule {
+		regex  = "container_label_.+"
+		action = "labeldrop"
+	}
+}
+
 prometheus.scrape "ax51" {
 	targets    = discovery.file.ax51.targets
-	forward_to = [prometheus.remote_write.mimir.receiver]
+	forward_to = [prometheus.relabel.ax51.receiver]
 	// The default job name is the component name; the dashboards and rules use the legacy one.
 	job_name        = "ax51"
 	scheme          = "https"
