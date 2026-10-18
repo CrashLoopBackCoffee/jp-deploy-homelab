@@ -22,6 +22,7 @@ dependencies = [
     "n8n",
     "observability",
     "paperless",
+    "tandoor",
 ]
 
 [dependency-groups]
@@ -43,6 +44,7 @@ monitoring = { workspace = true }
 n8n = { workspace = true }
 observability = { workspace = true }
 paperless = { workspace = true }
+tandoor = { workspace = true }
 utils = { workspace = true }
 
 [tool.uv]
@@ -140,3 +142,7 @@ model = "observability.config:PulumiConfigRoot"
 [tool.config-models.paperless]
 root = "services/paperless"
 model = "paperless.config:PulumiConfigRoot"
+
+[tool.config-models.tandoor]
+root = "services/tandoor"
+model = "tandoor.config:PulumiConfigRoot"

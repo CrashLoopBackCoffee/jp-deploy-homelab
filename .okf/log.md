@@ -1,5 +1,10 @@
 # Update Log
 
+## 2026-10-18
+* **Decision**: The user chose to migrate Tandoor next (ADR-0028). Because it holds real data, the HBS 3 gate of ADR-0018 is waived on condition of an own off-site copy (restic to the Nextcloud) that is restored successfully before the legacy instance is switched off; accounts stay local and Authentik comes later.
+* **Finding**: Legacy Tandoor on `dockerhost` is PostgreSQL 12 plus the untagged `vabene1111/recipes` image plus a separate nginx; `tandoor.4jp.de` resolves to `192.168.178.125` through the public Cloudflare record on the LAN as well. The donor TH has a `tandoor` workspace (2.6.15); MP has none.
+* **Change**: Wrote `services/tandoor` (branch `feature/tandoor`, not applied): Deployment, Longhorn media volume, CloudNativePG `tandoor-db`, IngressRoute, and a backup CronJob (`pg_dump` plus media to restic on the Nextcloud). Checks pass; the stack `jaypee-solutions/tandoor/prod` was created empty. A preview waits for the 1Password item `Tandoor Backup`.
+
 ## 2026-10-17
 * **Decision**: The user agreed on two weeks of dual running of the migrated probes and scrapes before they are removed from the legacy Prometheus (phase 5, no earlier than 2026-10-31).
 * **Change**: Phase 3 applied (PR #29, ADR-0027): the speedtest exporter runs in `observability` and Alloy scrapes it every 30 minutes; `Internet Speed` is rebuilt in code; `Prometheus Blackbox Exporter`, `Status`, `Pretix` and `WordPress Core Updates` are vendored from the legacy Grafana (checked for private data first). Grafana lists 14 dashboards. A manual test measured 193 Mbit/s down and 40 up and moved 156 MB (about 7.5 GB a day at this cadence); the exporter's latency and jitter are milliseconds despite their names. All 24 panel queries of the four ported dashboards return data against Mimir.
