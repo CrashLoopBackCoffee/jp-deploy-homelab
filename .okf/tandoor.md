@@ -34,7 +34,7 @@ echo "== database"; sudo docker exec $D sh -c 'psql -U "$POSTGRES_USER" -d "$POS
 echo "== preferences"; sudo docker exec $W printenv | grep -E '^(FRACTION_PREF_DEFAULT|COMMENT_PREF_DEFAULT|SHOPPING_MIN_AUTOSYNC_INTERVAL|ENABLE_PDF_EXPORT|ENABLE_METRICS|DEBUG|REVERSE_PROXY_AUTH|TIMEZONE|TZ|ALLOWED_HOSTS|GUNICORN_MEDIA|CSRF_TRUSTED_ORIGINS)='
 ```
 
-Results (2026-10-18): image `ghcr.io/tandoorrecipes/recipes:latest` built 2026-09-07 (the 2.6.15 release date); newest applied migration `cookbook 0242_space_household_setup_completed` (the newest in the 2.6.15 source, so no schema upgrade); PostgreSQL 17.11, database 16 MB; media `/opt/tandoor/mediafiles` 988 KB, database directory `/opt/tandoor/postgresql` 71 MB, the static files volume is rebuilt by `collectstatic` and is not migrated; preferences `FRACTION_PREF_DEFAULT=0`, `COMMENT_PREF_DEFAULT=1`, `SHOPPING_MIN_AUTOSYNC_INTERVAL=5`, `ENABLE_PDF_EXPORT=1`, `ENABLE_METRICS=1`, `DEBUG=0`, `TZ=Europe/Berlin`, `GUNICORN_MEDIA=0`, `ALLOWED_HOSTS=*`. The first four are in the stack config; `ENABLE_METRICS` is left out on purpose.
+Results (2026-10-18): image `ghcr.io/tandoorrecipes/recipes:latest` built 2026-09-07 (the 2.6.15 release date); newest applied migration `cookbook 0242_space_household_setup_completed` (the newest in the 2.6.15 source, so no schema upgrade); PostgreSQL 17.11, database 16 MB; media `/opt/tandoor/mediafiles` 988 KB, database directory `/opt/tandoor/postgresql` 71 MB, the static files volume is rebuilt by `collectstatic` and is not migrated; preferences `FRACTION_PREF_DEFAULT=0`, `COMMENT_PREF_DEFAULT=1`, `SHOPPING_MIN_AUTOSYNC_INTERVAL=5`, `ENABLE_PDF_EXPORT=1`, `ENABLE_METRICS=1`, `DEBUG=0`, `TZ=Europe/Berlin`, `GUNICORN_MEDIA=0`, `ALLOWED_HOSTS=*`. All are in the stack config except `DEBUG`, `TZ`, `GUNICORN_MEDIA` (the stack sets them) and `ALLOWED_HOSTS` (the stack sets the hostname and the scrape name).
 
 # Runbook: import and cutover
 
@@ -53,6 +53,7 @@ Rehearse first with the legacy instance running, then repeat after stopping it s
 # Open points
 
 - PDF export (`ENABLE_PDF_EXPORT=1`) may need more than the 1 Gi memory limit; check the first export and raise the limit if the pod is killed.
+- **Metrics** (ADR-0028): `ENABLE_METRICS=1`; Alloy scrapes `tandoor.tandoor.svc:80/metrics` (job `tandoor`, `services/observability/assets/alloy/config.alloy`); the IngressRoute does not route `/metrics`. Apply the observability change only after the import, otherwise `Scrape target down` fires while the application is scaled to zero. Verify afterwards: `up{job="tandoor"} == 1`, `django_http_requests_total_by_method_total` has samples, and `curl --resolve tandoor.4jp.de:443:10.10.88.1 https://tandoor.4jp.de/metrics` returns 404.
 - A restore of `tandoor-db` from its QNAP backup has not been rehearsed for this cluster; the method is the verified one of ADR-0017 and ADR-0018.
 
 Related: ADR-0028, ADR-0018, ADR-0023, [dockerhost-services](./dockerhost-services.md), [Paperless](./paperless.md), [Retiring the legacy dockerhost monitoring stack](./legacy-monitoring-migration.md).

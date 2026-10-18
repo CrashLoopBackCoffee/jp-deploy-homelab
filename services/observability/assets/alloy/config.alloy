@@ -577,3 +577,17 @@ prometheus.scrape "speedtest" {
 	scrape_interval = "30m"
 	scrape_timeout  = "3m"
 }
+
+// ---------------------------------------------------------------------------
+// Tandoor
+// ---------------------------------------------------------------------------
+
+// django-prometheus serves /metrics on the application port, without authentication, so the ingress
+// does not route it. The Service name is one of Tandoor's allowed hosts (ALLOWED_HOSTS).
+prometheus.scrape "tandoor" {
+	targets         = [{"__address__" = "tandoor.tandoor.svc:80"}]
+	forward_to      = [prometheus.remote_write.mimir.receiver]
+	job_name        = "tandoor"
+	scrape_interval = "30s"
+	scrape_timeout  = "10s"
+}

@@ -10,13 +10,14 @@ config:
       # The legacy data is under 1 MB of media; the volume can be expanded later.
       media-size: 2Gi
       # Non-secret preferences carried over from the legacy instance (read 2026-10-18). Left out on
-      # purpose: `ENABLE_METRICS` (nothing scrapes it and `/metrics` would be reachable through the
-      # ingress) and `ALLOWED_HOSTS=*` (the stack sets the hostname).
+      # purpose: `ALLOWED_HOSTS=*` (the stack sets the hostname).
       settings:
         FRACTION_PREF_DEFAULT: "0"
         COMMENT_PREF_DEFAULT: "1"
         SHOPPING_MIN_AUTOSYNC_INTERVAL: "5"
         ENABLE_PDF_EXPORT: "1"
+        # Prometheus endpoint `/metrics`, scraped by Alloy; the ingress does not route it.
+        ENABLE_METRICS: "1"
     database:
       name: tandoor-db
       # renovate: datasource=docker packageName=ghcr.io/cloudnative-pg/postgresql versioning=semver

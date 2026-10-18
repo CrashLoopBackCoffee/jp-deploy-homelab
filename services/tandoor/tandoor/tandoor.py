@@ -78,15 +78,18 @@ class Tandoor(p.ComponentResource):
             opts=k8s_opts,
         )
 
+        # Django rejects Host headers that are not allowed. Alloy scrapes the Service by its
+        # in-cluster name, so that name is allowed next to the public hostname.
+        scrape_host = p.Output.format('tandoor.{}.svc', namespace)
         # Application wiring wins over the free-form preferences from the stack config.
-        plain_env = {
+        plain_env: dict[str, p.Input[str]] = {
             **tandoor_config.settings,
             'DB_ENGINE': 'django.db.backends.postgresql',
             'POSTGRES_HOST': database.host,
             'POSTGRES_PORT': str(database.port),
             'POSTGRES_DB': DATABASE_NAME,
             'POSTGRES_USER': DATABASE_USER,
-            'ALLOWED_HOSTS': hostname,
+            'ALLOWED_HOSTS': p.Output.format('{},{}', hostname, scrape_host),
             'TIMEZONE': 'Europe/Berlin',
             'TANDOOR_PORT': str(TANDOOR_PORT),
             # nginx in the image serves the media files
@@ -188,7 +191,9 @@ class Tandoor(p.ComponentResource):
                 'routes': [
                     {
                         'kind': 'Rule',
-                        'match': f'Host(`{hostname}`)',
+                        # `/metrics` (ENABLE_METRICS) is unauthenticated: only Alloy inside the
+                        # cluster may read it, so the ingress does not route it.
+                        'match': f'Host(`{hostname}`) && !PathPrefix(`/metrics`)',
                         'services': [
                             {
                                 'name': service.metadata.name,
