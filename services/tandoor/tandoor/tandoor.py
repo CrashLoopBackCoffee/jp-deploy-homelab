@@ -1,6 +1,7 @@
 import pulumi as p
 import pulumi_kubernetes as k8s
 import pulumi_random as random
+import utils.cloudflare
 import utils.cnpg
 
 from tandoor.config import ComponentConfig
@@ -208,6 +209,21 @@ class Tandoor(p.ComponentResource):
                 'tls': {},
             },
             opts=k8s_opts,
+        )
+
+        # The name lives in the public zone and points at Traefik's private address (ADR-0029).
+        traefik_service = k8s.core.v1.Service.get(
+            'traefik-service', 'traefik/traefik', opts=k8s_opts
+        )
+        utils.cloudflare.create_a_record(
+            'tandoor-dns',
+            host=tandoor_config.host,
+            zone_name=component_config.zone,
+            address=traefik_service.status.load_balancer.ingress[0].ip,
+            cloudflare_provider=utils.cloudflare.get_token_provider(
+                component_config.cloudflare_api_token.value
+            ),
+            opts=p.ResourceOptions(parent=self),
         )
 
         p.export('tandoor_url', f'https://{hostname}')
