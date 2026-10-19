@@ -36,6 +36,8 @@ class ComponentConfig(utils.model.LocalBaseModel):
     kubeconfig: utils.model.OnePasswordRef
     # DNS zone for the ingress hostname
     zone: str
+    # Scoped account token (DNS Edit, Zone Read), the one cert-manager uses (ADR-0010).
+    cloudflare_api_token: utils.model.OnePasswordRef
     tandoor: TandoorConfig
     database: DatabaseConfig
 

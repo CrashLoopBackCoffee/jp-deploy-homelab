@@ -157,6 +157,39 @@ RULES = [
         severity='critical',
         no_data_state='Alerting',
     ),
+    # Mimir rejects a write (HTTP 400) for too many labels, a series limit or old samples, and Alloy
+    # then drops the whole batch of 2,000 samples without any other sign. This went unnoticed for a
+    # day on 2026-10-17 (about 1% of all samples, see ADR-0026).
+    AlertRule(
+        uid='mimir-samples-discarded',
+        title='Mimir is discarding samples',
+        expr='sum by (reason) (increase(cortex_discarded_samples_total[10m])) > bool 0',
+        summary='Mimir discarded samples (reason {{ $labels.reason }}) in the last 10 minutes; Alloy drops whole batches',
+        for_='10m',
+        severity='critical',
+    ),
+    # The scrape-down rule cannot fire when the pod is gone, because then no `up` series exists.
+    # Tandoor's backups are covered by `cnpg-backup-stale` (`tandoor-db`) and
+    # `longhorn-volume-backup-stale` (`mediafiles`).
+    AlertRule(
+        uid='tandoor-down',
+        title='Tandoor is not serving',
+        expr='up{job="tandoor"} == bool 0',
+        summary='Tandoor does not answer its metrics scrape, or its pod does not exist',
+        for_='5m',
+        severity='critical',
+        no_data_state='Alerting',
+    ),
+    AlertRule(
+        uid='tandoor-server-errors',
+        title='Tandoor returns server errors',
+        expr=(
+            'sum(rate(django_http_responses_total_by_status_total{job="tandoor", status=~"5.."}[5m]))'
+            ' > bool 0.05'
+        ),
+        summary='Tandoor answers more than one request in 20 seconds with a 5xx status',
+        for_='10m',
+    ),
     AlertRule(
         uid='certificate-expiring',
         title='Certificate expires within 14 days',

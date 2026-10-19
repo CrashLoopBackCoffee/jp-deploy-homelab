@@ -16,7 +16,7 @@ adr: 12
 
 ## Status
 
-Accepted on 2026-10-10.
+Accepted on 2026-10-10. **Narrowed on 2026-10-19:** new service names are Cloudflare A records ([[ADR-0029 - Service names as Cloudflare A records]]); the existing dnsmasq records (`paperless`, `g`, `syslog`, `k8s-ingress-prod`) stay until the user decides to move them.
 
 ## Context
 
