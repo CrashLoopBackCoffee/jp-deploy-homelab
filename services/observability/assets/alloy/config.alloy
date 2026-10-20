@@ -605,3 +605,17 @@ prometheus.scrape "tandoor" {
 	scrape_interval = "30s"
 	scrape_timeout  = "10s"
 }
+
+// ---------------------------------------------------------------------------
+// NetBox
+// ---------------------------------------------------------------------------
+
+// NetBox serves /metrics on the application port, without authentication, so the ingress does not
+// route it. The Service name is one of NetBox's allowed hosts (allowedHosts in the chart values).
+prometheus.scrape "netbox" {
+	targets         = [{"__address__" = "netbox.netbox.svc:80"}]
+	forward_to      = [prometheus.remote_write.mimir.receiver]
+	job_name        = "netbox"
+	scrape_interval = "30s"
+	scrape_timeout  = "10s"
+}
