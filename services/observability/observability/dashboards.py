@@ -533,6 +533,127 @@ TANDOOR_PANELS = [
     Panel('Logs', f'{{{_TANDOOR_POD}}}', kind='logs', datasource='loki'),
 ]
 
+# NetBox (django-prometheus, METRICS_ENABLED) scraped from `netbox.netbox.svc` as job `netbox`.
+# Latency comes from the per-view histogram summed by bucket; it has 17 buckets per view and method,
+# so its series count grows with the pages that are used.
+_NETBOX = 'job="netbox"'
+_NETBOX_LATENCY = 'django_http_requests_latency_seconds_by_view_method'
+_NETBOX_POD = 'namespace="netbox", container="netbox"'
+NETBOX_PANELS = [
+    Panel('Scrape up', f'up{{{_NETBOX}}}', kind='stat'),
+    Panel(
+        'Requests per second',
+        f'sum(rate(django_http_requests_total_by_method_total{{{_NETBOX}}}[5m]))',
+        'reqps',
+        legend='requests',
+    ),
+    Panel(
+        'Responses by status',
+        f'sum by (status) (rate(django_http_responses_total_by_status_total{{{_NETBOX}}}[5m]))',
+        'reqps',
+        legend='{{status}}',
+        stack=True,
+    ),
+    Panel(
+        'Server errors per second (5xx)',
+        'sum(rate(django_http_responses_total_by_status_total'
+        f'{{{_NETBOX}, status=~"5.."}}[5m])) or vector(0)',
+        'reqps',
+        legend='5xx',
+    ),
+    Panel(
+        'Request latency',
+        f'histogram_quantile(0.5, sum by (le) (rate({_NETBOX_LATENCY}_bucket{{{_NETBOX}}}[5m])))',
+        's',
+        legend='p50',
+        extra=(
+            (
+                f'histogram_quantile(0.95, sum by (le) (rate({_NETBOX_LATENCY}_bucket{{{_NETBOX}}}[5m])))',
+                'p95',
+            ),
+            (
+                f'histogram_quantile(0.99, sum by (le) (rate({_NETBOX_LATENCY}_bucket{{{_NETBOX}}}[5m])))',
+                'p99',
+            ),
+        ),
+    ),
+    Panel(
+        'Requests by view (top 8)',
+        'topk(8, sum by (view) (rate(django_http_requests_total_by_view_transport_method_total'
+        f'{{{_NETBOX}}}[5m])))',
+        'reqps',
+        legend='{{view}}',
+    ),
+    Panel(
+        'Slowest views, mean latency (top 8)',
+        f'topk(8, sum by (view) (rate({_NETBOX_LATENCY}_sum{{{_NETBOX}}}[5m]))'
+        f' / (sum by (view) (rate({_NETBOX_LATENCY}_count{{{_NETBOX}}}[5m])) > 0))',
+        's',
+        legend='{{view}}',
+    ),
+    Panel(
+        'CPU used vs requested (cores)',
+        f'sum(rate(container_cpu_usage_seconds_total{{{_NETBOX_POD}}}[5m]))',
+        legend='used',
+        extra=(
+            (
+                f'sum(kube_pod_container_resource_requests{{resource="cpu", {_NETBOX_POD}}})',
+                'requested',
+            ),
+        ),
+    ),
+    Panel(
+        'Memory working set vs limit',
+        f'sum(container_memory_working_set_bytes{{{_NETBOX_POD}}})',
+        'bytes',
+        legend='used',
+        extra=(
+            (
+                f'sum(kube_pod_container_resource_limits{{resource="memory", {_NETBOX_POD}}})',
+                'limit',
+            ),
+        ),
+    ),
+    Panel(
+        'Container restarts (last hour)',
+        'sum(increase(kube_pod_container_status_restarts_total{namespace="netbox"}[1h])) or vector(0)',
+        kind='stat',
+    ),
+    Panel(
+        'Media volume used',
+        'kubelet_volume_stats_used_bytes{namespace="netbox", persistentvolumeclaim="netbox-media"}'
+        ' / kubelet_volume_stats_capacity_bytes{namespace="netbox", persistentvolumeclaim="netbox-media"}',
+        'percentunit',
+        kind='stat',
+    ),
+    Panel(
+        'Database size',
+        'cnpg_pg_database_size_bytes{namespace="netbox", datname="netbox"}',
+        'bytes',
+        legend='{{datname}}',
+    ),
+    Panel(
+        'Database base backup age',
+        'time() - max(cnpg_backup_stopped_at_seconds{cluster="netbox-db", phase="completed"})',
+        's',
+        kind='stat',
+    ),
+    Panel(
+        'Media volume backup age (Longhorn)',
+        'time() - longhorn_volume_last_backup_at{pvc_namespace="netbox", pvc="netbox-media"}'
+        ' and longhorn_volume_last_backup_at{pvc_namespace="netbox", pvc="netbox-media"} > 0',
+        's',
+        kind='stat',
+    ),
+    Panel(
+        'Errors in the log (per interval)',
+        f'sum(count_over_time({{{_NETBOX_POD}}} |~ "(?i)(error|fatal|traceback)" [$__interval]))',
+        datasource='loki',
+        legend='errors',
+    ),
+    Panel('Logs', f'{{{_NETBOX_POD}}}', kind='logs', datasource='loki'),
+]
+
 # Docker containers on hosts outside the cluster, from cAdvisor (job `ax51`; the Docker hosts of
 # dockerhost join when its LAN targets move). Only cAdvisor series carry the `name` label, so the
 # selector also keeps the node exporter and Docker engine targets of the same job out. The
@@ -708,6 +829,7 @@ def provisioning_files() -> dict[str, str]:
             'homelab-internet-speed', 'Internet Speed', SPEEDTEST_PANELS
         ),
         'tandoor.json': _dashboard('homelab-tandoor', 'Tandoor', TANDOOR_PANELS),
+        'netbox.json': _dashboard('homelab-netbox', 'NetBox', NETBOX_PANELS),
         'docker-containers.json': _dashboard(
             'homelab-docker-containers', 'Docker containers', DOCKER_PANELS, DOCKER_VARIABLES
         ),

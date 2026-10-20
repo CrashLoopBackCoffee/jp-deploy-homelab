@@ -1,5 +1,11 @@
 # Update Log
 
+## 2026-10-20
+* **Decision**: NetBox moves to k0s with the official chart (ADR-0030): upgrade from 4.2.8 to 4.7.3 during the import, new generated secrets, mail dropped, one Valkey Deployment without persistence, `loginRequired` kept, legacy stopped not deleted.
+* **Change**: Workspace `services/netbox` (stack `jaypee-solutions/netbox/prod`, 31 resources), Alloy scrape `netbox`, alert rules `netbox-down` and `netbox-server-errors`, dashboard `NetBox`; the Cloudflare A record `netbox.4jp.de` is imported and managed by the stack after the user pointed it at `10.10.88.1`.
+* **Verification**: [NetBox](netbox.md) has the evidence: all baseline row counts equal after the import, 0 unapplied migrations, API token and `nbcli` work, on-demand CloudNativePG backup completed, `up{job="netbox"} == 1`, previews clean.
+* **Decision**: The final import used the safety dump of 2026-10-20 17:20 because the user stated that nothing changed on the legacy instance in between; no fresh dump was taken.
+
 ## 2026-10-19
 * **Decision**: The user decided that DNS stays in Cloudflare and becomes the default for service names (ADR-0029; ADR-0012 narrowed). Existing dnsmasq names (`paperless`, `g`, `syslog`, `k8s-ingress-prod`) stay until the user decides.
 * **Change**: Tandoor's A record is managed in code: `utils.cloudflare.create_a_record` and `get_token_provider`, the scoped token from the `Cloudflare [4jp.de]` item, record `01832d1d…` imported once (`import_` removed afterwards; preview then 18 unchanged, `dig` still `10.10.88.1`). The record had TTL 1 (automatic), so the helper uses that.

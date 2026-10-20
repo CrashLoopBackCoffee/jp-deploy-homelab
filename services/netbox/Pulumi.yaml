@@ -1,0 +1,9 @@
+name: netbox
+pulumi:disable-default-providers:
+  - kubernetes
+runtime:
+  name: python
+  options:
+    toolchain: uv
+    virtualenv: ../../.venv
+description: NetBox Stack

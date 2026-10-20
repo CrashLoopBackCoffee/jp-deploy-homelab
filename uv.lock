@@ -14,6 +14,7 @@ members = [
     "kubernetes",
     "monitoring",
     "n8n",
+    "netbox",
     "observability",
     "paperless",
     "tandoor",
@@ -202,6 +203,7 @@ dependencies = [
     { name = "kubernetes" },
     { name = "monitoring" },
     { name = "n8n" },
+    { name = "netbox" },
     { name = "observability" },
     { name = "paperless" },
     { name = "pulumi" },
@@ -232,6 +234,7 @@ requires-dist = [
     { name = "kubernetes", editable = "services/kubernetes" },
     { name = "monitoring", editable = "services/monitoring" },
     { name = "n8n", editable = "services/n8n" },
+    { name = "netbox", editable = "services/netbox" },
     { name = "observability", editable = "services/observability" },
     { name = "paperless", editable = "services/paperless" },
     { name = "pulumi", specifier = "==3.203.0" },
@@ -384,6 +387,17 @@ requires-dist = [
     { name = "pulumi-random", specifier = ">=4.18.0" },
     { name = "utils", editable = "utils" },
 ]
+
+[[package]]
+name = "netbox"
+version = "0.1.0"
+source = { editable = "services/netbox" }
+dependencies = [
+    { name = "utils" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "utils", editable = "utils" }]
 
 [[package]]
 name = "nodeenv"

@@ -1,0 +1,32 @@
+config:
+  netbox:config:
+    kubeconfig:
+      ref: op://Homelab/Kubeconfig prod/password
+    zone: 4jp.de
+    cloudflare-api-token:
+      ref: op://Homelab/Cloudflare [4jp.de]/password
+    netbox:
+      # renovate: datasource=docker packageName=ghcr.io/netbox-community/netbox-chart/netbox versioning=semver
+      chart-version: 8.3.92
+      host: netbox
+      # The legacy instance has no media files; uploads (images, attachments) start here.
+      media-size: 1Gi
+    valkey:
+      # renovate: datasource=github-releases packageName=valkey-io/valkey versioning=semver
+      version: 9.1.2
+    database:
+      name: netbox-db
+      # renovate: datasource=docker packageName=ghcr.io/cloudnative-pg/postgresql versioning=semver
+      image-version: "17.10"
+      storage-size: 2Gi
+      backup:
+        endpoint: https://qnap.4jp.de:8443
+        bucket: cnpg-backups
+        access-key-id:
+          ref: op://Homelab/QuObjects CNPG Backup/username
+        secret-access-key:
+          ref: op://Homelab/QuObjects CNPG Backup/password
+        # 21:00 UTC is 23:00 CEST; use "0 0 22 * * *" after DST ends to keep 23:00 local.
+        # Clear of the QNAP's HBS sync window (see ADR-0022).
+        schedule: "0 0 21 * * *"
+        retention-policy: 14d

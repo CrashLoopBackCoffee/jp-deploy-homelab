@@ -190,6 +190,27 @@ RULES = [
         summary='Tandoor answers more than one request in 20 seconds with a 5xx status',
         for_='10m',
     ),
+    # NetBox's backups are covered by `cnpg-backup-stale` (`netbox-db`) and
+    # `longhorn-volume-backup-stale` (`netbox-media`).
+    AlertRule(
+        uid='netbox-down',
+        title='NetBox is not serving',
+        expr='up{job="netbox"} == bool 0',
+        summary='NetBox does not answer its metrics scrape, or its pod does not exist',
+        for_='5m',
+        severity='critical',
+        no_data_state='Alerting',
+    ),
+    AlertRule(
+        uid='netbox-server-errors',
+        title='NetBox returns server errors',
+        expr=(
+            'sum(rate(django_http_responses_total_by_status_total{job="netbox", status=~"5.."}[5m]))'
+            ' > bool 0.05'
+        ),
+        summary='NetBox answers more than one request in 20 seconds with a 5xx status',
+        for_='10m',
+    ),
     AlertRule(
         uid='certificate-expiring',
         title='Certificate expires within 14 days',
