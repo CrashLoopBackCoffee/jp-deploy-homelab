@@ -23,8 +23,8 @@ So the rule "no application database migrates before the HBS 3 off-site copy is 
 | --- | --- | --- |
 | Monitoring stack (Prometheus, Alertmanager, Grafana, Loki, Promtail, cAdvisor, blackbox, fritz-exporter) | Legacy monitoring, Ansible role `monitoring` | Being retired, stage 1 phases 1 to 3 done ([[legacy-monitoring-migration]], ADR-0023) |
 | `jpspeedtest` (systemd) | Speed test every 30 minutes into InfluxDB | Replaced by the in-cluster exporter (ADR-0027) |
-| Tandoor | Recipes; `postgres:17-alpine`, `ghcr.io/tandoorrecipes/recipes:latest` (with nginx inside), `adminer` | **Next**: stack applied on 2026-10-18 with an empty database, data import and DNS cutover pending (ADR-0028, [[tandoor]]) |
-| NetBox 4.2 | Inventory at `netbox.4jp.de` (PostgreSQL, Redis) | Not decided. It is the inventory the agent uses, so its loss would hurt most |
+| Tandoor | Recipes; `postgres:17-alpine`, `ghcr.io/tandoorrecipes/recipes:latest` (with nginx inside), `adminer` | **Moved** to k0s on 2026-10-18 (ADR-0028, [[tandoor]]); the legacy containers are stopped, stage-2 removal pending approval |
+| NetBox 4.2 | Inventory at `netbox.4jp.de`; community `netbox-docker` layout in `/opt/netbox` (`netbox`, `netbox-worker`, `netbox-housekeeping`, `postgres:17-alpine`, valkey as Redis plus a cache instance, bind-mounted configuration, media, reports and scripts; image `v4.2-3.2.0` per the Ansible role) | **Next** (open item 16 of `HANDOFF.md`): safety copy first, then discovery and the decisions. It is the inventory the agent uses, so its loss would hurt most |
 | InfluxDB 1.8.6 | Databases `vzlogger`, `home_assistant`, `node`, `default`, `_internal` (power meters, coffee, shutters, shellies) | Not decided. Feeds the `Power` dashboards, which stay legacy until the LAN work |
 | mosquitto, `mqtt2influxdb` | MQTT broker and its bridge into InfluxDB | Not decided |
 | `tesla-logger` | With its own Grafana 10.0.1 and MariaDB | Not decided |
