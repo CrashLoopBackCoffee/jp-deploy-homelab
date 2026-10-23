@@ -7,7 +7,7 @@ config:
       acme-email: support@jaypee.solutions
     cloudnative-pg:
       # renovate: datasource=github-releases packageName=cloudnative-pg/charts versioning=semver
-      version: 0.26.0
+      version: 0.29.1
       plugin-version: 0.8.1
       cluster:
         name: postgres-pilot
