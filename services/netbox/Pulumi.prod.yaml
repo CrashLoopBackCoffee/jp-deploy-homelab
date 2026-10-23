@@ -7,7 +7,7 @@ config:
       ref: op://Homelab/Cloudflare [4jp.de]/password
     netbox:
       # renovate: datasource=docker packageName=ghcr.io/netbox-community/netbox-chart/netbox versioning=semver
-      chart-version: 8.3.92
+      chart-version: 8.3.93
       host: netbox
       # The legacy instance has no media files; uploads (images, attachments) start here.
       media-size: 1Gi
