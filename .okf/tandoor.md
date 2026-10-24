@@ -1,19 +1,19 @@
 ---
 type: Service
-title: Tandoor (Pulumi, applied; current image 2.6.15)
-description: Tandoor Recipes migration from dockerhost to k0s, including its CloudNativePG database, Longhorn media volume, import/cutover, and the failed 2.7.1 migration and rollback (ADR-0028).
-timestamp: 2026-10-24T14:22:19Z
+title: Tandoor (Pulumi, applied; current image 2.7.1)
+description: Tandoor Recipes migration from dockerhost to k0s, including its CloudNativePG database, Longhorn media volume, import/cutover, and the successful 2.7.1 upgrade after a superuser email conflict remediation (ADR-0028, ADR-0033).
+timestamp: 2026-10-24T16:44:54Z
 tags: [homelab, kubernetes, tandoor, cloudnativepg, longhorn, migration]
 resource: https://app.pulumi.com/jaypee-solutions/tandoor/prod
 ---
 
 # State
 
-Applied on 2026-10-18 from branch `feature/tandoor` (PR #31, ADR-0028): stack `jaypee-solutions/tandoor/prod`, 16 resources, CloudNativePG database and Longhorn media volume. The user imported the recipes and media, stopped the legacy service, pointed Cloudflare at k0s, and confirmed login and content. On 2026-10-24, the 2.7.1 rollout failed in migration `0243_auto_20261018_1149` on a duplicate `unique_primary_email`; the Deployment was rolled back to 2.6.15 and is healthy. The pre-upgrade backup `tandoor-db-before-2-7-1-plugin` completed. Details are in the update log.
+Applied on 2026-10-18 from branch `feature/tandoor` (PR #31, ADR-0028): stack `jaypee-solutions/tandoor/prod`, 16 resources, CloudNativePG database and Longhorn media volume. The user imported the recipes and media, stopped the legacy service, pointed Cloudflare at k0s, and confirmed login and content. On 2026-10-24, the initial 2.7.1 rollout failed in migration `0243_auto_20261018_1149` because superuser 1 had a primary unverified email; it was rolled back to 2.6.15. After a fresh plugin backup, the existing address was retained as unverified/non-primary and the migration's verified fallback was added (ADR-0033). PR #70 then deployed 2.7.1 successfully; migration 0243 is recorded, the database is healthy, the login page returns HTTP 200, and a raw database query found 10 recipes (IDs 1–10), matching the recorded import count. The post-apply Pulumi preview reports 18 unchanged. Details are in the update log.
 
 **Import used for the 2026-10-18 cutover:** the 18:16 UTC rehearsal dump (taken before the legacy service was stopped) was restored; media copied and checksum-verified. Counts: 10 recipes (4 with images, all four files present), 3 users (`uli`, `viktoria`, superuser `alten`), 74 foods, 1 space `Default`, 100 tables all owned by `tandoor`, last migration `0242`; the `migrate` init container reported "No migrations to apply". The post-import backup completed (`20261018T170549`). No fresh post-shutdown dump was imported; the user confirmed all recipes and images are present.
 
-**Cutover done by the user on 2026-10-18:** the legacy containers are stopped and the service disabled on `dockerhost`, and the Cloudflare A record `tandoor.4jp.de` now points at `10.10.88.1`. The user confirmed that the login works and that all recipes and images are present. The data is the rehearsal import of 18:16 UTC. Tandoor remains on 2.6.15 after the 2.7.1 migration failed and was rolled back (see the 2026-10-24 update log). Dashboards `Tandoor` and `Docker containers` exist ([Observability stack](./observability-stack.md)). **DNS (2026-10-19, ADR-0029):** the record is kept in Cloudflare and is now managed by the `tandoor` stack (`utils.cloudflare.create_a_record`, token `op://Homelab/Cloudflare [4jp.de]/password`); it was imported once with `import_` and the next preview showed no changes. Alerts: `tandoor-down` and `tandoor-server-errors`; backups are covered by `cnpg-backup-stale` and `longhorn-volume-backup-stale`. Open: the legacy clean-up in stage 2 with approval.
+**Cutover done by the user on 2026-10-18:** the legacy containers are stopped and the service disabled on `dockerhost`, and the Cloudflare A record `tandoor.4jp.de` now points at `10.10.88.1`. The user confirmed that the login works and that all recipes and images are present. The data is the rehearsal import of 18:16 UTC. The initial 2.7.1 attempt failed and was rolled back; the upgrade later succeeded after account remediation (see the 2026-10-24 update log and ADR-0033). Dashboards `Tandoor` and `Docker containers` exist ([Observability stack](./observability-stack.md)). **DNS (2026-10-19, ADR-0029):** the record is kept in Cloudflare and is now managed by the `tandoor` stack (`utils.cloudflare.create_a_record`, token `op://Homelab/Cloudflare [4jp.de]/password`); it was imported once with `import_` and the next preview showed no changes. Alerts: `tandoor-down` and `tandoor-server-errors`; backups are covered by `cnpg-backup-stale` and `longhorn-volume-backup-stale`. Open: the legacy clean-up in stage 2 with approval.
 
 # What the stack creates
 
@@ -57,6 +57,7 @@ Rehearse first with the legacy instance running, then repeat after stopping it s
 # Open points
 
 - PDF export (`ENABLE_PDF_EXPORT=1`) may need more than the 1 Gi memory limit; check the first export and raise the limit if the pod is killed.
+- A post-upgrade `manage.py check` diagnostic exited 137; the app container recorded one `OOMKilled` restart. It returned to 1/1 Ready and `/accounts/login/` returned HTTP 200 afterwards. No resource settings were changed; monitor memory before running further diagnostics inside this container.
 - **Metrics** (ADR-0028): `ENABLE_METRICS=1`; Alloy scrapes `tandoor.tandoor.svc:80/metrics` (job `tandoor`, `services/observability/assets/alloy/config.alloy`); the IngressRoute does not route `/metrics`. Applied after the rehearsal import; verified in Mimir: `up{job="tandoor"} == 1` and 261 series. Alloy reloads its config without restarting the pod.
 - A restore of `tandoor-db` from its QNAP backup has not been rehearsed for this cluster; the method is the verified one of ADR-0017 and ADR-0018.
 
