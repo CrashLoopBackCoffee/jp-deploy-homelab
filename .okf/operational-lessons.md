@@ -18,6 +18,7 @@ tags: [homelab, lessons, pulumi, k0s, 1password, opnsense, storage]
 | uv | Adding `services/k0s` (no `pyproject.toml`) broke the workspace glob `services/*` | Exclude non-Python directories in `[tool.uv.workspace]` |
 | 1Password | `op` rejects brackets in item titles, while the Pulumi resolver needs the title | Read by item ID with `op`; keep titles stable in refs |
 | 1Password | Desktop-app approval prompts time out headless (`authorization timeout`) | Use the service account token loaded by `.envrc` (`docs/08-Decisions/ADR-0013 - 1Password service account for Pulumi.md`) |
+| 1Password | With `OP_SERVICE_ACCOUNT_TOKEN` set, `op plugin run -- pulumi` returned 403: the plugin's PAT item was outside `Homelab` | Every item `op` reads inside the repo must be in `Homelab` (ADR-0031) |
 | OPNsense | Credentials were in `username`/`password`, not `Key`/`Secret`; the key returned 403 until the right privilege was granted | Test the exact endpoints the code calls before applying |
 | OPNsense DNS | The helper wrote Unbound overrides, but the router runs dnsmasq (`docs/08-Decisions/ADR-0001 - Use dnsmasq instead of Kea on OPNsense.md`) | Read the decision log before choosing APIs (`docs/08-Decisions/ADR-0012 - Local DNS records through dnsmasq on OPNsense.md`) |
 | cert-manager | DNS-01 stalled: the LAN resolver is authoritative for `4jp.de` and returned NXDOMAIN for `_acme-challenge` | Force public recursive nameservers for the self-check |

@@ -1,5 +1,10 @@
 # Update Log
 
+## 2026-10-24
+* **Finding**: With `OP_SERVICE_ACCOUNT_TOKEN` set, `op` uses `pulumi-homelab`, which can read only `Homelab`; the Pulumi shell plugin's PAT item was in `Hosting`, so plugin auth returned 403.
+* **Change**: Moved `Pulumi Personal Access Token` from item `7gd7pwcahtvv7ozdq3d6jezkw4` to `ni3cq4sd56gt4bvb5ybkuhzoni` in `Homelab` and repointed both plugin configuration files.
+* **Verification**: The service account reads the moved item; plugin `whoami -v` returns `jaypee-solutions` and `Token type: personal`; the interactive plugin returns `jaypee-solutions`; `pulumi stack ls` via the real zsh alias lists `kubernetes/prod`.
+
 ## 2026-10-20
 * **Decision**: NetBox moves to k0s with the official chart (ADR-0030): upgrade from 4.2.8 to 4.7.3 during the import, new generated secrets, mail dropped, one Valkey Deployment without persistence, `loginRequired` kept, legacy stopped not deleted.
 * **Change**: Workspace `services/netbox` (stack `jaypee-solutions/netbox/prod`, 31 resources), Alloy scrape `netbox`, alert rules `netbox-down` and `netbox-server-errors`, dashboard `NetBox`; the Cloudflare A record `netbox.4jp.de` is imported and managed by the stack after the user pointed it at `10.10.88.1`.

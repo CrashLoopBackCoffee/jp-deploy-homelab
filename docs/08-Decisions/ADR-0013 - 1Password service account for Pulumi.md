@@ -8,7 +8,7 @@ type: adr
 status: accepted
 date: 2026-10-10
 created: 2026-10-10
-updated: 2026-10-10
+updated: 2026-10-24
 adr: 13
 ---
 
@@ -32,7 +32,7 @@ Pulumi resolves `op://` references through the 1Password provider. With the desk
 
 - A holder of the token can read every item in `Homelab` (verified: reads succeed, writes are refused). The token sits in the same vault it unlocks, so reading it still needs the interactive account.
 - Pulumi stacks must only read secrets from 1Password. Anything that writes items, such as publishing the kubeconfig, uses the interactive `op` session.
-- Items must be in the `Homelab` vault; the service account cannot see other vaults.
+- Items must be in the `Homelab` vault; the service account cannot see other vaults. This includes the Pulumi PAT used by the `op` shell plugin ([[ADR-0031 - Pulumi access token in the Homelab vault]]).
 
 ## Related notes
 
