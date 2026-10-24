@@ -9,11 +9,11 @@ resource: https://app.pulumi.com/jaypee-solutions/kubernetes/prod
 
 # What it deploys
 
-Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 136 resources after the 2026-10-24 rollout updates. Longhorn's QuObjects target remains Available and a disposable volume passed backup/restore. PostgreSQL's Barman base backup and archived WAL passed an independent restore; production application backups and time-targeted PITR have the evidence recorded below.
+Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 134 resources after the 2026-10-24 rollout updates. Longhorn's QuObjects target remains Available and a disposable volume passed backup/restore. PostgreSQL's Barman base backup and archived WAL passed an independent restore; production application backups and time-targeted PITR have the evidence recorded below.
 
 | Component | Notes |
 | --- | --- |
-| MetalLB | Chart 0.15.2 still deployed after the 0.16.0 Pulumi update failed during Helm rendering; the cluster remains on its existing L2 pool `10.10.88.1`–`10.10.88.250`. Chart 0.16.1 is selected in a corrective change after upstream [rendering and controller health-probe fixes](https://metallb.io/release-notes/#version-0-16-1). |
+| MetalLB | Chart 0.16.1 deployed; FRR-K8s disabled because this stack uses L2 only. The L2 pool remains `10.10.88.1`–`10.10.88.250`; controller and speaker are ready, Traefik retains `10.10.88.1`, and NetBox, Paperless, and Tandoor ingress returned HTTP 302. |
 | NFS CSI driver | Version 4.13.6; kubelet dir `/var/lib/k0s/kubelet`; no StorageClass defined. Controller and node plugin are ready; Paperless's QNAP NFS intake remains mounted. |
 | cert-manager | Version 1.21.3 (upgraded 1.19.1 → 1.20.4 → 1.21.2 → 1.21.3, one minor at a time); Let's Encrypt ClusterIssuer with DNS-01 through Cloudflare; ACME email `support@jaypee.solutions`; self-check forced to public recursive nameservers because the LAN resolver answers NXDOMAIN for ACME records. Deployments are available and all cluster certificates are Ready. |
 | Traefik | Service `10.10.88.1`, default TLS store with the wildcard certificate `*.4jp.de`, dnsmasq record `k8s-ingress-prod.4jp.de` |
