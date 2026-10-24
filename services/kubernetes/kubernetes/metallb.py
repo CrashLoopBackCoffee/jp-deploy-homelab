@@ -32,6 +32,8 @@ def create_metallb(component_config: ComponentConfig, k8s_provider: k8s.Provider
                     'container.apparmor.security.beta.kubernetes.io/speaker': 'unconfined',
                 },
             },
+            # This stack uses L2Advertisement only; it has no BGP backend.
+            'frrk8s': {'enabled': False},
             'prometheus': {
                 'rbacPrometheus': False,
                 'scrapeAnnotations': True,
