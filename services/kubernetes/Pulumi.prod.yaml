@@ -30,7 +30,7 @@ config:
       zone: 4jp.de
     csi-nfs-driver:
       # renovate: datasource=github-releases packageName=kubernetes-csi/csi-driver-nfs versioning=semver
-      version: v4.12.1
+      version: v4.13.6
     kubeconfig:
       ref: op://Homelab/Kubeconfig prod/password
     longhorn:
