@@ -50,7 +50,7 @@ config:
           ref: op://Homelab/QuObjects Longhorn Backup/password
     metallb:
       # renovate: datasource=github-releases packageName=metallb/metallb versioning=semver
-      version: 0.16.0
+      version: 0.16.1
       start: 10.10.88.1
       end: 10.10.88.250
     openebs-lvm:

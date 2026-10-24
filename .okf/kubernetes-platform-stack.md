@@ -2,20 +2,20 @@
 type: Service
 title: Kubernetes platform stack (Pulumi, prod)
 description: What the Kubernetes Pulumi stack deploys on k0s, how it is configured, and how secrets, DNS, and certificates flow.
-timestamp: 2026-10-12T00:00:00Z
+timestamp: 2026-10-24T13:46:00Z
 tags: [homelab, kubernetes, pulumi, metallb, traefik, cert-manager, cloudnativepg, openebs, longhorn]
 resource: https://app.pulumi.com/jaypee-solutions/kubernetes/prod
 ---
 
 # What it deploys
 
-Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 133 resources after the 2026-10-12 CloudNativePG pilot apply (+19 from the previous 114). Longhorn's QuObjects target is Available and a disposable volume passed backup/restore. PostgreSQL's Barman base backup and archived WAL passed an independent restore; no production application backup, scheduled PostgreSQL run, time-targeted PITR, or encrypted off-site copy has been verified.
+Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 136 resources after the 2026-10-24 rollout updates. Longhorn's QuObjects target remains Available and a disposable volume passed backup/restore. PostgreSQL's Barman base backup and archived WAL passed an independent restore; production application backups and time-targeted PITR have the evidence recorded below.
 
 | Component | Notes |
 | --- | --- |
-| MetalLB | L2 pool `10.10.88.1`–`10.10.88.250` (chosen by the user, inside VLAN 10's `/16`) |
-| NFS CSI driver | kubelet dir `/var/lib/k0s/kubelet`; no StorageClass defined |
-| cert-manager | Version 1.21.2 (upgraded 1.19.1 → 1.20.4 → 1.21.2, one minor at a time); Let's Encrypt ClusterIssuer with DNS-01 through Cloudflare; ACME email `support@jaypee.solutions`; self-check forced to public recursive nameservers because the LAN resolver answers NXDOMAIN for ACME records. Deployments available, certificates Ready, and Mimir reports `up{job="cert-manager/cert-manager"}=1`. |
+| MetalLB | Chart 0.15.2 still deployed after the 0.16.0 Pulumi update failed during Helm rendering; the cluster remains on its existing L2 pool `10.10.88.1`–`10.10.88.250`. Chart 0.16.1 is selected in a corrective change after upstream [rendering and controller health-probe fixes](https://metallb.io/release-notes/#version-0-16-1). |
+| NFS CSI driver | Version 4.13.6; kubelet dir `/var/lib/k0s/kubelet`; no StorageClass defined. Controller and node plugin are ready; Paperless's QNAP NFS intake remains mounted. |
+| cert-manager | Version 1.21.3 (upgraded 1.19.1 → 1.20.4 → 1.21.2 → 1.21.3, one minor at a time); Let's Encrypt ClusterIssuer with DNS-01 through Cloudflare; ACME email `support@jaypee.solutions`; self-check forced to public recursive nameservers because the LAN resolver answers NXDOMAIN for ACME records. Deployments are available and all cluster certificates are Ready. |
 | Traefik | Service `10.10.88.1`, default TLS store with the wildcard certificate `*.4jp.de`, dnsmasq record `k8s-ingress-prod.4jp.de` |
 | CloudNativePG | Operator 1.30.1 (chart 0.29.1, upgraded from 1.27.0 / chart 0.26.0); Barman Cloud plugin 0.15.1 (chart 0.8.1) unchanged. Upgrade followed four completed pre-upgrade backups; all four clusters are healthy with `ContinuousArchiving=True`, and post-upgrade `paperless-db-post-cnpg-1-30` completed. Single-instance PostgreSQL clusters use daily physical backups at 21:00 UTC year-round (ADR-0022), continuous compressed WAL archiving and 14-day retention to QuObjects. |
 | OpenEBS LVM LocalPV | StorageClass `openebs-lvm-postgres` (`volgroup: postgres`, ext4, `WaitForFirstConsumer`, expansion allowed); snapshot CRDs and controller are on |
