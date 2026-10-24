@@ -2,7 +2,7 @@
 type: Service
 title: Observability stack (Pulumi, prod)
 description: LGTM monitoring on k0s - what runs, how it is reached, alert routing to Pushover, verification evidence, and the metric and provisioning pitfalls found while building it.
-timestamp: 2026-10-13T00:00:00Z
+timestamp: 2026-10-24T00:00:00Z
 tags: [homelab, kubernetes, observability, grafana, loki, mimir, alloy, alerting, pushover]
 resource: https://app.pulumi.com/jaypee-solutions/observability/prod
 ---
@@ -15,11 +15,12 @@ Grafana is at `https://g.4jp.de` (Traefik IngressRoute, wildcard certificate, dn
 
 # Alerting
 
-Alert rules, the Pushover contact point, the notification policy and all dashboards are provisioned from code (`alert_rules.py`, `grafana.py`, `dashboards.py`); nothing is click-operated. Pushover credentials come from the `Pushover Grafana` 1Password item (`username` is the user key, `password` the application token) into the Secret `grafana-secrets`; Grafana expands `$PUSHOVER_*` in the provisioning file. Provisioned text containing a literal `$` (alert templates) must use `$$`. Grafana reads alerting provisioning only at startup, so the Helm values carry a content-hash pod annotation; a rule change rolls the pod. File provisioning never deletes a rule whose entry vanished: list its uid in `REMOVED_RULE_UIDS` (written as `deleteRules`).
+Alert rules, the normal Pushover contact point, the emergency contact point, the notification policy and dashboards are provisioned from code (`alert_rules.py`, `grafana.py`, `dashboards.py`); nothing is click-operated. The normal contact point stays at priority 0. A child policy routes `severity=critical` to `pushover-emergency` (priority 2, retry 60 seconds, expire 3600 seconds, resolved priority 0); warning is the default, and the 12-hour repeat interval is unchanged. The 14 critical rule UIDs are `node-not-ready`, `longhorn-volume-unhealthy`, `longhorn-backup-target-unavailable`, `longhorn-volume-backup-stale`, `cnpg-instance-down`, `cnpg-wal-archiving-failing`, `cnpg-backup-stale`, `paperless-backup-stale`, `mimir-samples-discarded`, `tandoor-down`, `netbox-down`, `certificate-expiring`, `probe-failing`, and `probe-failing-slow`. See ADR-0032. Severity is the rule-level tuning mechanism.
 
 Rules added 2026-10-19 (22 in total; each expression was run against live data first): `mimir-samples-discarded` (`increase(cortex_discarded_samples_total[10m]) > 0` per reason, 10 minutes, critical; replayed against 2026-10-18 it reads 1 at 17:00 and 18:20 UTC and 0 at 19:00, so it would have paged within the first quarter of an hour of the label-limit loss), `tandoor-down` (`up{job="tandoor"} == 0`, alerts also without data, because `Scrape target down` cannot fire when the pod and its `up` series are gone) and `tandoor-server-errors` (5xx above 0.05 per second for 10 minutes). Tandoor's backups need no own rule: `cnpg-backup-stale` covers every cluster and `longhorn-volume-backup-stale` every volume.
 
-Test a receiver with `POST /apis/notifications.alerting.grafana.app/v1beta1/namespaces/default/receivers/<base64 name>/test` (the legacy `/api/alertmanager/.../receivers/test` returns 410). The body is `{"integration": {uid, type, version, settings}, "alert": {...}}` and, for provisioned receivers, `settings` must carry the secrets again; `secureFields` alone returns `user key not found`. The test on 2026-10-13 returned `success`.
+Test a receiver with `POST /apis/notifications.alerting.grafana.app/v1beta1/namespaces/default/receivers/<base64 name>/test` (the legacy `/api/alertmanager/.../receivers/test` returns 410). The body is `{"integration": {uid, type, settings}, "alert": {...}}`; for provisioned receivers, include secrets in `settings` (`secureFields` alone returns `user key not found`). Do not send a `version` for Pushover: Grafana rejected version `1` as invalid. The test on 2026-10-13 returned `success`.
+On 2026-10-24 the provisioning API showed both contact points and the `severity=critical` route, and all 24 rules reported `health=ok`. The current v1beta1 receiver-test API returned HTTP 200 with `status: success`; user confirmation that the emergency notification repeats until acknowledged is pending.
 
 Alerting cannot report its own failure: if Grafana, Alloy or Mimir is down, nothing pages.
 

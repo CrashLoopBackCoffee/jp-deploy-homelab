@@ -18,6 +18,8 @@ DASHBOARD_PROVIDER = 'homelab'
 DASHBOARD_PATH = f'/var/lib/grafana/dashboards/{DASHBOARD_PROVIDER}'
 
 # Grafana expands $VAR in provisioning files, so the Pushover secrets stay out of the ConfigMap.
+_PUSHOVER_CREDENTIALS = {'userKey': '$PUSHOVER_USER_KEY', 'apiToken': '$PUSHOVER_API_TOKEN'}
+
 CONTACT_POINTS = {
     'apiVersion': 1,
     'contactPoints': [
@@ -28,10 +30,25 @@ CONTACT_POINTS = {
                 {
                     'uid': 'pushover',
                     'type': 'pushover',
+                    'settings': {**_PUSHOVER_CREDENTIALS, 'priority': '0'},
+                },
+            ],
+        },
+        {
+            'orgId': 1,
+            'name': 'pushover-emergency',
+            'receivers': [
+                {
+                    'uid': 'pushover-emergency',
+                    'type': 'pushover',
+                    # Emergency priority repeats every `retry` seconds until acknowledged in the app or
+                    # `expire` passes, like the legacy Alertmanager's Pushover defaults.
                     'settings': {
-                        'userKey': '$PUSHOVER_USER_KEY',
-                        'apiToken': '$PUSHOVER_API_TOKEN',
-                        'priority': '0',
+                        **_PUSHOVER_CREDENTIALS,
+                        'priority': '2',
+                        'okPriority': '0',
+                        'retry': '60',
+                        'expire': '3600',
                     },
                 },
             ],
@@ -48,6 +65,12 @@ NOTIFICATION_POLICIES = {
             'group_wait': '30s',
             'group_interval': '5m',
             'repeat_interval': '12h',
+            'routes': [
+                {
+                    'receiver': 'pushover-emergency',
+                    'object_matchers': [['severity', '=', 'critical']],
+                },
+            ],
         },
     ],
 }

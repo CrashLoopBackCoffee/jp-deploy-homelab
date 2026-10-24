@@ -73,7 +73,6 @@ Paperless now checks repository configuration, initializes only on Restic's miss
 - JP hardware inventory: `docs/01-Foundation/Hardware Inventory.md`
 - [JP IoT stack configuration](../services/iot/Pulumi.prod.yaml)
 - [JP IoT configuration model](../services/iot/iot/config.py)
-- [JP monitoring scrape targets](../services/monitoring/assets/alloy/discovery_static.alloy)
 - [JP Postgres helper](../utils/src/utils/postgres.py)
 - [JP Paperless backup orchestration](../services/paperless/paperless/backup.py)
 - [TH Paperless backup orchestration](../../th-deploy-homelab/services/paperless/paperless/backup.py)

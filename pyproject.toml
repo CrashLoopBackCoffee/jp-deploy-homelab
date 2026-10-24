@@ -18,7 +18,6 @@ dependencies = [
     "backup",
     "iot",
     "kubernetes",
-    "monitoring",
     "n8n",
     "netbox",
     "observability",
@@ -41,7 +40,6 @@ dev = [
 backup = { workspace = true }
 iot = { workspace = true }
 kubernetes = { workspace = true }
-monitoring = { workspace = true }
 n8n = { workspace = true }
 netbox = { workspace = true }
 observability = { workspace = true }
@@ -129,9 +127,6 @@ model = "iot.config:PulumiConfigRoot"
 root = "services/kubernetes"
 model = "kubernetes.config:PulumiConfigRoot"
 
-[tool.config-models.monitoring]
-root = "services/monitoring"
-model = "monitoring.config:PulumiConfigRoot"
 
 [tool.config-models.n8n]
 root = "services/n8n"

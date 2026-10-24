@@ -26,7 +26,6 @@ config:
           ref: op://Homelab/QuObjects CNPG Backup/username
         secret-access-key:
           ref: op://Homelab/QuObjects CNPG Backup/password
-        # 21:00 UTC is 23:00 CEST; use "0 0 22 * * *" after DST ends to keep 23:00 local.
-        # Clear of the QNAP's HBS sync window (see ADR-0022).
+        # 21:00 UTC all year, one hour before the QNAP's 23:00-local snapshot in winter (ADR-0022).
         schedule: "0 0 21 * * *"
         retention-policy: 14d
