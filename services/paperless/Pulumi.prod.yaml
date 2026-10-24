@@ -5,7 +5,7 @@ config:
     zone: 4jp.de
     paperless:
       # renovate: datasource=github-releases packageName=paperless-ngx/paperless-ngx versioning=semver
-      version: 3.3.1
+      version: 3.3.4
       host: paperless
       ocr-language: deu+eng
       consume:
