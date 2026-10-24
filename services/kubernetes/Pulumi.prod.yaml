@@ -2,7 +2,7 @@ config:
   kubernetes:config:
     cert-manager:
       # renovate: datasource=github-releases packageName=cert-manager/cert-manager versioning=semver
-      version: v1.21.2
+      version: v1.21.3
       use-staging: false
       acme-email: support@jaypee.solutions
     cloudnative-pg:
