@@ -6,7 +6,7 @@ tags:
 type: index
 status: active
 created: 2026-03-20
-updated: 2026-10-12
+updated: 2026-10-24
 ---
 
 # Decision Log
@@ -35,3 +35,14 @@ updated: 2026-10-12
 | [[ADR-0020 - Paperless fresh install with Nextcloud off-site backup]] | accepted | Fresh Paperless install with local accounts, a dedicated CloudNativePG database, restic over WebDAV to an off-site Nextcloud and a QNAP NFS intake share; Paperless-specific go-live gate instead of waiting for HBS 3 |
 | [[ADR-0021 - Paperless single sign-on through the shared Authentik]] | accepted | Paperless signs in through the existing Authentik at id.jaypee.solutions (identity broker for Mailcow), groups `paperless` and `paperless-admins` managed by an AX41 blueprint, upgrade to Paperless 3.3.1 for superuser mapping; local login stays |
 | [[ADR-0022 - CloudNativePG base backups at 21:00 UTC]] | accepted | Base backups of `postgres-pilot` and `paperless-db` move from 03:00 to 21:00 UTC (23:00 CEST) to avoid the QNAP's HBS sync window; revisit at the end of DST |
+| [[ADR-0023 - Retire the legacy dockerhost monitoring stack]] | accepted | Two-stage retirement; stage 2 waits for LAN targets, with Prometheus history backfilled to Mimir |
+| [[ADR-0024 - QNAP syslog into Loki]] | accepted | Receive QNAP syslog in RFC 5424/3164 over TCP/UDP through Alloy and Loki |
+| [[ADR-0025 - Probe and scrape targets from 1Password]] | accepted | Keep probe/scrape targets and credentials in three Homelab 1Password items, rendered into an Alloy Secret |
+| [[ADR-0026 - Mimir series budget and API server buckets]] | accepted | Drop unused API-server histogram buckets instead of raising Mimir's series limit |
+| [[ADR-0027 - Speedtest exporter and legacy dashboards]] | accepted | Deploy the speedtest exporter and port selected legacy dashboards into the observability stack |
+| [[ADR-0028 - Migrate Tandoor to k0s]] | accepted | Move Tandoor from dockerhost to k0s with CloudNativePG and Longhorn; keep local accounts and defer extra off-site backup |
+| [[ADR-0029 - Service names as Cloudflare A records]] | accepted | Manage service DNS names as unproxied Cloudflare A records pointing to Traefik |
+| [[ADR-0030 - Migrate NetBox to k0s]] | accepted | Migrate NetBox to the official Helm chart and CloudNativePG on k0s |
+| [[ADR-0031 - Pulumi access token in the Homelab vault]] | accepted | Keep the Pulumi Personal Access Token item in Homelab so the service account can read it |
+| [[ADR-0032 - Emergency Pushover priority for critical alerts]] | accepted | Route critical alerts through emergency-priority Pushover and keep normal alerts at priority 0 |
+| [[ADR-0033 - Tandoor 2.7.1 superuser email migration]] | accepted | Preserve the existing unverified address and add the migration-compatible verified primary fallback |
