@@ -2,7 +2,7 @@
 type: Service
 title: Paperless (Pulumi, applied)
 description: Fresh-install Paperless-ngx on k0s with a dedicated CloudNativePG database, restic to an off-site Nextcloud, QNAP NFS intake, the prerequisites, and the go-live gate runbook.
-timestamp: 2026-10-24T14:22:19Z
+timestamp: 2026-10-24T14:32:45Z
 tags: [homelab, kubernetes, paperless, cloudnativepg, backup, restic, nextcloud]
 resource: https://app.pulumi.com/jaypee-solutions/paperless/prod
 ---
@@ -11,7 +11,7 @@ resource: https://app.pulumi.com/jaypee-solutions/paperless/prod
 
 Deployed on 2026-10-15 from branch `feature/paperless-prep` (29 resources, stack `jaypee-solutions/paperless/prod`) at `https://paperless.4jp.de`, then **upgraded the same evening to Paperless 3.3.1** (ADR-0021; the stack previews clean). The go-live gate (ADR-0020) passed on 2.18.4: the `paperless-db` cluster is healthy and backed up, the backup job created the restic repository on the Nextcloud and `restic check` is clean, and a test document survived upload, backup, deletion including the trash, restore from the off-site repository and import with an identical SHA-256. After the v3 upgrade the backup, the consumer and form login were re-verified and the restore was re-proven as a disaster-recovery import into a throwaway v3 instance (see below). Paperless holds one real document (see After go-live). Single sign-on through the shared Authentik at `https://id.jaypee.solutions` is decided (ADR-0021) but not yet applied. The restore procedure had three bugs in the donor's version (separate `/tmp`, absolute restic paths, directory ownership), all fixed. The workspace `services/paperless` was the donor's stack; this session replaced everything donor-specific.
 
-What is running in namespace `paperless`: a StatefulSet `paperless` (Paperless-ngx plus a `restic` sidecar, three Longhorn volumes `data`, `media`, `export`, the QNAP NFS share as `consume` (mounted, 17 TB, 7.0 TB free), a shared scratch `restore` emptyDir), Redis, Tika 3.3.3.0, and Gotenberg, a dedicated CloudNativePG cluster `paperless-db` (one instance on `openebs-lvm-postgres`, Barman plugin backups to prefix `paperless-db/` in `cnpg-backups`), a nightly 02:00 backup CronJob, an IngressRoute for `https://paperless.4jp.de` and the dnsmasq record. Local accounts only; the `admin` password is generated and exported as a Pulumi secret (also in the Secret `paperless-config-<hash>`; Pulumi appends a suffix to generated Secret names).
+What is running in namespace `paperless`: a StatefulSet `paperless` (Paperless-ngx plus the `ghcr.io/crashloopbackcoffee/restic-rclone:0.18.0-1.70.3` sidecar, three Longhorn volumes `data`, `media`, `export`, the QNAP NFS share as `consume` (mounted, 17 TB, 7.0 TB free), and a shared scratch `restore` emptyDir), Redis, Tika 3.3.3.0, and Gotenberg, a dedicated CloudNativePG cluster `paperless-db` (one instance on `openebs-lvm-postgres`, Barman plugin backups to prefix `paperless-db/` in `cnpg-backups`), a nightly 02:00 backup CronJob, an IngressRoute for `https://paperless.4jp.de` and the dnsmasq record. Local accounts only; the `admin` password is generated and exported as a Pulumi secret (also in the Secret `paperless-config-<hash>`; Pulumi appends a suffix to generated Secret names). Dockerfile-only Restic/Rclone version updates do not change the running sidecar: this repository has no image build/publish workflow.
 
 # What changed from the donor
 
