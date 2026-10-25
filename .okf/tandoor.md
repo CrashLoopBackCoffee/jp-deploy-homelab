@@ -1,8 +1,8 @@
 ---
 type: Service
 title: Tandoor (Pulumi, applied; current image 2.7.1)
-description: Tandoor Recipes migration from dockerhost to k0s, including its CloudNativePG database, Longhorn media volume, import/cutover, and the successful 2.7.1 upgrade after a superuser email conflict remediation (ADR-0028, ADR-0033).
-timestamp: 2026-10-24T16:44:54Z
+description: Tandoor Recipes migration from dockerhost to k0s, including its CloudNativePG database, Longhorn media volume, import/cutover, successful 2.7.1 upgrade after superuser email conflict remediation, and the metrics-auth incident and decision (ADR-0028, ADR-0033, ADR-0034).
+timestamp: 2026-10-25T09:25:28Z
 tags: [homelab, kubernetes, tandoor, cloudnativepg, longhorn, migration]
 resource: https://app.pulumi.com/jaypee-solutions/tandoor/prod
 ---
@@ -58,7 +58,7 @@ Rehearse first with the legacy instance running, then repeat after stopping it s
 
 - PDF export (`ENABLE_PDF_EXPORT=1`) may need more than the 1 Gi memory limit; check the first export and raise the limit if the pod is killed.
 - A post-upgrade `manage.py check` diagnostic exited 137; the app container recorded one `OOMKilled` restart. It returned to 1/1 Ready and `/accounts/login/` returned HTTP 200 afterwards. No resource settings were changed; monitor memory before running further diagnostics inside this container.
-- **Metrics** (ADR-0028): `ENABLE_METRICS=1`; Alloy scrapes `tandoor.tandoor.svc:80/metrics` (job `tandoor`, `services/observability/assets/alloy/config.alloy`); the IngressRoute does not route `/metrics`. Applied after the rehearsal import; verified in Mimir: `up{job="tandoor"} == 1` and 261 series. Alloy reloads its config without restarting the pod.
+- **Metrics** (ADR-0028, ADR-0034): `ENABLE_METRICS=1`; Alloy scrapes `tandoor.tandoor.svc:80/metrics` (job `tandoor`, `services/observability/assets/alloy/config.alloy`), and the IngressRoute does not route `/metrics`. Before 2.7.1, Mimir showed `up{job="tandoor"} == 1` and 261 series. In 2.7.1, `ScopeMiddleware.NO_AUTH_VIEWS` does not include `/metrics`, so unauthenticated scrapes redirect to `/account/login/?next=/metrics`; Mimir reports `up{job="tandoor"} == 0`. On 2026-10-25, critical `tandoor-down` and warning `Scrape target down` fired; `tandoor-server-errors` is inactive. The app Pod is 1/1 Ready, login/API requests work, and recent logs show no 5xx. The user chose to keep 2.7.1 and wait for an upstream fix; keep the alerts enabled and monitor for a release that restores metrics access. The metrics route remains internal-only. Alloy reloads config without restarting its Pod.
 - A restore of `tandoor-db` from its QNAP backup has not been rehearsed for this cluster; the method is the verified one of ADR-0017 and ADR-0018.
 
-Related: ADR-0028, ADR-0018, ADR-0023, [dockerhost-services](./dockerhost-services.md), [Paperless](./paperless.md), [Retiring the legacy dockerhost monitoring stack](./legacy-monitoring-migration.md).
+Related: ADR-0028, ADR-0034, ADR-0018, ADR-0023, [dockerhost-services](./dockerhost-services.md), [Paperless](./paperless.md), [Retiring the legacy dockerhost monitoring stack](./legacy-monitoring-migration.md).

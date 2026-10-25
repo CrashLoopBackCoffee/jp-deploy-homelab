@@ -1,5 +1,10 @@
 # Update Log
 
+## 2026-10-25
+* **Finding**: Tandoor 2.7.1's auth middleware redirects Alloy's unauthenticated `/metrics` scrape to login despite `ENABLE_METRICS=1`. `up{job="tandoor"} == 0`; critical `tandoor-down` and warning `Scrape target down` fire. The app is 1/1 Ready, login/API requests work, and recent logs show no 5xx; `tandoor-server-errors` is inactive.
+* **Decision**: Keep 2.7.1 and wait for an upstream metrics-auth fix; leave the alerts enabled (ADR-0034).
+* **Verification**: The redirect and alert states were confirmed; no app change was made.
+
 ## 2026-10-24
 * **Finding**: With `OP_SERVICE_ACCOUNT_TOKEN` set, `op` uses `pulumi-homelab`, which can read only `Homelab`; the Pulumi shell plugin's PAT item was in `Hosting`, so plugin auth returned 403.
 * **Change**: Moved `Pulumi Personal Access Token` from item `7gd7pwcahtvv7ozdq3d6jezkw4` to `ni3cq4sd56gt4bvb5ybkuhzoni` in `Homelab` and repointed both plugin configuration files.
