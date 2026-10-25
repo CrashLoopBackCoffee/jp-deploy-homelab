@@ -4,6 +4,9 @@
 * **Finding**: Tandoor 2.7.1's auth middleware redirects Alloy's unauthenticated `/metrics` scrape to login despite `ENABLE_METRICS=1`. `up{job="tandoor"} == 0`; critical `tandoor-down` and warning `Scrape target down` fire. The app is 1/1 Ready, login/API requests work, and recent logs show no 5xx; `tandoor-server-errors` is inactive.
 * **Decision**: Keep 2.7.1 and wait for an upstream metrics-auth fix; leave the alerts enabled (ADR-0034).
 * **Verification**: The redirect and alert states were confirmed; no app change was made.
+* **Decision**: Scrape Tandoor `/metrics` with the `sessionid` cookie of the space-less, non-staff user `tandoor-metrics`, stored in 1Password `Homelab/Tandoor Metrics Scrape` and sent by Alloy with `follow_redirects = false` (ADR-0035, amends ADR-0034). The user was created with `manage.py shell` because `alten` lacks the add-user permission; the user forged the session in their own terminal.
+* **Change**: `alloy-targets` Secret gained `tandoor-cookie`; Alloy config and `AlloyConfig.tandoor_session` added; `pulumi up` replaced the Secret and updated the Alloy release only.
+* **Verification**: Cookie 200 with 580 `django_http*` lines and 302 without; Mimir `up{job="tandoor"} == 1`, 697 series; Grafana `tandoor-down`, `Scrape target down`, `tandoor-server-errors` inactive; re-mint runbook added to [Tandoor](tandoor.md).
 
 ## 2026-10-24
 * **Finding**: With `OP_SERVICE_ACCOUNT_TOKEN` set, `op` uses `pulumi-homelab`, which can read only `Homelab`; the Pulumi shell plugin's PAT item was in `Hosting`, so plugin auth returned 403.

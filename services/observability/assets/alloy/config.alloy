@@ -596,14 +596,25 @@ prometheus.scrape "speedtest" {
 // Tandoor
 // ---------------------------------------------------------------------------
 
-// django-prometheus serves /metrics on the application port, without authentication, so the ingress
-// does not route it. The Service name is one of Tandoor's allowed hosts (ALLOWED_HOSTS).
+// django-prometheus serves /metrics on the application port; the ingress does not route it. Tandoor
+// 2.7.1 serves it only to a signed-in user, so Alloy sends the session cookie of the space-less user
+// tandoor-metrics (ADR-0035). The Service name is one of Tandoor's allowed hosts (ALLOWED_HOSTS).
+local.file "tandoor_cookie" {
+	filename       = "TARGETS_PATH/tandoor-cookie"
+	detector       = "poll"
+	poll_frequency = "1m"
+	is_secret      = true
+}
+
 prometheus.scrape "tandoor" {
 	targets         = [{"__address__" = "tandoor.tandoor.svc:80"}]
 	forward_to      = [prometheus.remote_write.mimir.receiver]
 	job_name        = "tandoor"
 	scrape_interval = "30s"
 	scrape_timeout  = "10s"
+	http_headers    = {"Cookie" = [local.file.tandoor_cookie.content]}
+	// An expired session then fails as HTTP 302 instead of as an unparsable login page.
+	follow_redirects = false
 }
 
 // ---------------------------------------------------------------------------

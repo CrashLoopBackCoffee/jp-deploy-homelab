@@ -12,7 +12,7 @@ adr: 34
 
 ## Status
 
-Accepted on 2026-10-25.
+Accepted on 2026-10-25. The scrape approach is amended by ADR-0035; staying on 2.7.1 stands.
 
 ## Context
 
@@ -40,4 +40,5 @@ On 2026-10-25, Grafana showed `tandoor-down` and `Scrape target down` firing and
 
 - [ADR-0028 - Migrate Tandoor to k0s](ADR-0028%20-%20Migrate%20Tandoor%20to%20k0s.md)
 - [ADR-0033 - Tandoor 2.7.1 superuser email migration](ADR-0033%20-%20Tandoor%202.7.1%20superuser%20email%20migration.md)
+- [ADR-0035 - Tandoor metrics scrape with a session cookie](ADR-0035%20-%20Tandoor%20metrics%20scrape%20with%20a%20session%20cookie.md)
 - [Tandoor service note](../../.okf/tandoor.md)
