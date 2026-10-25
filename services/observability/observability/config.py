@@ -58,6 +58,8 @@ class AlloyConfig(ChartConfig):
     targets: utils.model.OnePasswordRef
     ax51: ScrapeCredentials
     pretix: ScrapeCredentials
+    # Django `sessionid` of the space-less Tandoor user `tandoor-metrics` (ADR-0035)
+    tandoor_session: utils.model.OnePasswordRef
 
 
 class ComponentConfig(utils.model.LocalBaseModel):
