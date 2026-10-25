@@ -519,9 +519,22 @@ discovery.file "ax51" {
 // containers carry 20 and more of them (Compose, Traefik, Watchtower), which pushed some series over
 // Mimir's limit of 30 label names per series (`err-mimir-max-label-names-per-series`, 2026-10-17).
 // Mimir rejects such a series with a 400 and Alloy drops the whole batch of 2,000 samples, so about
-// 1% of all samples were lost. Nothing here uses these labels; `name`, `image` and `id` stay.
+// 1% of all samples were lost. Only the Compose project survives, as `stack` (the container name
+// for containers without Compose); `name`, `image` and `id` stay.
 prometheus.relabel "ax51" {
 	forward_to = [prometheus.remote_write.mimir.receiver]
+
+	rule {
+		source_labels = ["container_label_com_docker_compose_project"]
+		target_label  = "stack"
+	}
+
+	// Containers started without Compose are their own stack.
+	rule {
+		source_labels = ["stack", "name"]
+		regex         = ";(.+)"
+		target_label  = "stack"
+	}
 
 	rule {
 		regex  = "container_label_.+"

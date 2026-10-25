@@ -1,6 +1,11 @@
 # Update Log
 
 ## 2026-10-25
+* **Finding**: The `Docker containers` dashboard drew 29 CPU and 22 memory lines over 6 h (`topk` ranks per step), had no ranking or host context, and its network panels were topped by host-network containers. cAdvisor has no per-container disk I/O series and `container_pressure_io_*` is 0.
+* **Decision**: Rank over the dashboard range (`and on (name) topk(k, avg_over_time((expr)[$__range:$__interval] @ end()))`), add a ranking table, host stat tiles and stack panels, restrict network panels to `eth*`, and keep the Compose project as `stack` in Alloy (ADR-0036).
+* **Change**: Rebuilt the dashboard (19 panels, variables `stack` and `name`, new `Table` and sizing support in `dashboards.py`); added the `stack` relabel rules to `prometheus.relabel "ax51"`; `pulumi up` replaced ConfigMap `grafana-dashboards` and updated Helm releases `grafana` and `alloy` (24 unchanged).
+* **Verification**: All queries ran on live Mimir (10 series for CPU/memory over 6 h, 5 for top-5 panels, no host-network containers in network panels); `stack` on all 71 containers and none without it after 10 min; no discarded samples or `err-mimir`; dashboard rendered and the table link set `var-name`. Ranges reaching before the deploy show each container twice in the table and an extra empty-stack series until about 2026-10-25 17:30 UTC at the default range.
+
 * **Finding**: Tandoor 2.7.1's auth middleware redirects Alloy's unauthenticated `/metrics` scrape to login despite `ENABLE_METRICS=1`. `up{job="tandoor"} == 0`; critical `tandoor-down` and warning `Scrape target down` fire. The app is 1/1 Ready, login/API requests work, and recent logs show no 5xx; `tandoor-server-errors` is inactive.
 * **Decision**: Keep 2.7.1 and wait for an upstream metrics-auth fix; leave the alerts enabled (ADR-0034).
 * **Verification**: The redirect and alert states were confirmed; no app change was made.
