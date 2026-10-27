@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 260" role="img" aria-label="Implementation phase dependencies">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="currentColor"/></marker>
+    <style>
+      text{font:14px sans-serif;fill:currentColor}
+      .box{fill:var(--surface);stroke:var(--border);stroke-width:1.5}
+      .link{fill:none;stroke:var(--muted);stroke-width:1.5;marker-end:url(#arrow)}
+      .core{stroke:var(--accent)}
+    </style>
+  </defs>
+  <rect class="box" x="20" y="100" width="145" height="58" rx="10"/><text x="40" y="126">Phase 1</text><text x="40" y="146">Prerequisites</text>
+  <rect class="box core" x="220" y="100" width="145" height="58" rx="10"/><text x="240" y="126">Phase 2</text><text x="240" y="146">Core</text>
+  <rect class="box" x="440" y="25" width="145" height="58" rx="10"/><text x="460" y="51">Phase 3</text><text x="460" y="71">Agents</text>
+  <rect class="box" x="635" y="25" width="145" height="58" rx="10"/><text x="655" y="51">Phase 4</text><text x="655" y="71">LGTM</text>
+  <rect class="box" x="440" y="175" width="145" height="58" rx="10"/><text x="460" y="201">Phase 5</text><text x="460" y="221">Trivy</text>
+  <rect class="box" x="635" y="100" width="145" height="58" rx="10"/><text x="655" y="126">Phase 6</text><text x="655" y="146">Hardening</text>
+  <path class="link" d="M165 129H210"/><path class="link" d="M365 111L430 64"/><path class="link" d="M585 54H625"/>
+  <path class="link" d="M365 147L430 194"/><path class="link" d="M585 64L645 95"/><path class="link" d="M585 204L645 163"/>
+</svg>

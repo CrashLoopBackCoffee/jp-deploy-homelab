@@ -1,5 +1,17 @@
 # Update Log
 
+## 2026-10-27
+* **Update**: Removed the legacy `services/monitoring/` Pulumi workspace (ADR-0023 update); ignored local `.omp/` and `docs/.obsidian/`; added `grafana/skills` to APM.
+
+## 2026-10-26
+* **Decision**: Proposed ADR-0037; target Wazuh 4.14.9 now; all new Grafana alert rules based on Wazuh data start at warning.
+* **Creation**: Added the architecture, ADR and implementation-plan documents plus the [OKF note](wazuh.md).
+* **Finding**: State indices have no `@timestamp`; security configuration changes require `securityadmin.sh`.
+* **Decision**: Confirmed the Wazuh operating model: k0s0 pilot then approved Debian-family hosts; Active Critical identity events via best-effort Loki alerts; read-only `ossec.log` feed health with a two-hour stale threshold; warning rules use normal Pushover; no automated response.
+* **Decision**: Proxmox is included with partial CVE coverage; OPNsense event integration is non-blocking and manual; optional post-core Authentik SAML keeps local break-glass login. Local QuObjects backup is acceptable initially with restore tests.
+* **Finding**: Wazuh vulnerability state and transition events are distinct; initial/rescan/hotfix cases make events an incomplete lifecycle ledger. Manager API `manager:read` is broader than `/manager/logs`, so the chosen feed-health path tails the log file instead.
+* **Creation**: Added the root [Wazuh glossary](../GLOSSARY.md) with canonical definitions for current findings, transition events, inventory, security events and CTI feed freshness.
+
 ## 2026-10-25
 * **Finding**: The `Docker containers` dashboard drew 29 CPU and 22 memory lines over 6 h (`topk` ranks per step), had no ranking or host context, and its network panels were topped by host-network containers. cAdvisor has no per-container disk I/O series and `container_pressure_io_*` is 0.
 * **Decision**: Rank over the dashboard range (`and on (name) topk(k, avg_over_time((expr)[$__range:$__interval] @ end()))`), add a ranking table, host stat tiles and stack panels, restrict network panels to `eth*`, and keep the Compose project as `stack` in Alloy (ADR-0036).
