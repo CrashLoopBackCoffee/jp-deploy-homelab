@@ -392,6 +392,114 @@ loki.source.syslog "qnap" {
 }
 
 // ---------------------------------------------------------------------------
+// Syslog from OPNsense (System, Settings, Logging, Remote; RFC 5424, ADR-0038)
+// ---------------------------------------------------------------------------
+
+loki.relabel "opnsense_syslog" {
+	forward_to = []
+
+	rule {
+		source_labels = ["__syslog_message_hostname"]
+		target_label  = "host"
+	}
+
+	rule {
+		source_labels = ["__syslog_message_app_name"]
+		target_label  = "app"
+	}
+
+	rule {
+		source_labels = ["__syslog_message_severity"]
+		target_label  = "severity"
+	}
+
+	rule {
+		source_labels = ["__syslog_message_facility"]
+		target_label  = "facility"
+	}
+
+	rule {
+		source_labels = ["__syslog_connection_ip_address"]
+		target_label  = "source_ip"
+	}
+}
+
+loki.source.syslog "opnsense" {
+	listener {
+		address       = "0.0.0.0:OPNSENSE_SYSLOG_PORT"
+		protocol      = "tcp"
+		syslog_format = "rfc5424"
+		labels        = {job = "opnsense-syslog", source = "opnsense"}
+	}
+
+	listener {
+		address       = "0.0.0.0:OPNSENSE_SYSLOG_PORT"
+		protocol      = "udp"
+		syslog_format = "rfc5424"
+		labels        = {job = "opnsense-syslog", source = "opnsense"}
+	}
+
+	relabel_rules = loki.relabel.opnsense_syslog.rules
+	forward_to    = [loki.process.opnsense_syslog.receiver]
+}
+
+// Firewall log lines (filterlog) are CSV. Only low-cardinality fields become labels; addresses and
+// ports are structured metadata, so they can be filtered and grouped without creating streams.
+// Field positions: rule, sub-rule, anchor, rule id, interface, reason, action, direction, IP version;
+// IPv4 continues with 7 fields before the protocol name, IPv6 with 3.
+loki.process "opnsense_syslog" {
+	forward_to = [loki.write.loki.receiver]
+
+	stage.match {
+		selector = `{app="filterlog"}`
+
+		stage.regex {
+			expression = `^[^,]*,[^,]*,[^,]*,(?P<rule>[^,]*),(?P<interface>[^,]*),[^,]*,(?P<action>[^,]*),(?P<direction>[^,]*),`
+		}
+
+		stage.labels {
+			values = {interface = "", action = "", direction = ""}
+		}
+
+		stage.structured_metadata {
+			values = {rule = ""}
+		}
+	}
+
+	stage.match {
+		selector = `{app="filterlog"} |~ "^([^,]*,){8}4,"`
+
+		stage.regex {
+			expression = `^(?:[^,]*,){8}4,(?:[^,]*,){7}(?P<proto>[^,]*),[^,]*,(?P<src>[^,]*),(?P<dst>[^,]*)`
+		}
+
+		stage.regex {
+			expression = `^(?:[^,]*,){8}4,(?:[^,]*,){7}(?:tcp|udp),(?:[^,]*,){3}(?P<src_port>\d+),(?P<dst_port>\d+)`
+		}
+
+		stage.structured_metadata {
+			values = {proto = "", src = "", dst = "", src_port = "", dst_port = ""}
+		}
+	}
+
+	stage.match {
+		selector = `{app="filterlog"} |~ "^([^,]*,){8}6,"`
+
+		stage.regex {
+			expression = `^(?:[^,]*,){8}6,(?:[^,]*,){3}(?P<proto>[^,]*),[^,]*,[^,]*,(?P<src>[^,]*),(?P<dst>[^,]*)`
+		}
+
+		stage.regex {
+			expression = `^(?:[^,]*,){8}6,(?:[^,]*,){3}(?:tcp|udp),(?:[^,]*,){4}(?P<src_port>\d+),(?P<dst_port>\d+)`
+		}
+
+		stage.structured_metadata {
+			values = {proto = "", src = "", dst = "", src_port = "", dst_port = ""}
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Probes and scrapes of external targets
 // ---------------------------------------------------------------------------
 
@@ -640,6 +748,28 @@ prometheus.scrape "netbox" {
 	targets         = [{"__address__" = "netbox.netbox.svc:80"}]
 	forward_to      = [prometheus.remote_write.mimir.receiver]
 	job_name        = "netbox"
+	scrape_interval = "30s"
+	scrape_timeout  = "10s"
+}
+
+// ---------------------------------------------------------------------------
+// OPNsense (ADR-0038)
+// ---------------------------------------------------------------------------
+
+// The API exporter (opnsense.py) calls about a dozen API endpoints per scrape.
+prometheus.scrape "opnsense" {
+	targets         = [{"__address__" = "opnsense-exporter.observability.svc:8080", "instance" = "opnsense"}]
+	forward_to      = [prometheus.remote_write.mimir.receiver]
+	job_name        = "opnsense"
+	scrape_interval = "60s"
+	scrape_timeout  = "30s"
+}
+
+// os-node_exporter plugin on the firewall (FreeBSD metric names, e.g. no MemAvailable).
+prometheus.scrape "opnsense_node" {
+	targets         = [{"__address__" = "OPNSENSE_NODE_EXPORTER_TARGET", "instance" = "opnsense"}]
+	forward_to      = [prometheus.remote_write.mimir.receiver]
+	job_name        = "opnsense-node"
 	scrape_interval = "30s"
 	scrape_timeout  = "10s"
 }

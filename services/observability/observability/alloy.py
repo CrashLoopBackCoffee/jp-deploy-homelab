@@ -12,16 +12,17 @@ from observability.targets import MOUNT_PATH, SECRET_NAME
 ALLOY_CONFIG = pathlib.Path(__file__).parent.parent / 'assets' / 'alloy' / 'config.alloy'
 
 # The QNAP can send RFC 5424 or RFC 3164, and Alloy needs one listener per format, so each
-# format has its own port, served over TCP and UDP.
-SYSLOG_PORTS = {'rfc5424': 1514, 'rfc3164': 1515}
+# format has its own port. OPNsense gets its own RFC 5424 port so that its lines get their own
+# labels. Every port is served over TCP and UDP.
+SYSLOG_PORTS = {'syslog5424': 1514, 'syslog3164': 1515, 'opnsense': 1516}
 SYSLOG_PROTOCOLS = ('TCP', 'UDP')
 
 
 def _syslog_ports() -> list[tuple[str, int, str]]:
     """Port name, number and protocol of every syslog listener."""
     return [
-        (f'syslog{syslog_format[3:]}-{protocol.lower()}', port, protocol)
-        for syslog_format, port in SYSLOG_PORTS.items()
+        (f'{name}-{protocol.lower()}', port, protocol)
+        for name, port in SYSLOG_PORTS.items()
         for protocol in SYSLOG_PROTOCOLS
     ]
 
@@ -35,8 +36,12 @@ def create_alloy(
     config = ALLOY_CONFIG.read_text()
     config = config.replace('MIMIR_PUSH_URL', f'{MIMIR_GATEWAY_URL}/api/v1/push')
     config = config.replace('LOKI_PUSH_URL', f'{LOKI_GATEWAY_URL}/loki/api/v1/push')
-    config = config.replace('SYSLOG_RFC5424_PORT', str(SYSLOG_PORTS['rfc5424']))
-    config = config.replace('SYSLOG_RFC3164_PORT', str(SYSLOG_PORTS['rfc3164']))
+    config = config.replace('SYSLOG_RFC5424_PORT', str(SYSLOG_PORTS['syslog5424']))
+    config = config.replace('SYSLOG_RFC3164_PORT', str(SYSLOG_PORTS['syslog3164']))
+    config = config.replace('OPNSENSE_SYSLOG_PORT', str(SYSLOG_PORTS['opnsense']))
+    config = config.replace(
+        'OPNSENSE_NODE_EXPORTER_TARGET', component_config.opnsense.node_exporter_target
+    )
     config = config.replace('TARGETS_PATH', MOUNT_PATH)
 
     return k8s.helm.v3.Release(

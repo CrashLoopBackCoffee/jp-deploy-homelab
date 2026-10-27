@@ -246,6 +246,33 @@ RULES = [
         summary='The certificate of {{ $labels.instance }} expires in under 7 days',
         for_='10m',
     ),
+    # A firewall that is down cannot page while it is the only uplink; `Scrape target down` covers
+    # both OPNsense scrape jobs.
+    AlertRule(
+        uid='opnsense-api-down',
+        title='OPNsense API not answering the exporter',
+        expr='opnsense_up == bool 0',
+        summary='The OPNsense exporter cannot read the firewall API (down, wrong key or missing privilege)',
+        for_='10m',
+        no_data_state='Alerting',
+    ),
+    AlertRule(
+        uid='opnsense-gateway-unhealthy',
+        title='OPNsense gateway offline or degraded',
+        expr=(
+            '(opnsense_gateways_status == bool 0) + (opnsense_gateways_status == bool 4)'
+            ' + (opnsense_gateways_status == bool 5)'
+        ),
+        summary='Gateway {{ $labels.name }} ({{ $labels.address }}) is offline, losing packets or above its latency threshold',
+        for_='5m',
+    ),
+    AlertRule(
+        uid='opnsense-pf-states-high',
+        title='OPNsense state table above 80%',
+        expr='(opnsense_pf_states_current / opnsense_pf_states_limit) > bool 0.8',
+        summary='The pf state table of OPNsense is above 80% of its limit',
+        for_='10m',
+    ),
 ]
 
 

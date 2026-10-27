@@ -29,12 +29,14 @@ config:
       syslog:
         # QNAP (QuLog Center, Log Sender, Send to Syslog Server) sends to syslog.4jp.de, which
         # resolves to this fixed MetalLB address. RFC 5424 arrives on port 1514, RFC 3164 on 1515,
-        # each over TCP and UDP. Only the QNAP's two NICs may send (ADR-0024).
+        # each over TCP and UDP. OPNsense sends RFC 5424 to port 1516 (ADR-0038). Only the QNAP's
+        # two NICs and OPNsense may send (ADR-0024).
         host: syslog
         address: 10.10.88.2
         allowed-sources:
           - 10.10.0.10/32
           - 10.10.0.6/32
+          - 10.10.0.1/32  # OPNsense, CoRE interface (ADR-0038)
       # Secure Note with one `<group> <target>` line per probe or scrape target (kept out of the
       # repository on purpose, see targets.py), and the credentials of the scraped endpoints.
       targets:
@@ -72,3 +74,12 @@ config:
     speedtest-exporter:
       # renovate: datasource=github-releases packageName=billimek/prometheus-speedtest-exporter versioning=semver
       version: 1.3.1
+    opnsense:
+      # renovate: datasource=docker packageName=ghcr.io/athennamind/opnsense-exporter versioning=semver
+      version: 0.0.19
+      api-host: router.4jp.de
+      node-exporter-target: 10.10.0.1:9100
+      api-key:
+        ref: op://Homelab/OPNsense Metrics Exporter/username
+      api-secret:
+        ref: op://Homelab/OPNsense Metrics Exporter/password

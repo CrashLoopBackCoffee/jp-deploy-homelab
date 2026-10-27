@@ -2,6 +2,8 @@
 
 ## 2026-10-27
 * **Update**: Removed the legacy `services/monitoring/` Pulumi workspace (ADR-0023 update); ignored local `.omp/` and `docs/.obsidian/`; added `grafana/skills` to APM.
+* **Decision**: ADR-0038 accepted; OPNsense metrics (os-node_exporter plus API exporter), RFC 5424 syslog on port 1516 with parsed filterlog, two generated dashboards, three warning alerts.
+* **Finding**: OPNsense gateway metrics need gateway monitoring; it was off on all gateways and the PPPoE peer does not answer ICMP, so `WAN_GW` monitors 9.9.9.9. Piping `pulumi up` into `head` kills the engine (stale lock, pending creates).
 
 ## 2026-10-26
 * **Decision**: Proposed ADR-0037; target Wazuh 4.14.9 now; all new Grafana alert rules based on Wazuh data start at warning.

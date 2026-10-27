@@ -790,6 +790,227 @@ NETBOX_PANELS = [
     Panel('Logs', f'{{{_NETBOX_POD}}}', kind='logs', datasource='loki'),
 ]
 
+# OPNsense (ADR-0038): `opnsense` is the API exporter, `opnsense-node` the os-node_exporter plugin
+# (FreeBSD names: wired/active/inactive/laundry/cache/free memory, no MemAvailable), `opnsense-syslog`
+# the remote log. Gateway status codes: 0 offline, 1 online, 2 unknown, 3 pending, 4 packet loss,
+# 5 latency, 6 forced offline.
+_OPN = 'job="opnsense"'
+_OPN_NODE = 'job="opnsense-node"'
+_OPN_LOGS = 'job="opnsense-syslog"'
+_FILTERLOG = f'{_OPN_LOGS}, app="filterlog", interface=~"$interface", action=~"$action"'
+_OPN_BLOCKED = f'{_OPN_LOGS}, app="filterlog", action="block", interface=~"$interface"'
+_OPN_NODE_CPUS = f'count(node_cpu_seconds_total{{{_OPN_NODE}, mode="idle"}})'
+_OPN_FILESYSTEM = f'{_OPN_NODE}, fstype=~"ufs|zfs"'
+OPNSENSE_PANELS = [
+    Panel('API reachable', 'opnsense_up', kind='stat', width=4, height=4),
+    Panel('node_exporter up', f'up{{{_OPN_NODE}}}', kind='stat', width=4, height=4),
+    Panel('Services stopped', 'opnsense_services_stopped_total', kind='stat', width=4, height=4),
+    Panel(
+        'pf state table used',
+        'opnsense_pf_states_current / opnsense_pf_states_limit',
+        'percentunit',
+        kind='stat',
+        width=4,
+        height=4,
+    ),
+    Panel(
+        'mbuf clusters used',
+        'opnsense_mbuf_clusters_current / opnsense_mbuf_clusters_limit',
+        'percentunit',
+        kind='stat',
+        width=4,
+        height=4,
+    ),
+    Panel(
+        'CPU used',
+        f'1 - avg(rate(node_cpu_seconds_total{{{_OPN_NODE}, mode="idle"}}[5m]))',
+        'percentunit',
+        kind='stat',
+        width=4,
+        height=4,
+    ),
+    Panel(
+        'Gateway status',
+        'opnsense_gateways_status',
+        legend='{{name}}',
+        description='0 offline, 1 online, 2 unknown, 3 pending, 4 packet loss, 5 latency, '
+        '6 forced offline',
+    ),
+    Panel('Gateway RTT', 'opnsense_gateways_rtt_milliseconds', 'ms', legend='{{name}}'),
+    Panel('Gateway RTT deviation', 'opnsense_gateways_rttd_milliseconds', 'ms', legend='{{name}}'),
+    Panel('Gateway packet loss', 'opnsense_gateways_loss_percentage', 'percent', legend='{{name}}'),
+    Panel(
+        'Interface traffic in',
+        'rate(opnsense_interfaces_received_bytes_total[5m]) * 8',
+        'bps',
+        legend='{{interface}}',
+    ),
+    Panel(
+        'Interface traffic out',
+        'rate(opnsense_interfaces_transmitted_bytes_total[5m]) * 8',
+        'bps',
+        legend='{{interface}}',
+    ),
+    Panel(
+        'Interface errors',
+        'rate(opnsense_interfaces_input_errors_total[5m])',
+        legend='{{interface}} in',
+        extra=(('rate(opnsense_interfaces_output_errors_total[5m])', '{{interface}} out'),),
+    ),
+    Panel(
+        'Firewall blocked packets (inbound)',
+        'rate(opnsense_firewall_in_ipv4_block_packets[5m])',
+        'pps',
+        legend='{{interface}}',
+        extra=(('rate(opnsense_firewall_in_ipv6_block_packets[5m])', '{{interface}} v6'),),
+    ),
+    Panel(
+        'Firewall passed packets (inbound)',
+        'rate(opnsense_firewall_in_ipv4_pass_packets[5m])',
+        'pps',
+        legend='{{interface}}',
+        extra=(('rate(opnsense_firewall_in_ipv6_pass_packets[5m])', '{{interface}} v6'),),
+    ),
+    Panel(
+        'pf states',
+        'opnsense_pf_states_current',
+        legend='current',
+        extra=(('opnsense_pf_states_limit', 'limit'),),
+    ),
+    Panel(
+        'CPU by mode',
+        f'sum by (mode) (rate(node_cpu_seconds_total{{{_OPN_NODE}, mode!="idle"}}[5m]))'
+        f' / scalar({_OPN_NODE_CPUS})',
+        'percentunit',
+        legend='{{mode}}',
+        stack=True,
+    ),
+    Panel(
+        'Memory',
+        f'node_memory_wired_bytes{{{_OPN_NODE}}}',
+        'bytes',
+        legend='wired',
+        stack=True,
+        extra=tuple(
+            (f'node_memory_{name}_bytes{{{_OPN_NODE}}}', name)
+            for name in ('active', 'inactive', 'laundry', 'cache', 'free')
+        ),
+    ),
+    Panel(
+        'Load average',
+        f'node_load1{{{_OPN_NODE}}}',
+        legend='1m',
+        extra=((f'node_load5{{{_OPN_NODE}}}', '5m'), (f'node_load15{{{_OPN_NODE}}}', '15m')),
+    ),
+    Panel(
+        'Filesystem used',
+        f'1 - node_filesystem_avail_bytes{{{_OPN_FILESYSTEM}}}'
+        f' / node_filesystem_size_bytes{{{_OPN_FILESYSTEM}}}',
+        'percentunit',
+        legend='{{mountpoint}}',
+    ),
+    Panel(
+        'WireGuard peer traffic',
+        'rate(opnsense_wireguard_peer_received_bytes_total[5m]) * 8',
+        'bps',
+        legend='{{peer_name}} in',
+        extra=(
+            (
+                'rate(opnsense_wireguard_peer_transmitted_bytes_total[5m]) * 8',
+                '{{peer_name}} out',
+            ),
+        ),
+    ),
+    Panel(
+        'WireGuard handshake age',
+        'time() - opnsense_wireguard_peer_last_handshake_seconds',
+        's',
+        legend='{{peer_name}}',
+    ),
+    Panel(
+        'Devices in ARP table',
+        'count by (interface_description) (opnsense_arp_table_entries)',
+        legend='{{interface_description}}',
+    ),
+    Panel(
+        'Exporter API errors',
+        'sum by (endpoint) (rate(opnsense_exporter_endpoint_errors_total[5m]))',
+        legend='{{endpoint}}',
+    ),
+    Table(
+        'Services',
+        labels=(LabelColumn('name', 'Service'), LabelColumn('description', 'Description')),
+        columns=(Column('Running', 'opnsense_services_status', 'short'),),
+    ),
+]
+
+OPNSENSE_LOG_VARIABLES = [
+    _query_variable('app', f'label_values({{{_OPN_LOGS}}}, app)', 'loki'),
+    _query_variable(
+        'interface', f'label_values({{{_OPN_LOGS}, app="filterlog"}}, interface)', 'loki'
+    ),
+    _query_variable('action', f'label_values({{{_OPN_LOGS}, app="filterlog"}}, action)', 'loki'),
+    _textbox_variable('search', 'Search (regex, case-insensitive)'),
+]
+# Addresses and ports of firewall events are structured metadata, not labels (alloy config).
+OPNSENSE_LOG_PANELS = [
+    Panel(
+        'Firewall events by action',
+        f'sum by (action) (count_over_time({{{_FILTERLOG}}} [$__interval]))',
+        legend='{{action}}',
+        datasource='loki',
+        stack=True,
+    ),
+    Panel(
+        'Blocked by interface',
+        f'sum by (interface) (count_over_time({{{_OPN_BLOCKED}}} [$__interval]))',
+        legend='{{interface}}',
+        datasource='loki',
+        stack=True,
+    ),
+    Panel(
+        'Top blocked sources',
+        f'topk(10, sum by (src) (count_over_time({{{_OPN_BLOCKED}}} [$__interval])))',
+        legend='{{src}}',
+        datasource='loki',
+        ranked=True,
+    ),
+    Panel(
+        'Top blocked destination ports',
+        f'topk(10, sum by (proto, dst_port) (count_over_time({{{_OPN_BLOCKED}}} [$__interval])))',
+        legend='{{dst_port}}/{{proto}}',
+        datasource='loki',
+        ranked=True,
+    ),
+    Panel(
+        'Log lines by app',
+        f'sum by (app) (count_over_time({{{_OPN_LOGS}, app=~"$app"}} |~ "(?i)$search" [$__interval]))',
+        legend='{{app}}',
+        datasource='loki',
+        stack=True,
+    ),
+    Panel(
+        'Errors and warnings by app',
+        f'sum by (app) (count_over_time({{{_OPN_LOGS}, app=~"$app",'
+        ' severity=~"emergency|alert|critical|error|warning"} [$__interval]))',
+        legend='{{app}}',
+        datasource='loki',
+        stack=True,
+    ),
+    Panel(
+        'Firewall log',
+        f'{{{_FILTERLOG}}} |~ "(?i)$search"',
+        kind='logs',
+        datasource='loki',
+    ),
+    Panel(
+        'System log',
+        f'{{{_OPN_LOGS}, app!="filterlog", app=~"$app"}} |~ "(?i)$search"',
+        kind='logs',
+        datasource='loki',
+    ),
+]
+
 # Docker containers on hosts outside the cluster, from cAdvisor (job `ax51`; the Docker hosts of
 # dockerhost join when its LAN targets move). Only cAdvisor series carry the `name` label, so the
 # selector also keeps the node exporter and Docker engine targets of the same job out. Alloy drops the
@@ -1165,6 +1386,13 @@ def provisioning_files() -> dict[str, str]:
         ),
         'tandoor.json': _dashboard('homelab-tandoor', 'Tandoor', TANDOOR_PANELS),
         'netbox.json': _dashboard('homelab-netbox', 'NetBox', NETBOX_PANELS),
+        'opnsense.json': _dashboard('homelab-opnsense', 'OPNsense', OPNSENSE_PANELS),
+        'opnsense-logs.json': _dashboard(
+            'homelab-opnsense-logs',
+            'OPNsense logs',
+            OPNSENSE_LOG_PANELS,
+            OPNSENSE_LOG_VARIABLES,
+        ),
         'docker-containers.json': _dashboard(
             'homelab-docker-containers', 'Docker containers', DOCKER_PANELS, DOCKER_VARIABLES
         ),
