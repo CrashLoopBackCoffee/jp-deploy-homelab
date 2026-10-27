@@ -35,7 +35,7 @@ class GrafanaConfig(ChartConfig):
 
 
 class SyslogConfig(utils.model.LocalBaseModel):
-    """Receiver for syslog from the QNAP on a fixed MetalLB address."""
+    """Receiver for syslog from the QNAP and OPNsense on a fixed MetalLB address."""
 
     # Hostname below the zone, e.g. `syslog` for syslog.4jp.de
     host: str
@@ -50,6 +50,21 @@ class ScrapeCredentials(utils.model.LocalBaseModel):
 
     username: utils.model.OnePasswordRef
     password: utils.model.OnePasswordRef
+
+
+class OpnsenseConfig(ChartConfig):
+    """OPNsense metrics: the os-node_exporter plugin and the API exporter (ADR-0038).
+
+    `version` is the image tag of ghcr.io/athennamind/opnsense-exporter.
+    """
+
+    # Host of the OPNsense API; must match the web GUI certificate
+    api_host: str
+    # host:port of the os-node_exporter plugin, bound to the CoRE interface
+    node_exporter_target: str
+    # Key and secret of the read-only API user `metrics-exporter`
+    api_key: utils.model.OnePasswordRef
+    api_secret: utils.model.OnePasswordRef
 
 
 class AlloyConfig(ChartConfig):
@@ -73,6 +88,7 @@ class ComponentConfig(utils.model.LocalBaseModel):
     kube_state_metrics: ChartConfig
     node_exporter: ChartConfig
     speedtest_exporter: ChartConfig
+    opnsense: OpnsenseConfig
 
 
 class StackConfig(utils.model.LocalBaseModel):
