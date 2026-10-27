@@ -6,7 +6,7 @@ tags:
 type: index
 status: active
 created: 2026-03-20
-updated: 2026-10-24
+updated: 2026-10-26
 ---
 
 # Decision Log
@@ -46,3 +46,4 @@ updated: 2026-10-24
 | [[ADR-0031 - Pulumi access token in the Homelab vault]] | accepted | Keep the Pulumi Personal Access Token item in Homelab so the service account can read it |
 | [[ADR-0032 - Emergency Pushover priority for critical alerts]] | accepted | Route critical alerts through emergency-priority Pushover and keep normal alerts at priority 0 |
 | [[ADR-0033 - Tandoor 2.7.1 superuser email migration]] | accepted | Preserve the existing unverified address and add the migration-compatible verified primary fallback |
+| [[ADR-0037 - Wazuh security monitoring on k0s]] | proposed | Wazuh 4.14.9 on k0s for inventory and vulnerability management, Grafana integration, native agents, Trivy Operator |

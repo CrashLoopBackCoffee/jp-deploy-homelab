@@ -21,3 +21,4 @@ updated: 2026-10-03
 | [[Proxmox]] | Existing virtualization platform | External to this repository; existing VMs remain unmanaged here |
 | [[k0s]] | Kubernetes control plane and workloads | Three bare-metal controller+workers planned in phases; bootstrap with k0sctl; see ADR-0005 |
 | [[FritzBox]] | VoIP and legacy WLAN in one VLAN | Special case in network design |
+| [[Wazuh Security Monitoring]] | Software inventory, vulnerability management, security events | Planned on k0s (namespace wazuh); not deployed. See [[Wazuh Implementation Plan]] |

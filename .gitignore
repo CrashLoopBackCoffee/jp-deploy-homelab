@@ -193,3 +193,8 @@ docs/.claude/
 # Agent skills are managed by APM (see apm.yml)
 .agents/skills/
 .claude/skills/
+HANDOFF.md
+
+# Local agent and editor state
+.omp/
+docs/.obsidian/

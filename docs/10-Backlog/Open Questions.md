@@ -28,6 +28,18 @@ updated: 2026-10-03
 
 - What is the final documented root cause for the WireGuard floating client handshake failure?
 
+## Security Monitoring
+
+- Which Debian-family hosts are approved after the k0s0 pilot? See [[Wazuh Implementation Plan]].
+- Can `192.168.178.0/24` reach `10.10.88.0/24`? See [[Wazuh Implementation Plan]].
+- Is k0s0 capacity sufficient? See [[Wazuh Implementation Plan]].
+- What is host `vm.max_map_count`? See [[Wazuh Implementation Plan]].
+- Which MetalLB IP is free? See [[Wazuh Implementation Plan]].
+- When is Wazuh 5.0 GA suitable? See [[Wazuh Implementation Plan]].
+- What are the live fields/timestamp formats for agent status and vulnerability events? See [[Wazuh Implementation Plan]].
+- When will HBS 3 off-site backup be verified? It is not a Wazuh go-live gate. See [[Wazuh Implementation Plan]].
+- Which OpenSearch datasource provisioning keys are valid? See [[Wazuh Implementation Plan]].
+
 ## Platform
 
 - Map the four Ryzen systems to Nodes 1–3 and the separate Proxmox host; confirm per-host CPU, RAM, NICs, OS, and management access.

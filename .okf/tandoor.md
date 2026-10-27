@@ -1,8 +1,8 @@
 ---
 type: Service
 title: Tandoor (Pulumi, applied; current image 2.7.1)
-description: Tandoor Recipes migration from dockerhost to k0s, including its CloudNativePG database, Longhorn media volume, import/cutover, and the successful 2.7.1 upgrade after a superuser email conflict remediation (ADR-0028, ADR-0033).
-timestamp: 2026-10-24T16:44:54Z
+description: Tandoor Recipes migration from dockerhost to k0s, including its CloudNativePG database, Longhorn media volume, import/cutover, successful 2.7.1 upgrade after superuser email conflict remediation, and the metrics-auth incident, decision and session-cookie scrape with its re-mint runbook (ADR-0028, ADR-0033, ADR-0034, ADR-0035).
+timestamp: 2026-10-25T11:30:00Z
 tags: [homelab, kubernetes, tandoor, cloudnativepg, longhorn, migration]
 resource: https://app.pulumi.com/jaypee-solutions/tandoor/prod
 ---
@@ -54,11 +54,41 @@ Rehearse first with the legacy instance running, then repeat after stopping it s
 8. **Cutover:** point the name at Traefik's address (an A record in Cloudflare, managed by the stack, ADR-0029) and check `dig tandoor.4jp.de` from a LAN client. Stop the legacy containers (do not delete them) and keep them for the agreed period.
 9. Follow-up in stage 2, with approval: remove the legacy role, `/opt/tandoor` and the Traefik labels on `dockerhost` (the Cloudflare record stays; it is the live one now).
 
+# Runbook: re-mint the metrics session (ADR-0035)
+
+Do this at least yearly (the session expires 2027-10-25), or whenever `tandoor-down` fires with Alloy logging HTTP 302 for job `tandoor`. The user runs it, so the key never enters an agent transcript; the admin `alten` cannot add users (staff without that permission), so `manage.py shell` is the way. The container has a 1 Gi limit and was OOMKilled once by `manage.py check`; the pod restarts by itself if killed, check that it is 1/1 Ready afterwards.
+
+1. If the user `tandoor-metrics` is missing, create it: non-staff, non-superuser, no groups, no space, `set_unusable_password()`. Never give it a space or staff rights.
+2. Save this as `/tmp/mint-session.py`, then run the pipe from the repo root; the key lands in the clipboard and is never printed:
+
+   ```python
+   from django.contrib.auth import BACKEND_SESSION_KEY, HASH_SESSION_KEY, SESSION_KEY
+   from django.contrib.auth.models import User
+   from django.contrib.sessions.backends.db import SessionStore
+
+   u = User.objects.get(username="tandoor-metrics")
+   s = SessionStore()
+   s[SESSION_KEY] = str(u.pk)
+   s[BACKEND_SESSION_KEY] = "django.contrib.auth.backends.ModelBackend"
+   s[HASH_SESSION_KEY] = u.get_session_auth_hash()
+   s.create()
+   print("SESSIONKEY=" + s.session_key)
+   ```
+
+   ```bash
+   direnv exec . kubectl -n tandoor exec -i deploy/tandoor -c tandoor -- sh -c "cd /opt/recipes && . venv/bin/activate && python manage.py shell" < /tmp/mint-session.py | grep SESSIONKEY= | cut -d= -f2 | pbcopy
+   ```
+
+3. Paste it as the password of the 1Password Login `Homelab/Tandoor Metrics Scrape` (username `tandoor-metrics`), update the expiry date in its notes. The service account is read-only, so edit it in the 1Password app.
+4. Prove it with a port-forward (`svc/tandoor` 18080:80): `curl -H "Host: tandoor.tandoor.svc" -H "Cookie: sessionid=$(op read "op://Homelab/Tandoor Metrics Scrape/password")" http://127.0.0.1:18080/metrics` must return 200; without the cookie it returns 302.
+5. `pulumi up` in `services/observability` (preview first): the value is resolved at deploy time, so the `alloy-targets` Secret must be refreshed. Check `up{job="tandoor"} == 1` in Mimir.
+6. Never change the password of `tandoor-metrics` and never log that session out; either invalidates it.
+
 # Open points
 
+- **Metrics** (ADR-0028, ADR-0034, ADR-0035): `ENABLE_METRICS=1`; the IngressRoute does not route `/metrics`. Since 2.7.1, `ScopeMiddleware` redirects every unauthenticated non-`/api/` path to login, so a scrape needs a Django session. Alloy scrapes `tandoor.tandoor.svc:80/metrics` (job `tandoor`, `services/observability/assets/alloy/config.alloy`) with the `sessionid` cookie of the space-less, non-staff user `tandoor-metrics`, `follow_redirects = false`. The key is the password of 1Password `Homelab/Tandoor Metrics Scrape`; Pulumi puts `sessionid=<key>` into the `alloy-targets` Secret (`tandoor-cookie`). Verified 2026-10-25: `up{job="tandoor"} == 1`, 697 series (261 before 2.7.1), `tandoor-down`, `Scrape target down` and `tandoor-server-errors` inactive. `tandoor-down` is also the expiry signal (365 days, a password change or a logout invalidates the session). Monitor upstream issue TandoorRecipes/recipes#4888; when `/metrics` is exempted, remove the cookie, the `tandoor-session` config field and the user.
 - PDF export (`ENABLE_PDF_EXPORT=1`) may need more than the 1 Gi memory limit; check the first export and raise the limit if the pod is killed.
 - A post-upgrade `manage.py check` diagnostic exited 137; the app container recorded one `OOMKilled` restart. It returned to 1/1 Ready and `/accounts/login/` returned HTTP 200 afterwards. No resource settings were changed; monitor memory before running further diagnostics inside this container.
-- **Metrics** (ADR-0028): `ENABLE_METRICS=1`; Alloy scrapes `tandoor.tandoor.svc:80/metrics` (job `tandoor`, `services/observability/assets/alloy/config.alloy`); the IngressRoute does not route `/metrics`. Applied after the rehearsal import; verified in Mimir: `up{job="tandoor"} == 1` and 261 series. Alloy reloads its config without restarting the pod.
 - A restore of `tandoor-db` from its QNAP backup has not been rehearsed for this cluster; the method is the verified one of ADR-0017 and ADR-0018.
 
-Related: ADR-0028, ADR-0018, ADR-0023, [dockerhost-services](./dockerhost-services.md), [Paperless](./paperless.md), [Retiring the legacy dockerhost monitoring stack](./legacy-monitoring-migration.md).
+Related: ADR-0028, ADR-0034, ADR-0035, ADR-0018, ADR-0023, [dockerhost-services](./dockerhost-services.md), [Paperless](./paperless.md), [Retiring the legacy dockerhost monitoring stack](./legacy-monitoring-migration.md).

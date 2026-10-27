@@ -1,5 +1,30 @@
 # Update Log
 
+## 2026-10-27
+* **Update**: Removed the legacy `services/monitoring/` Pulumi workspace (ADR-0023 update); ignored local `.omp/` and `docs/.obsidian/`; added `grafana/skills` to APM.
+
+## 2026-10-26
+* **Decision**: Proposed ADR-0037; target Wazuh 4.14.9 now; all new Grafana alert rules based on Wazuh data start at warning.
+* **Creation**: Added the architecture, ADR and implementation-plan documents plus the [OKF note](wazuh.md).
+* **Finding**: State indices have no `@timestamp`; security configuration changes require `securityadmin.sh`.
+* **Decision**: Confirmed the Wazuh operating model: k0s0 pilot then approved Debian-family hosts; Active Critical identity events via best-effort Loki alerts; read-only `ossec.log` feed health with a two-hour stale threshold; warning rules use normal Pushover; no automated response.
+* **Decision**: Proxmox is included with partial CVE coverage; OPNsense event integration is non-blocking and manual; optional post-core Authentik SAML keeps local break-glass login. Local QuObjects backup is acceptable initially with restore tests.
+* **Finding**: Wazuh vulnerability state and transition events are distinct; initial/rescan/hotfix cases make events an incomplete lifecycle ledger. Manager API `manager:read` is broader than `/manager/logs`, so the chosen feed-health path tails the log file instead.
+* **Creation**: Added the root [Wazuh glossary](../GLOSSARY.md) with canonical definitions for current findings, transition events, inventory, security events and CTI feed freshness.
+
+## 2026-10-25
+* **Finding**: The `Docker containers` dashboard drew 29 CPU and 22 memory lines over 6 h (`topk` ranks per step), had no ranking or host context, and its network panels were topped by host-network containers. cAdvisor has no per-container disk I/O series and `container_pressure_io_*` is 0.
+* **Decision**: Rank over the dashboard range (`and on (name) topk(k, avg_over_time((expr)[$__range:$__interval] @ end()))`), add a ranking table, host stat tiles and stack panels, restrict network panels to `eth*`, and keep the Compose project as `stack` in Alloy (ADR-0036).
+* **Change**: Rebuilt the dashboard (19 panels, variables `stack` and `name`, new `Table` and sizing support in `dashboards.py`); added the `stack` relabel rules to `prometheus.relabel "ax51"`; `pulumi up` replaced ConfigMap `grafana-dashboards` and updated Helm releases `grafana` and `alloy` (24 unchanged).
+* **Verification**: All queries ran on live Mimir (10 series for CPU/memory over 6 h, 5 for top-5 panels, no host-network containers in network panels); `stack` on all 71 containers and none without it after 10 min; no discarded samples or `err-mimir`; dashboard rendered and the table link set `var-name`. Ranges reaching before the deploy show each container twice in the table and an extra empty-stack series until about 2026-10-25 17:30 UTC at the default range.
+
+* **Finding**: Tandoor 2.7.1's auth middleware redirects Alloy's unauthenticated `/metrics` scrape to login despite `ENABLE_METRICS=1`. `up{job="tandoor"} == 0`; critical `tandoor-down` and warning `Scrape target down` fire. The app is 1/1 Ready, login/API requests work, and recent logs show no 5xx; `tandoor-server-errors` is inactive.
+* **Decision**: Keep 2.7.1 and wait for an upstream metrics-auth fix; leave the alerts enabled (ADR-0034).
+* **Verification**: The redirect and alert states were confirmed; no app change was made.
+* **Decision**: Scrape Tandoor `/metrics` with the `sessionid` cookie of the space-less, non-staff user `tandoor-metrics`, stored in 1Password `Homelab/Tandoor Metrics Scrape` and sent by Alloy with `follow_redirects = false` (ADR-0035, amends ADR-0034). The user was created with `manage.py shell` because `alten` lacks the add-user permission; the user forged the session in their own terminal.
+* **Change**: `alloy-targets` Secret gained `tandoor-cookie`; Alloy config and `AlloyConfig.tandoor_session` added; `pulumi up` replaced the Secret and updated the Alloy release only.
+* **Verification**: Cookie 200 with 580 `django_http*` lines and 302 without; Mimir `up{job="tandoor"} == 1`, 697 series; Grafana `tandoor-down`, `Scrape target down`, `tandoor-server-errors` inactive; re-mint runbook added to [Tandoor](tandoor.md).
+
 ## 2026-10-24
 * **Finding**: With `OP_SERVICE_ACCOUNT_TOKEN` set, `op` uses `pulumi-homelab`, which can read only `Homelab`; the Pulumi shell plugin's PAT item was in `Hosting`, so plugin auth returned 403.
 * **Change**: Moved `Pulumi Personal Access Token` from item `7gd7pwcahtvv7ozdq3d6jezkw4` to `ni3cq4sd56gt4bvb5ybkuhzoni` in `Homelab` and repointed both plugin configuration files.

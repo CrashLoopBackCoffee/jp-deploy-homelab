@@ -53,6 +53,40 @@ class Panel:
     stack: bool = False
     # Further series for the same panel as (expression, legend) pairs.
     extra: tuple[tuple[str, str], ...] = ()
+    width: int = PANEL_WIDTH
+    height: int = PANEL_HEIGHT
+    description: str = ''
+    # Legend as a table of mean and max sorted by mean, tooltip sorted by value.
+    ranked: bool = False
+
+
+@dataclasses.dataclass(frozen=True)
+class Column:
+    title: str
+    expr: str
+    unit: str
+    # Draw the value as a bar relative to the column's maximum.
+    bar: bool = False
+
+
+@dataclasses.dataclass(frozen=True)
+class LabelColumn:
+    label: str
+    title: str
+    # Data link on the cell; Grafana interpolates `${__value.raw}` and `${__url_time_range}`.
+    link: str = ''
+
+
+@dataclasses.dataclass(frozen=True)
+class Table:
+    """Instant queries joined on their labels into one row per series, sorted by the first column."""
+
+    title: str
+    labels: tuple[LabelColumn, ...]
+    columns: tuple[Column, ...]
+    description: str = ''
+    width: int = 2 * PANEL_WIDTH
+    height: int = 12
 
 
 def _datasource(kind: str) -> dict[str, str]:
@@ -60,20 +94,14 @@ def _datasource(kind: str) -> dict[str, str]:
     return {'type': kind, 'uid': uid}
 
 
-def _panel(panel: Panel, index: int, position: int) -> dict:
-    full_width = panel.kind == 'logs'
+def _panel(panel: Panel, index: int, grid_pos: dict[str, int]) -> dict:
     datasource = _datasource(panel.datasource)
     definition: dict[str, t.Any] = {
         'id': index + 1,
         'type': panel.kind,
         'title': panel.title,
         'datasource': datasource,
-        'gridPos': {
-            'x': 0 if full_width else (position % 2) * PANEL_WIDTH,
-            'y': (position // 2) * PANEL_HEIGHT,
-            'w': 2 * PANEL_WIDTH if full_width else PANEL_WIDTH,
-            'h': LOGS_HEIGHT if full_width else PANEL_HEIGHT,
-        },
+        'gridPos': grid_pos,
         'targets': [
             {
                 'refId': chr(ord('A') + offset),
@@ -84,27 +112,135 @@ def _panel(panel: Panel, index: int, position: int) -> dict:
             for offset, (expr, legend) in enumerate(((panel.expr, panel.legend), *panel.extra))
         ],
     }
+    if panel.description:
+        definition['description'] = panel.description
     if panel.kind != 'logs':
         defaults: dict[str, t.Any] = {'unit': panel.unit}
         if panel.stack:
             defaults['custom'] = {'stacking': {'mode': 'normal'}, 'fillOpacity': 30}
         definition['fieldConfig'] = {'defaults': defaults, 'overrides': []}
+    if panel.ranked:
+        definition['options'] = {
+            'legend': {
+                'showLegend': True,
+                'displayMode': 'table',
+                'placement': 'right' if panel.width == 2 * PANEL_WIDTH else 'bottom',
+                'calcs': ['mean', 'max'],
+                'sortBy': 'Mean',
+                'sortDesc': True,
+            },
+            'tooltip': {'mode': 'multi', 'sort': 'desc'},
+        }
     return definition
 
 
-def _layout(panels: list[Panel]) -> list[dict]:
-    """Two panels per row; a logs panel takes the full width and starts a new row."""
+def _table(table: Table, index: int, grid_pos: dict[str, int]) -> dict:
+    datasource = _datasource('prometheus')
+    refs = [chr(ord('A') + offset) for offset in range(len(table.columns))]
+    label_names = [label.label for label in table.labels]
+    overrides: list[dict[str, t.Any]] = []
+    for column in table.columns:
+        properties: list[dict[str, t.Any]] = [{'id': 'unit', 'value': column.unit}]
+        if column.bar:
+            properties += [
+                {
+                    'id': 'custom.cellOptions',
+                    'value': {'type': 'gauge', 'mode': 'basic', 'valueDisplayMode': 'text'},
+                },
+                {'id': 'min', 'value': 0},
+                # Scale the bar to this column's maximum rather than the maximum of all columns.
+                {'id': 'fieldMinMax', 'value': True},
+            ]
+        overrides.append(
+            {'matcher': {'id': 'byName', 'options': column.title}, 'properties': properties}
+        )
+    for label in table.labels:
+        if label.link:
+            overrides.append(
+                {
+                    'matcher': {'id': 'byName', 'options': label.title},
+                    'properties': [
+                        {
+                            'id': 'links',
+                            'value': [{'title': f'Filter by {label.title}', 'url': label.link}],
+                        }
+                    ],
+                }
+            )
+    return {
+        'id': index + 1,
+        'type': 'table',
+        'title': table.title,
+        'description': table.description,
+        'datasource': datasource,
+        'gridPos': grid_pos,
+        'targets': [
+            {
+                'refId': ref,
+                'expr': column.expr,
+                'instant': True,
+                'range': False,
+                'format': 'table',
+                'datasource': datasource,
+            }
+            for ref, column in zip(refs, table.columns, strict=True)
+        ],
+        'transformations': [
+            {'id': 'merge', 'options': {}},
+            {
+                'id': 'organize',
+                'options': {
+                    'excludeByName': {'Time': True},
+                    'renameByName': {
+                        **{label.label: label.title for label in table.labels},
+                        **{
+                            f'Value #{ref}': column.title
+                            for ref, column in zip(refs, table.columns, strict=True)
+                        },
+                    },
+                    'indexByName': {
+                        name: position
+                        for position, name in enumerate(
+                            [*label_names, *(f'Value #{ref}' for ref in refs)]
+                        )
+                    },
+                },
+            },
+        ],
+        'fieldConfig': {'defaults': {}, 'overrides': overrides},
+        'options': {
+            'showHeader': True,
+            'cellHeight': 'sm',
+            'sortBy': [{'displayName': table.columns[0].title, 'desc': True}],
+        },
+    }
+
+
+def _layout(panels: t.Sequence[Panel | Table]) -> list[dict]:
+    """Panels flow left to right in rows of 24 units; a logs panel takes the full width."""
     rendered = []
-    position = 0
+    x = y = row_height = 0
     for index, panel in enumerate(panels):
-        if panel.kind == 'logs' and position % 2:
-            position += 1
-        rendered.append(_panel(panel, index, position))
-        position += 2 if panel.kind == 'logs' else 1
+        if isinstance(panel, Panel) and panel.kind == 'logs':
+            width, height = 2 * PANEL_WIDTH, LOGS_HEIGHT
+        else:
+            width, height = panel.width, panel.height
+        if x + width > 2 * PANEL_WIDTH:
+            y += row_height
+            x = row_height = 0
+        grid_pos = {'x': x, 'y': y, 'w': width, 'h': height}
+        if isinstance(panel, Table):
+            rendered.append(_table(panel, index, grid_pos))
+        else:
+            rendered.append(_panel(panel, index, grid_pos))
+        x += width
+        row_height = max(row_height, height)
     return rendered
 
 
-def _query_variable(name: str, query: str, datasource: str = 'prometheus') -> dict:
+def _query_variable(
+    name: str, query: str, datasource: str = 'prometheus', all_value: str = '.+'
+) -> dict:
     return {
         'name': name,
         'type': 'query',
@@ -113,7 +249,7 @@ def _query_variable(name: str, query: str, datasource: str = 'prometheus') -> di
         'refresh': 2,
         'multi': True,
         'includeAll': True,
-        'allValue': '.+',
+        'allValue': all_value,
         'current': {'selected': True, 'text': 'All', 'value': '$__all'},
     }
 
@@ -125,7 +261,7 @@ def _textbox_variable(name: str, label: str) -> dict:
 def _dashboard(
     uid: str,
     title: str,
-    panels: list[Panel],
+    panels: t.Sequence[Panel | Table],
     variables: list[dict] | None = None,
 ) -> str:
     return json.dumps(
@@ -656,81 +792,280 @@ NETBOX_PANELS = [
 
 # Docker containers on hosts outside the cluster, from cAdvisor (job `ax51`; the Docker hosts of
 # dockerhost join when its LAN targets move). Only cAdvisor series carry the `name` label, so the
-# selector also keeps the node exporter and Docker engine targets of the same job out. The
-# `container_label_*` labels are dropped in Alloy and are not available here.
-_DOCKER = 'job="ax51", name=~"$name", name!=""'
+# selector also keeps the node exporter and Docker engine targets of the same job out. Alloy drops the
+# `container_label_*` labels but keeps the Compose project as `stack` (the container name for
+# containers started without Compose). Series from before 2026-10-25 have no `stack`, so its All value
+# also matches an empty label. There are no per-container disk I/O series, and IO pressure is always 0.
+_DOCKER = 'job="ax51", name!="", stack=~"$stack", name=~"$name"'
+# Containers in host network mode see every host interface; only a container's own `eth*`
+# interfaces can be attributed to it.
+_DOCKER_NETWORK = f'{_DOCKER}, interface=~"eth[0-9]+"'
+_AX51_CORES = 'count(node_cpu_seconds_total{job="ax51", mode="idle"})'
+_DOCKER_CPU = 'container_cpu_usage_seconds_total'
+_DOCKER_MEMORY = 'container_memory_working_set_bytes'
+_DOCKER_LINK = '/d/homelab-docker-containers/?var-{label}=${{__value.raw}}&${{__url_time_range}}'
+_HOST_NETWORK_NOTE = (
+    'Containers in host network mode (minecraft, node-exporter, mailcow netfilter) see every host'
+    " interface and are left out; their traffic is in the host's node exporter."
+)
+
+
+def _docker_rate(metric: str, window: str = '5m', by: str = 'name', selector: str = _DOCKER) -> str:
+    return f'sum by ({by}) (rate({metric}{{{selector}}}[{window}]))'
+
+
+def _docker_sum(metric: str, by: str = 'name') -> str:
+    return f'sum by ({by}) ({metric}{{{_DOCKER}}})'
+
+
+def _ranked(expr: str, k: int, by: str = 'name') -> str:
+    """Keep the k series of `expr` with the highest mean over the whole dashboard range.
+
+    A plain topk ranks at every step, so a chart over hours collects far more than k lines.
+    """
+    return (
+        f'({expr}) and on ({by}) topk({k}, avg_over_time(({expr})[$__range:$__interval] @ end()))'
+    )
+
+
+_BY_CONTAINER = 'stack, name'
+_SHARE_OF_HOST = f' / scalar({_AX51_CORES})'
+_CONTAINER_MEMORY_OF_LIMIT = (
+    f'{_docker_sum(_DOCKER_MEMORY, _BY_CONTAINER)}'
+    f' / ({_docker_sum("container_spec_memory_limit_bytes", _BY_CONTAINER)} > 0)'
+)
+
 DOCKER_VARIABLES = [
-    _query_variable('name', 'label_values(container_last_seen{job="ax51", name!=""}, name)'),
+    _query_variable(
+        'stack',
+        'label_values(container_last_seen{job="ax51", name!=""}, stack)',
+        all_value='.*',
+    ),
+    _query_variable(
+        'name',
+        'label_values(container_last_seen{job="ax51", name!="", stack=~"$stack"}, name)',
+    ),
 ]
-DOCKER_PANELS = [
+DOCKER_PANELS: list[Panel | Table] = [
+    Panel(
+        'Host CPU used',
+        '1 - avg(rate(node_cpu_seconds_total{job="ax51", mode="idle"}[5m]))',
+        'percentunit',
+        kind='stat',
+        width=4,
+        height=4,
+    ),
+    Panel(
+        'Host memory used',
+        '1 - sum(node_memory_MemAvailable_bytes{job="ax51"}) / sum(node_memory_MemTotal_bytes{job="ax51"})',
+        'percentunit',
+        kind='stat',
+        width=4,
+        height=4,
+    ),
+    Panel(
+        'Host load per core (1 min)',
+        f'sum(node_load1{{job="ax51"}}) / {_AX51_CORES}',
+        kind='stat',
+        width=4,
+        height=4,
+    ),
     Panel(
         'Running containers',
         'count(time() - container_last_seen{job="ax51", name!=""} < 120)',
         kind='stat',
+        width=4,
+        height=4,
     ),
     Panel(
         'Containers restarted (last hour)',
         f'count(changes(container_start_time_seconds{{{_DOCKER}}}[1h]) > 0) or vector(0)',
         kind='stat',
+        width=4,
+        height=4,
     ),
     Panel(
         'OOM kills (last hour)',
         f'sum(increase(container_oom_events_total{{{_DOCKER}}}[1h])) or vector(0)',
         kind='stat',
+        width=4,
+        height=4,
+    ),
+    Table(
+        'Container load over the selected time range',
+        labels=(
+            LabelColumn('name', 'Container', _DOCKER_LINK.format(label='name')),
+            LabelColumn('stack', 'Stack', _DOCKER_LINK.format(label='stack')),
+        ),
+        columns=(
+            Column(
+                'CPU mean (of host)',
+                _docker_rate(_DOCKER_CPU, '$__range', _BY_CONTAINER) + _SHARE_OF_HOST,
+                'percentunit',
+                bar=True,
+            ),
+            Column(
+                'CPU peak (of host)',
+                f'max_over_time(({_docker_rate(_DOCKER_CPU, by=_BY_CONTAINER)})[$__range:$__interval])'
+                + _SHARE_OF_HOST,
+                'percentunit',
+            ),
+            Column(
+                'Memory mean',
+                f'avg_over_time(({_docker_sum(_DOCKER_MEMORY, _BY_CONTAINER)})[$__range:$__interval])',
+                'bytes',
+                bar=True,
+            ),
+            Column(
+                'Memory of limit',
+                f'avg_over_time(({_CONTAINER_MEMORY_OF_LIMIT})[$__range:$__interval])',
+                'percentunit',
+            ),
+            Column(
+                'Network in',
+                _docker_rate(
+                    'container_network_receive_bytes_total',
+                    '$__range',
+                    _BY_CONTAINER,
+                    _DOCKER_NETWORK,
+                ),
+                'Bps',
+            ),
+            Column(
+                'Network out',
+                _docker_rate(
+                    'container_network_transmit_bytes_total',
+                    '$__range',
+                    _BY_CONTAINER,
+                    _DOCKER_NETWORK,
+                ),
+                'Bps',
+            ),
+            Column(
+                'Waiting for CPU',
+                _docker_rate(
+                    'container_pressure_cpu_waiting_seconds_total', '$__range', _BY_CONTAINER
+                ),
+                'percentunit',
+            ),
+        ),
+        description=(
+            'Means over the selected time range, highest CPU first; click a header to sort by another'
+            ' column, a container or stack to filter the dashboard. CPU is a share of the host cores.'
+            ' Memory of limit is empty for containers without a limit. ' + _HOST_NETWORK_NOTE
+        ),
+    ),
+    Panel(
+        'CPU used by container (cores, top 10 by mean)',
+        _ranked(_docker_rate(_DOCKER_CPU), 10),
+        legend='{{name}}',
+        width=24,
+        height=10,
+        ranked=True,
+    ),
+    Panel(
+        'Memory working set by container (top 10 by mean)',
+        _ranked(_docker_sum(_DOCKER_MEMORY), 10),
+        'bytes',
+        legend='{{name}}',
+        width=24,
+        height=10,
+        ranked=True,
+    ),
+    Panel(
+        'CPU used by stack (cores, top 10 by mean)',
+        _ranked(_docker_rate(_DOCKER_CPU, by='stack'), 10, by='stack'),
+        legend='{{stack}}',
+        stack=True,
+        height=12,
+        ranked=True,
+    ),
+    Panel(
+        'Memory working set by stack (top 10 by mean)',
+        _ranked(_docker_sum(_DOCKER_MEMORY, by='stack'), 10, by='stack'),
+        'bytes',
+        legend='{{stack}}',
+        stack=True,
+        height=12,
+        ranked=True,
+    ),
+    Panel(
+        'Waiting for CPU (share of time, top 5)',
+        _ranked(_docker_rate('container_pressure_cpu_waiting_seconds_total'), 5),
+        'percentunit',
+        legend='{{name}}',
+        height=10,
+        ranked=True,
+        description=(
+            'Pressure stall information: the share of time in which a runnable task of the container'
+            ' waited for a CPU, because the host is busy or the container hit its CPU limit.'
+        ),
+    ),
+    Panel(
+        'CPU throttled (share of periods, top 5)',
+        _ranked(
+            f'{_docker_rate("container_cpu_cfs_throttled_periods_total")}'
+            f' / {_docker_rate("container_cpu_cfs_periods_total")}',
+            5,
+        ),
+        'percentunit',
+        legend='{{name}}',
+        height=10,
+        ranked=True,
+    ),
+    Panel(
+        'Memory used vs limit (containers with a limit, top 5)',
+        _ranked(
+            f'{_docker_sum(_DOCKER_MEMORY)}'
+            f' / ({_docker_sum("container_spec_memory_limit_bytes")} > 0)',
+            5,
+        ),
+        'percentunit',
+        legend='{{name}}',
+        height=10,
+        ranked=True,
+    ),
+    Panel(
+        'Memory pressure, time stalled (share of time, top 5)',
+        _ranked(_docker_rate('container_pressure_memory_stalled_seconds_total'), 5),
+        'percentunit',
+        legend='{{name}}',
+        height=10,
+        ranked=True,
+    ),
+    Panel(
+        'Network received (top 5)',
+        _ranked(_docker_rate('container_network_receive_bytes_total', selector=_DOCKER_NETWORK), 5),
+        'Bps',
+        legend='{{name}}',
+        height=10,
+        ranked=True,
+        description=_HOST_NETWORK_NOTE,
+    ),
+    Panel(
+        'Network sent (top 5)',
+        _ranked(
+            _docker_rate('container_network_transmit_bytes_total', selector=_DOCKER_NETWORK), 5
+        ),
+        'Bps',
+        legend='{{name}}',
+        height=10,
+        ranked=True,
+        description=_HOST_NETWORK_NOTE,
+    ),
+    Panel(
+        'Threads (top 5)',
+        _ranked(_docker_sum('container_threads'), 5),
+        legend='{{name}}',
+        height=10,
+        ranked=True,
     ),
     Panel(
         'Shortest uptime (bottom 15)',
         f'bottomk(15, time() - container_start_time_seconds{{{_DOCKER}}})',
         's',
         legend='{{name}}',
-    ),
-    Panel(
-        'CPU used (cores, top 15)',
-        f'topk(15, sum by (name) (rate(container_cpu_usage_seconds_total{{{_DOCKER}}}[5m])))',
-        legend='{{name}}',
-    ),
-    Panel(
-        'CPU throttled (share of periods, top 10)',
-        f'topk(10, sum by (name) (rate(container_cpu_cfs_throttled_periods_total{{{_DOCKER}}}[5m]))'
-        f' / sum by (name) (rate(container_cpu_cfs_periods_total{{{_DOCKER}}}[5m])))',
-        'percentunit',
-        legend='{{name}}',
-    ),
-    Panel(
-        'Memory working set (top 15)',
-        f'topk(15, sum by (name) (container_memory_working_set_bytes{{{_DOCKER}}}))',
-        'bytes',
-        legend='{{name}}',
-    ),
-    Panel(
-        'Memory used vs limit (containers with a limit, top 15)',
-        f'topk(15, sum by (name) (container_memory_working_set_bytes{{{_DOCKER}}})'
-        f' / (sum by (name) (container_spec_memory_limit_bytes{{{_DOCKER}}}) > 0))',
-        'percentunit',
-        legend='{{name}}',
-    ),
-    Panel(
-        'Network received (top 15)',
-        f'topk(15, sum by (name) (rate(container_network_receive_bytes_total{{{_DOCKER}}}[5m])))',
-        'Bps',
-        legend='{{name}}',
-    ),
-    Panel(
-        'Network sent (top 15)',
-        f'topk(15, sum by (name) (rate(container_network_transmit_bytes_total{{{_DOCKER}}}[5m])))',
-        'Bps',
-        legend='{{name}}',
-    ),
-    Panel(
-        'Processes and threads (top 10)',
-        f'topk(10, sum by (name) (container_threads{{{_DOCKER}}}))',
-        legend='{{name}}',
-    ),
-    Panel(
-        'Memory pressure, time stalled (top 10)',
-        f'topk(10, sum by (name) (rate(container_pressure_memory_stalled_seconds_total{{{_DOCKER}}}[5m])))',
-        's',
-        legend='{{name}}',
+        height=10,
     ),
 ]
 
