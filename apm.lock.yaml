@@ -1,6 +1,13 @@
 lockfile_version: '1'
 apm_version: 0.32.0
 dependencies:
+- repo_url: grafana/skills
+  name: 80b699d5129cf1c9
+  host: github.com
+  resolved_commit: 3b653d9b46120c05ec02b27895028e1c31308e18
+  version: 3b653d9
+  package_type: apm_package
+  content_hash: sha256:784cf3553fae5c77f72e8c121fc933ee86a632c16656431e1858288e21b2feb9
 - repo_url: jaypee-solutions/apm-dev-workflow
   name: dev-workflow
   host: github.com
