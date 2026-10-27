@@ -2,7 +2,7 @@
 type: Runbook
 title: Retiring the legacy dockerhost monitoring stack
 description: Inventory of the old Ansible-managed monitoring on dockerhost, how each part maps to the k0s observability stack, what is stale or blocked, and the gated migration plan (ADR-0023).
-timestamp: 2026-10-17T00:00:00Z
+timestamp: 2026-10-26T00:00:00Z
 tags: [homelab, observability, migration, prometheus, grafana, loki, mimir, dockerhost]
 resource: /Users/alten/Documents/dockerhost
 ---
@@ -95,14 +95,14 @@ Each phase ends with a verification; destructive steps need the user's approval;
 2. **Port stage 1 targets: done 2026-10-17** (PR #28, ADR-0025, ADR-0026). 33 probes (27 http, 1 slow, 3 icmp, 2 tcp; all succeed) and the `ax51` and `pretix` scrapes run in Alloy, with three new Grafana rules. It needed the node's inotify limit raised to 1024 and the API server's histogram buckets dropped (Mimir's series limit was reached). The dual run with the legacy Prometheus starts now; the migrated jobs are removed from the legacy side in phase 5.
 3. **Speedtest and dashboards: done 2026-10-17** (PR #29, ADR-0027). The exporter runs in `observability` (Alloy scrapes it every 30 minutes), `Internet Speed` is rebuilt in code, and `Prometheus Blackbox Exporter`, `Status`, `Pretix` and `WordPress Core Updates` are vendored from the legacy Grafana; 14 dashboards in Grafana and all 24 panel queries of the ported ones return data.
 4. **Grafana login: paused by the user on 2026-10-17, to be started another day.** AX41 pull request (blueprint), the user creates the Authentik application and the 1Password item `Grafana OIDC`, then the Helm values change. The full plan and the two open questions (may the agent open the AX41 pull request; role mapping) are in HANDOFF open item 12.
-5. **Cut over the names** (dnsmasq record, Cloudflare record, IngressRoute host, redirect) and remove the migrated jobs and rules from the legacy Prometheus (an Ansible apply that restarts the legacy stack).
+5. **Cut over stage-1 monitoring jobs: done 2026-10-26.** After live replacement checks, the user approved ending the dual run early. Removed legacy `ax51`, `pretix`, `check_teamspeak` and migrated public probe targets; retained five local `*.4jp.de` probes, `dev.kinderreich-augsburg.de`, and LAN-only slow/ICMP targets with their legacy alerts. Prometheus config/rules passed `promtool` and reloaded with `SIGHUP`. DNS/name cutover (dnsmasq, Cloudflare, IngressRoute host, redirect) remains pending.
 6. **Backfill test** with one week; if queries match the legacy Prometheus, continue later in stage 2.
 7. **Stage 2 (later, after the LAN decision):** move the LAN targets, then stop the legacy stack, archive `data/prometheus` and `data/grafana` to the QNAP, run the full backfill, and, after the user's approval, remove `/opt/monitoring`, the `jpspeedtest` unit, the role and playbook import in the Ansible repository, the legacy DNS records and the vaulted secrets that are no longer used. The user also said the Home Assistant role on dockerhost is dead and can be deleted (no container runs; SwitchBot now lives in Home Assistant on Proxmox): remove the role, `/opt/home-assistant`, the `InfluxDBHomeAssistant` datasource, the blackbox target `home-assistant.4jp.de` and, after archiving, the InfluxDB database `home_assistant`, each with approval. Also decide the fate of the donor-derived `services/monitoring` Pulumi workspace in this repository (it targets `tobiash.net` and Synology values and is not the same thing).
 
 # Open questions for the user
 
 - The QNAP now sends its logs to the receiver (ADR-0024, test message arrived 2026-10-17). Once real events arrive, look in Loki (`{job="qnap-syslog"}`) and in the QNAP's own logs for what drove the load average to 112 on 2026-10-15 to 2026-10-16; the logs of that night predate the receiver.
-- Dual run: decided on 2026-10-17, two weeks. The migrated jobs and rules are removed from the legacy Prometheus in phase 5 no earlier than 2026-10-31.
+- Mimir returned no `up` series for speed-related jobs on 2026-10-26 while the `speedtest-exporter` pod was Running. Verify the scrape before retiring legacy `jpspeedtest`/InfluxDB.
 - Is the speed test cadence of 30 minutes acceptable? One test moves about 156 MB, so about 7.5 GB a day; 60 minutes would halve it (ADR-0027).
 - Phase 4 (Grafana login) is paused until the user starts it: may the agent open the pull request in the AX41 repository, and which Grafana roles should the groups map to (proposal: `grafana-admins` Admin, `grafana` Viewer)?
 
