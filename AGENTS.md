@@ -13,7 +13,7 @@ The project follows a microservices architecture with each service in its own wo
 Infrastructure is divided into two categories:
 
 - **Pets** — long-lived, high-touch systems managed with **Ansible** or **k0sctl**: OPNsense, network switches, and the bare-metal k0s cluster bootstrap.
-- **Cattle** — reproducible Kubernetes workloads managed with **Pulumi (Python)**. An existing remote-Docker workspace for legacy monitoring remains in the repository but is separate from the Kubernetes stacks.
+- **Cattle** — reproducible Kubernetes workloads managed with **Pulumi (Python)**.
 
 Never use OpenTofu or Terraform. Pulumi is the exclusive IaC tool for cattle.
 
@@ -34,7 +34,6 @@ services/
 ├── iot/              # MQTT services on Kubernetes
 ├── k0s/              # k0sctl bootstrap configuration and Ansible node storage preparation
 ├── kubernetes/       # Kubernetes add-ons and workloads on k0s
-├── monitoring/       # Monitoring stack, including retained legacy components
 ├── n8n/              # n8n service
 ├── paperless/        # Document management system
 ```
@@ -115,7 +114,7 @@ For Pulumi deployment commands, see the **`pulumi-operations`** skill.
 ## Environment Management (Pulumi Stacks)
 
 - **Production (`prod`)**: Primary homelab environment for most services.
-- **Development (`dev`)**: Legacy service configurations, including `monitoring`.
+- **Development (`dev`)**: Legacy service configurations.
 - **Test (`test`)**: Experimental environment, especially for `kubernetes` changes.
 
 ## AI Assistant Guidelines

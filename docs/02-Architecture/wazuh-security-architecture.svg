@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" role="img" aria-label="Wazuh security monitoring architecture">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="currentColor"/></marker>
+    <style>
+      text{font:14px sans-serif;fill:var(--fg)}
+      .small{font-size:12px;fill:var(--muted)}
+      .box{fill:var(--surface);stroke:var(--border);stroke-width:1.5}
+      .group{fill:none;stroke:var(--border);stroke-width:1.5;stroke-dasharray:5 4}
+      .link{fill:none;stroke:var(--muted);stroke-width:1.5;marker-end:url(#arrow)}
+      .security{fill:var(--warning);fill-opacity:.14;stroke:var(--warning)}
+      .data{fill:var(--accent);fill-opacity:.12;stroke:var(--accent)}
+      .observability{fill:var(--success);fill-opacity:.12;stroke:var(--success)}
+    </style>
+  </defs>
+  <rect class="group" x="18" y="24" width="210" height="492" rx="12"/><text x="35" y="51">Hosts · native agents</text>
+  <rect class="box security" x="38" y="85" width="170" height="48" rx="8"/><text x="54" y="114">k0s0</text>
+  <rect class="box security" x="38" y="151" width="170" height="48" rx="8"/><text x="47" y="180">Proxmox / VMs / LXC</text>
+  <rect class="box security" x="38" y="217" width="170" height="48" rx="8"/><text x="54" y="246">dockerhost</text>
+  <rect class="box security" x="38" y="283" width="170" height="48" rx="8"/><text x="47" y="312">OPNsense (optional)</text>
+  <rect class="group" x="252" y="24" width="455" height="492" rx="12"/><text x="270" y="51">k0s · namespace wazuh</text>
+  <rect class="box security" x="273" y="86" width="185" height="58" rx="8"/><text x="289" y="111">Agent LoadBalancer</text><text class="small" x="289" y="131">TCP 1514 / 1515</text>
+  <rect class="box security" x="490" y="86" width="195" height="58" rx="8"/><text x="506" y="111">Wazuh manager</text><text class="small" x="506" y="131">alerts-tail · CTI :443</text>
+  <rect class="box data" x="490" y="190" width="195" height="58" rx="8"/><text x="506" y="224">Indexer · OpenSearch</text>
+  <rect class="box data" x="490" y="294" width="195" height="58" rx="8"/><text x="506" y="328">Wazuh dashboard</text>
+  <rect class="box observability" x="273" y="408" width="185" height="58" rx="8"/><text x="289" y="433">Index + findings</text><text x="289" y="453">exporters</text>
+  <rect class="box observability" x="490" y="408" width="195" height="58" rx="8"/><text x="506" y="442">Trivy Operator</text>
+  <rect class="group" x="730" y="24" width="252" height="492" rx="12"/><text x="748" y="51">Observability · namespace observability</text>
+  <rect class="box" x="766" y="86" width="180" height="54" rx="8"/><text x="782" y="118">Grafana</text>
+  <rect class="box" x="766" y="190" width="180" height="54" rx="8"/><text x="782" y="222">Alloy</text>
+  <rect class="box" x="766" y="294" width="180" height="54" rx="8"/><text x="782" y="326">Traefik ingress</text>
+  <rect class="box" x="766" y="408" width="82" height="54" rx="8"/><text x="778" y="440">Mimir</text>
+  <rect class="box" x="864" y="408" width="82" height="54" rx="8"/><text x="877" y="440">Loki</text>
+  <path class="link" d="M208 109H263"/><path class="link" d="M208 175H243V115H263"/><path class="link" d="M208 241H243V115H263"/><path class="link" d="M208 307H243V115H263"/>
+  <path class="link" d="M458 115H480"/><path class="link" d="M587 144V180"/><path class="link" d="M587 248V284"/>
+  <path class="link" d="M766 323H695"/>
+  <path class="link" d="M458 423H720V217H756"/>
+  <path class="link" d="M685 451H716V230H756"/>
+  <path class="link" d="M856 244V398"/><path class="link" d="M856 244L905 398"/>
+  <path class="link" d="M766 113H695V219H685"/>
+</svg>

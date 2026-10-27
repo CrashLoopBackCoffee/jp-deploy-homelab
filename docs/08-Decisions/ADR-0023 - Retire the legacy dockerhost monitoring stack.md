@@ -17,7 +17,7 @@ adr: 23
 
 ## Status
 
-Accepted on 2026-10-17. Stage 1 is **under way**: phases 1 to 3 (Mimir retention, QNAP syslog, probes and scrapes, speed test and dashboards) were applied on 2026-10-17 ([[ADR-0024 - QNAP syslog into Loki]] to [[ADR-0027 - Speedtest exporter and legacy dashboards]]); the two-week dual run with the legacy Prometheus began that day, and the migrated jobs are removed from the legacy side no earlier than 2026-10-31. The Grafana login, the name cutover, the backfill and stage 2 are still to come. The runbook, inventory and gates are in `.okf/legacy-monitoring-migration.md`.
+Accepted on 2026-10-17; amended 2026-10-26. Stage 1 is **under way**: phases 1 to 3 (Mimir retention, QNAP syslog, probes and scrapes, speed test and dashboards) were applied on 2026-10-17 ([[ADR-0024 - QNAP syslog into Loki]] to [[ADR-0027 - Speedtest exporter and legacy dashboards]]). After live replacement checks, the user approved ending the planned two-week dual run early on 2026-10-26 and cutting over the migrated scrape jobs. The Grafana login, name cutover, history backfill and stage 2 remain open. See `.okf/legacy-monitoring-migration.md`.
 
 ## Context
 
@@ -36,7 +36,7 @@ The legacy stack scrapes 13 jobs (about 55 targets, 32 of them HTTP probes). Man
 
 ## Consequences
 
-- Until stage 2, alerts exist twice for migrated targets. Remove the migrated jobs and rules from the legacy Prometheus when a target is cut over, to avoid duplicate Pushover messages. Applying the legacy role restarts its whole stack.
+- Migrated targets no longer have duplicate legacy scrapes or alerts after the 2026-10-26 cutover; LAN-only checks and their alert rules remain. For this cutover only the Prometheus config and rule files were synced and Prometheus received `SIGHUP`, avoiding a full-stack restart. Applying the legacy role normally restarts its whole stack.
 - Deferring the LAN means these stay on the legacy stack for now: dockerhost host and container metrics, QNAP node metrics, the FritzBox, the Windows desktop (`ohmgraphite`), `jexporter` (mypv, SwitchBot, Zweiradgarage), Watchtower, the BackupNAS syslog and its backup rules, and the home-automation dashboards. The alerts **ZweiradGarage** and **WarmWaterOutage** only exist there.
 - The Loki rules that count `Finished Sync job` lines from `BackupNAS` are the only monitoring of the HBS sync jobs that [[ADR-0016 - QuObjects backup target and encrypted offsite copy]] asks for. They need the syslog receiver in the new stack before the HBS 3 work.
 - Backfill needs a free path to Mimir and the data side by side. The workstation has 43 GB free and cannot stage 93 GB, so the upload runs on `dockerhost` through an SSH reverse tunnel to a `kubectl port-forward`, which adds no exposed endpoint.
@@ -58,6 +58,17 @@ The legacy stack scrapes 13 jobs (about 55 targets, 32 of them HTTP probes). Man
 
 - `dockerhost` has no backup at all (stated by the user); everything on it lives on one SSD. Retiring the monitoring stack and moving the other services off the host therefore also gains protection, and the HBS 3 gate of ADR-0018 no longer applies to them (amended 2026-10-18; see `.okf/dockerhost-services.md` for the inventory).
 - Until the backfill and the archive of stage 2 have run, the legacy history (the Prometheus TSDB of about 93 GB, Grafana's database with the six dashboards that exist only in its UI, Loki, InfluxDB) exists once, on that SSD. The one-week backfill test and an early copy of Grafana's database (515 MB) to the QNAP would reduce the risk before stage 2; both are the user's decision.
+
+## Update 2026-10-26 (early migrated-job cutover)
+
+- The user approved ending the dual run early after live Mimir queries showed all 31 replacement probes healthy (25 HTTP, 1 slow HTTP, 3 public ICMP, 2 TCP) and all three AX51 plus the Pretix scrape targets up.
+- Removed legacy `ax51`, `pretix` and `check_teamspeak` jobs and migrated public targets from `blackbox`, `blackbox-slow` and `blackbox-icmp`. Retained five local `*.4jp.de` probes, the active legacy-only `dev.kinderreich-augsburg.de` probe, and LAN-only slow/ICMP probes. Existing `ServiceDown`, `ServiceDownSlow` and `SSLCertExpiringSoon` rules remain for those retained checks.
+- Removed `https://ingenieurbuero-eglseer.de`; after reload and the next scrape/evaluation, no matching active alert remained. `promtool check config` and `promtool check rules` passed; Prometheus reported `reloadConfigSuccess=true`.
+- The speedtest exporter pod was running, but Mimir returned no `up` series for speed-related jobs. The legacy `jpspeedtest`/InfluxDB path remains untouched pending verification.
+
+## Update 2026-10-27 (legacy Pulumi workspace removed)
+
+- The remote-Docker Pulumi workspace `services/monitoring/` (Alloy, cAdvisor, Grafana, speedtest; stacks `dev` and `prod`) is deleted from the repository. Its replacements run in `services/observability/`. Git history keeps the code; the Ansible-managed legacy stack on `dockerhost` is unaffected.
 
 ## Alternatives considered
 

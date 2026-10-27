@@ -14,6 +14,7 @@ dependencies:
     - jaypee-solutions/apm-okf
     - jaypee-solutions/apm-python
     - mattpocock/skills
+    - grafana/skills
   mcp: []
 includes: auto
 scripts: {}

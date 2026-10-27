@@ -16,3 +16,4 @@ okf_version: "0.1"
 * [Tandoor](tandoor.md) - migration of Tandoor Recipes from dockerhost: CloudNativePG database, Longhorn media volume, prerequisites, import and cutover runbook, and the 2.7.1 metrics-auth incident and decision (ADR-0028, ADR-0034).
 * [Services on dockerhost](dockerhost-services.md) - what runs on the unbacked-up host dockerhost, why moving a service to k0s already improves its protection, and the migration status per service.
 * [Operational lessons](operational-lessons.md) - pitfalls from the first rollout with the rule for each, plus suggested standing agent instructions.
+* [Wazuh security monitoring (planned)](wazuh.md) - architecture, upstream 4.14.9 facts and pitfalls, LGTM integration contracts and phased plan (ADR-0037).
