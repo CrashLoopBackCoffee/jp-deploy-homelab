@@ -2,6 +2,9 @@ config:
   wazuh:config:
     kubeconfig:
       ref: op://Homelab/Kubeconfig prod/password
+    cloudflare-api-token:
+      ref: op://Homelab/Cloudflare [4jp.de]/password
+    zone: 4jp.de
     # renovate: datasource=docker packageName=wazuh/wazuh-indexer versioning=loose
     version: 4.14.9
     namespace: wazuh
