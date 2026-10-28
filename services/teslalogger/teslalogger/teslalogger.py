@@ -1,6 +1,7 @@
 import pulumi as p
 import pulumi_kubernetes as k8s
 import pulumi_random as random
+import utils.cloudflare
 import utils.mariadb
 
 from teslalogger.config import ComponentConfig
@@ -320,6 +321,26 @@ class TeslaLogger(p.ComponentResource):
                 k8s_opts, p.ResourceOptions(depends_on=[grafana_certificate])
             ),
         )
+
+        # The names live in the public zone and point at Traefik's private address (ADR-0029).
+        traefik_service = k8s.core.v1.Service.get(
+            'traefik-service', 'traefik/traefik', opts=k8s_opts
+        )
+        cloudflare_provider = utils.cloudflare.get_token_provider(
+            component_config.cloudflare_api_token.value
+        )
+        for resource_name, host in (
+            ('teslalogger-dns', config.host),
+            ('teslalogger-grafana-dns', config.grafana_host),
+        ):
+            utils.cloudflare.create_a_record(
+                resource_name,
+                host=host,
+                zone_name=component_config.zone,
+                address=traefik_service.status.load_balancer.ingress[0].ip,
+                cloudflare_provider=cloudflare_provider,
+                opts=p.ResourceOptions(parent=self),
+            )
 
         p.export('teslalogger_url', f'https://{hostname}/admin/')
         p.export('grafana_url', f'https://{grafana_hostname}')

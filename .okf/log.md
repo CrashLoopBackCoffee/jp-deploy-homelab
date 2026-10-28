@@ -2,7 +2,8 @@
 
 ## 2026-10-28
 * **Decision**: ADR-0039 (mariadb-operator 26.10.2 and `utils.mariadb`, logical dumps to the own bucket `mariadb-backups`) and ADR-0040 (TeslaLogger on k0s, MariaDB 10.11, one Pod, `replicas` gate).
-* **Change**: Applied the operator (36 resources) and the `teslalogger` stack (22 resources); rehearsal import of the legacy dump (175206 `pos`, 251479 `charging`, 6440 `drivestate`, all equal) and a rehearsal start: schema update from 1.63.20.4 finished, car found, token restored, 42 dashboards, admin panel HTTP 200, Grafana health `ok`. The stack is back at `replicas: 0`.
+* **Change**: Applied the operator (36 resources) and the `teslalogger` stack (22 resources); rehearsal import of the legacy dump (175206 `pos`, 251479 `charging`, 6440 `drivestate`, all equal) and a rehearsal start: schema update from 1.63.20.4 finished, car found, token restored, 42 dashboards, admin panel HTTP 200, Grafana health `ok`. The stack went back to `replicas: 0` after the rehearsal.
+* **Change**: Final run the same day: legacy logger stopped (car parked), fresh dump imported (counts equal), TeslaLogger started on k0s, `tesla-logger.service` disabled on `dockerhost`, `observability` applied, both Cloudflare records moved to `10.10.88.1` and imported into the stack.
 * **Finding**: The operator's backup retention cannot parse QuObjects object keys (`%3A` in `backup.<time>.sql.gz`), so `maxRetention` deletes nothing. Without `databases` it also dumps the `mysql` schema. Grafana 13.2.4 in the upstream image refuses the Angular plugin `natel-discrete-panel`.
 
 ## 2026-10-27

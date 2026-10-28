@@ -11,7 +11,6 @@ config:
       host: tesla-logger
       grafana-host: grafana.tesla-logger
       storage-size: 5Gi
-      replicas: 0
     database:
       # renovate: datasource=docker packageName=mariadb versioning=semver
       image-version: 10.11.19

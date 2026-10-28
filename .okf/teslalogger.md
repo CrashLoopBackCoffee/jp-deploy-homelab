@@ -1,6 +1,6 @@
 ---
 type: Service
-title: TeslaLogger (Pulumi, applied; rehearsed, final cutover pending)
+title: TeslaLogger (Pulumi, applied; cut over 2026-10-28)
 description: TeslaLogger migration from dockerhost to k0s with a mariadb-operator database, what the stack creates, image and app facts that shaped the design, the import and cutover runbook, and rehearsal evidence (ADR-0039, ADR-0040).
 timestamp: 2026-10-28T19:00:00Z
 tags: [homelab, kubernetes, teslalogger, mariadb, mariadb-operator, longhorn, migration]
@@ -9,7 +9,7 @@ resource: https://app.pulumi.com/jaypee-solutions/teslalogger/prod
 
 # State
 
-Stack `jaypee-solutions/teslalogger/prod` (source `services/teslalogger`, branch `feature/teslalogger`) applied on 2026-10-28, 22 resources, with `replicas: 0` in `Pulumi.prod.yaml`. The rehearsal import and start worked (evidence below), then the gate was set back to 0 so the legacy logger on `dockerhost` stays the only one polling the car. **Pending (needs the user):** the final run (stop the legacy logger, fresh dump, import, start), `systemctl disable --now tesla-logger`, the DNS cutover, and applying the `observability` stack (the `teslalogger-down` alert fires while the Deployment has 0 replicas). The names `tesla-logger.4jp.de` and `grafana.tesla-logger.4jp.de` still point at `192.168.178.125` in Cloudflare.
+Stack `jaypee-solutions/teslalogger/prod` (source `services/teslalogger`, branch `feature/teslalogger`), 25 resources, cut over on 2026-10-28. Final run: the legacy logger was stopped with the car parked, a fresh dump (identical counts to the rehearsal: nothing was logged in between) and the state files were imported, the `replicas` gate was removed and TeslaLogger runs on k0s. `systemctl disable --now tesla-logger` was run on `dockerhost` (the unit shows `failed` because the stopped logger exited with 137; containers are stopped, not deleted). Both Cloudflare A records (`tesla-logger.4jp.de`, `grafana.tesla-logger.4jp.de`) now point at `10.10.88.1` and are managed by the stack (imported with `import_`, then removed). The `observability` stack carries `teslalogger-down` and `mariadb-backup-stale`. **Pending:** Longhorn backups after 02:00 UTC, the first scheduled dump at 21:00 UTC, a `DAY-mysqldump*.gz` within a day, a newer `max(Datum)` after the car drives, stage-2 removal on `dockerhost` (needs approval).
 
 # What the stack creates
 
@@ -40,6 +40,10 @@ Grafana admin password: `kubectl -n teslalogger get secret grafana-admin -o json
 7. **DNS (ADR-0029):** the user changes both Cloudflare A records to `10.10.88.1`; read zone and record IDs with the service-account token, add `utils.cloudflare.create_a_record` for `tesla-logger` and `grafana.tesla-logger` with `import_`, preview (two imports, no diff), `up`, remove `import_`, preview shows no changes.
 8. Stage 2 on `dockerhost` (role, `/opt/tesla-logger`, Traefik labels) needs the user's approval.
 
+# Final-run evidence (2026-10-28)
+
+Counts equal the fresh dump, state files equal by `sha256sum`, start log `Docker NET8: YES!`, `DB Version: 10.11.19-MariaDB-ubu2204`, `DBSchema Update finished`, `Restore Token OK`, car found; without `--resolve`, `https://tesla-logger.4jp.de/admin/` returns 200 and lists `OAL-FA1E`, Grafana health is `ok`, 42 dashboards; `dig` returns `10.10.88.1` for both names; previews of `teslalogger`, `kubernetes` and `observability` show no changes; Mimir shows 1 available replica and 1 ready StatefulSet replica, and `mariadb-backup-stale` evaluates to 0.
+
 # Rehearsal evidence (2026-10-28, legacy logger running)
 
 - Operator Pods Ready; `database-0` 1/1; `mariadb`, `database`, `backup` Ready; `select version()` `10.11.19-MariaDB-ubu2204`, `@@time_zone` `Europe/Berlin`, collation `utf8mb4_unicode_ci`.
@@ -49,6 +53,6 @@ Grafana admin password: `kubectl -n teslalogger get secret grafana-admin -o json
 - Start: `Docker NET8: YES!`, `DB Version: 10.11.19-MariaDB-ubu2204`, `DBSchema Update finished`, `Restore Token OK`, car `Y SR (MIG BYD)`; admin panel HTTP 200 and lists `OAL-FA1E`; Grafana `/api/health` `database: ok` with a valid certificate; 42 dashboards.
 - Mimir has series for `kube_cronjob_created`, `kube_cronjob_status_last_successful_time`, `kube_statefulset_status_replicas_ready` and `kube_deployment_status_replicas_available{namespace="teslalogger"}`.
 
-# Still to verify after the final run
+# Still to verify
 
-Counts equal to a fresh dump; newer `max(Datum)` after the car drives; Longhorn backups of the MariaDB PVC (`kubectl -n teslalogger get pvc -l app.kubernetes.io/instance=database`) and `teslalogger` after 02:00 UTC; a `DAY-mysqldump*.gz` in `/etc/teslalogger/backup` within a day; keep `~/teslalogger-migration` and the stopped legacy until then.
+Newer `max(Datum)` after the car drives; Longhorn backups of the MariaDB PVC (`kubectl -n teslalogger get pvc -l app.kubernetes.io/instance=database`) and `teslalogger` after 02:00 UTC; the 21:00 UTC scheduled dump; a `DAY-mysqldump*.gz` in `/etc/teslalogger/backup` within a day; keep `~/teslalogger-migration` and the stopped legacy until then.

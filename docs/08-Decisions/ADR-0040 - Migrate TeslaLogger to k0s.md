@@ -17,7 +17,7 @@ adr: 40
 
 ## Status
 
-Accepted on 2026-10-28. The stack is applied and rehearsed; the final import and the DNS cutover are tracked in `.okf/teslalogger.md`.
+Accepted on 2026-10-28. The stack is applied, the final import is done and DNS points at k0s; verification is tracked in `.okf/teslalogger.md`.
 
 ## Context
 
