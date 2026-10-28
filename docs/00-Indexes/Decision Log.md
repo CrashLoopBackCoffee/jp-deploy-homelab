@@ -48,3 +48,5 @@ updated: 2026-10-26
 | [[ADR-0033 - Tandoor 2.7.1 superuser email migration]] | accepted | Preserve the existing unverified address and add the migration-compatible verified primary fallback |
 | [[ADR-0037 - Wazuh security monitoring on k0s]] | proposed | Wazuh 4.14.9 on k0s for inventory and vulnerability management, Grafana integration, native agents, Trivy Operator |
 | [[ADR-0038 - OPNsense metrics and syslog into the LGTM stack]] | accepted | os-node_exporter plus API exporter, RFC 5424 syslog on port 1516 with parsed filterlog, generated dashboards, three alerts |
+| [[ADR-0039 - MariaDB operator on k0s]] | accepted | mariadb-operator in the kubernetes stack, `utils.mariadb` helper, daily logical dumps to QuObjects, NetworkPolicy |
+| [[ADR-0040 - Migrate TeslaLogger to k0s]] | accepted | Upstream NET8 images in one Pod, MariaDB 10.11 via the operator, replicas gate for the import |

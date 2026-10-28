@@ -55,7 +55,7 @@ Chart facts that mattered:
 
 - The first scheduled `netbox-db` backup and the Longhorn backup of `netbox-media` (about 02:00 UTC) are still to be seen; after 2026-10-25 set the schedule `0 0 22 * * *` in `Pulumi.prod.yaml`.
 - `nbcli` uses a **v1 token** (deprecated in 4.6, removed in v5.0): create a v2 token before then. `LOGIN_REQUIRED` is deprecated and goes away in v5.0; plan the replacement with permissions. Both in `HANDOFF.md` item 17(n).
-- Stage 2 (removing `/opt/netbox`, the Ansible role and the stopped containers) needs the user's approval.
+- Stage 2 (done 2026-10-28, approved by the user): `/opt/netbox`, the Ansible role and the stopped containers are removed from `dockerhost`; the safety copy stays in `~/netbox-migration` on the workstation.
 - A restore of `netbox-db` from its QNAP backup has not been rehearsed for this cluster; the method is the verified one of ADR-0017 and ADR-0018.
 
 Related: ADR-0030, ADR-0028, ADR-0029, [Tandoor](./tandoor.md), [dockerhost-services](./dockerhost-services.md), [Observability stack](./observability-stack.md).

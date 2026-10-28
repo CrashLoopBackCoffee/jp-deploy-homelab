@@ -52,7 +52,7 @@ Rehearse first with the legacy instance running, then repeat after stopping it s
 6. Scale the application back to one replica. The `migrate` init container brings the schema to the pinned version. Test with `curl --resolve tandoor.4jp.de:443:10.10.88.1 https://tandoor.4jp.de/` and by signing in (a browser needs a hosts entry for the test).
 7. Confirm the protection before the legacy instance is stopped: an on-demand CloudNativePG backup of `tandoor-db` is `completed` after the import (it takes about 2 minutes), and a Longhorn backup of `mediafiles` exists after the 02:00 UTC run. Keep the dump and tar files until then.
 8. **Cutover:** point the name at Traefik's address (an A record in Cloudflare, managed by the stack, ADR-0029) and check `dig tandoor.4jp.de` from a LAN client. Stop the legacy containers (do not delete them) and keep them for the agreed period.
-9. Follow-up in stage 2, with approval: remove the legacy role, `/opt/tandoor` and the Traefik labels on `dockerhost` (the Cloudflare record stays; it is the live one now).
+9. Stage 2 (done 2026-10-28, approved by the user): removed the legacy role, `/opt/tandoor` and the Traefik labels on `dockerhost` (the Cloudflare record stays; it is the live one now).
 
 # Runbook: re-mint the metrics session (ADR-0035)
 

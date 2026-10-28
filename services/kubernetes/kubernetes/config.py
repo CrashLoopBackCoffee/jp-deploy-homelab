@@ -78,6 +78,10 @@ class CloudflareConfig(utils.model.LocalBaseModel):
     zone: str
 
 
+class MariadbOperatorConfig(utils.model.LocalBaseModel):
+    version: str
+
+
 class ComponentConfig(utils.model.LocalBaseModel):
     cert_manager: CertManagerConfig
     cloudflare: CloudflareConfig
@@ -85,6 +89,7 @@ class ComponentConfig(utils.model.LocalBaseModel):
     csi_nfs_driver: NfsCsiDriverConfig
     kubeconfig: utils.model.OnePasswordRef
     longhorn: LonghornConfig
+    mariadb_operator: MariadbOperatorConfig
     metallb: MetallbConfig
     openebs_lvm: OpenEbsLvmConfig
     traefik: TraefikConfig

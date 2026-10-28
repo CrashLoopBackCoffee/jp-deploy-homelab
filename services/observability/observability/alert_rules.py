@@ -211,6 +211,33 @@ RULES = [
         summary='NetBox answers more than one request in 20 seconds with a 5xx status',
         for_='10m',
     ),
+    # Every MariaDB from `utils.mariadb` has a `<name>-mariadb-backup` CronJob. A CronJob that
+    # never succeeded has no success time, so its creation time stands in.
+    AlertRule(
+        uid='mariadb-backup-stale',
+        title='No MariaDB backup for 36 hours',
+        expr=(
+            '(time() - max by (namespace, cronjob) ('
+            'kube_cronjob_status_last_successful_time{cronjob=~".+-mariadb-backup"}'
+            ' or kube_cronjob_created{cronjob=~".+-mariadb-backup"})) > bool 129600'
+        ),
+        summary='The {{ $labels.namespace }}/{{ $labels.cronjob }} CronJob has not succeeded in 36 hours',
+        for_='0s',
+        severity='critical',
+    ),
+    # TeslaLogger has no metrics endpoint; kube-state-metrics shows whether its workloads serve.
+    # Missed drives cannot be backfilled. Backups: `mariadb-backup-stale`, `longhorn-volume-backup-stale`.
+    AlertRule(
+        uid='teslalogger-down',
+        title='TeslaLogger is not running',
+        expr=(
+            'kube_deployment_status_replicas_available{namespace="teslalogger"} == bool 0'
+            ' or kube_statefulset_status_replicas_ready{namespace="teslalogger"} == bool 0'
+        ),
+        summary='TeslaLogger workload {{ $labels.deployment }}{{ $labels.statefulset }} has no ready replica; drives are not logged',
+        for_='10m',
+        no_data_state='Alerting',
+    ),
     AlertRule(
         uid='certificate-expiring',
         title='Certificate expires within 14 days',

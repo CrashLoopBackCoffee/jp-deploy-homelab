@@ -23,6 +23,7 @@ dependencies = [
     "observability",
     "paperless",
     "tandoor",
+    "teslalogger",
 ]
 
 [dependency-groups]
@@ -45,6 +46,7 @@ netbox = { workspace = true }
 observability = { workspace = true }
 paperless = { workspace = true }
 tandoor = { workspace = true }
+teslalogger = { workspace = true }
 utils = { workspace = true }
 
 [tool.uv]
@@ -147,3 +149,7 @@ model = "paperless.config:PulumiConfigRoot"
 [tool.config-models.tandoor]
 root = "services/tandoor"
 model = "tandoor.config:PulumiConfigRoot"
+
+[tool.config-models.teslalogger]
+root = "services/teslalogger"
+model = "teslalogger.config:PulumiConfigRoot"
