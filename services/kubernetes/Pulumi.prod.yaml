@@ -48,6 +48,9 @@ config:
           ref: op://Homelab/QuObjects Longhorn Backup/username
         secret-access-key:
           ref: op://Homelab/QuObjects Longhorn Backup/password
+    mariadb-operator:
+      # renovate: datasource=github-releases packageName=mariadb-operator/mariadb-operator versioning=semver
+      version: 26.10.2
     metallb:
       # renovate: datasource=github-releases packageName=metallb/metallb versioning=semver
       version: 0.16.1

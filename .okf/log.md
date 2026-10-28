@@ -1,5 +1,10 @@
 # Update Log
 
+## 2026-10-28
+* **Decision**: ADR-0039 (mariadb-operator 26.10.2 and `utils.mariadb`, logical dumps to the own bucket `mariadb-backups`) and ADR-0040 (TeslaLogger on k0s, MariaDB 10.11, one Pod, `replicas` gate).
+* **Change**: Applied the operator (36 resources) and the `teslalogger` stack (22 resources); rehearsal import of the legacy dump (175206 `pos`, 251479 `charging`, 6440 `drivestate`, all equal) and a rehearsal start: schema update from 1.63.20.4 finished, car found, token restored, 42 dashboards, admin panel HTTP 200, Grafana health `ok`. The stack is back at `replicas: 0`.
+* **Finding**: The operator's backup retention cannot parse QuObjects object keys (`%3A` in `backup.<time>.sql.gz`), so `maxRetention` deletes nothing. Without `databases` it also dumps the `mysql` schema. Grafana 13.2.4 in the upstream image refuses the Angular plugin `natel-discrete-panel`.
+
 ## 2026-10-27
 * **Update**: Removed the legacy `services/monitoring/` Pulumi workspace (ADR-0023 update); ignored local `.omp/` and `docs/.obsidian/`; added `grafana/skills` to APM.
 * **Decision**: ADR-0038 accepted; OPNsense metrics (os-node_exporter plus API exporter), RFC 5424 syslog on port 1516 with parsed filterlog, two generated dashboards, three warning alerts.

@@ -67,6 +67,13 @@
       ],
       separateMultipleMinor: true,
     },
+    {
+      // Stay on the 10.11 LTS line that TeslaLogger is known to work with (ADR-0040)
+      matchPackageNames: [
+        'mariadb',
+      ],
+      allowedVersions: '<10.12',
+    },
   ],
   prHourlyLimit: 10,
   rangeStrategy: 'replace',

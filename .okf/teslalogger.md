@@ -1,0 +1,54 @@
+---
+type: Service
+title: TeslaLogger (Pulumi, applied; rehearsed, final cutover pending)
+description: TeslaLogger migration from dockerhost to k0s with a mariadb-operator database, what the stack creates, image and app facts that shaped the design, the import and cutover runbook, and rehearsal evidence (ADR-0039, ADR-0040).
+timestamp: 2026-10-28T19:00:00Z
+tags: [homelab, kubernetes, teslalogger, mariadb, mariadb-operator, longhorn, migration]
+resource: https://app.pulumi.com/jaypee-solutions/teslalogger/prod
+---
+
+# State
+
+Stack `jaypee-solutions/teslalogger/prod` (source `services/teslalogger`, branch `feature/teslalogger`) applied on 2026-10-28, 22 resources, with `replicas: 0` in `Pulumi.prod.yaml`. The rehearsal import and start worked (evidence below), then the gate was set back to 0 so the legacy logger on `dockerhost` stays the only one polling the car. **Pending (needs the user):** the final run (stop the legacy logger, fresh dump, import, start), `systemctl disable --now tesla-logger`, the DNS cutover, and applying the `observability` stack (the `teslalogger-down` alert fires while the Deployment has 0 replicas). The names `tesla-logger.4jp.de` and `grafana.tesla-logger.4jp.de` still point at `192.168.178.125` in Cloudflare.
+
+# What the stack creates
+
+Namespace `teslalogger`; MariaDB `database` (10.11.19, operator CR, Longhorn volume 5 Gi, `Europe/Berlin`, `utf8mb4_unicode_ci`, root password the literal `teslalogger`); `Database` `teslalogger`; `Backup` `database-mariadb-backup` (daily 21:00 UTC to `mariadb-backups/teslalogger-db/`, only the `teslalogger` schema); NetworkPolicy `database-access`; Secret `grafana-admin` (generated); PVC `teslalogger` (5 Gi, subPaths `tmp`, `data`, `backup`, `invoices`, `grafana`); Deployment `teslalogger` (`Recreate`; init container `prepare`; containers `teslalogger`, `webserver`, `grafana`); Services `teslalogger:5000`, `grafana:3000`, `webserver:80`; Certificate `grafana-certificate` (Let's Encrypt, DNS-01); IngressRoutes `webserver` (wildcard certificate) and `grafana`.
+
+Grafana admin password: `kubectl -n teslalogger get secret grafana-admin -o jsonpath='{.data.password}' | base64 -d`.
+
+# Facts that shaped the design
+
+- The app, PHP panel and Grafana datasource hardcode host `database`, user `root`, password `teslalogger`, database `teslalogger`, and call `http://teslalogger:5000` and `http://grafana:3000`. Names and password are therefore fixed.
+- Docker mode comes from `/tmp/teslalogger-DOCKER` and `/tmp/teslalogger-dockernet8`, written into the image's own `/tmp`; a volume on `/tmp` hides them, so the init container recreates them.
+- On every start teslalogger copies the Grafana plugins and regenerates dashboards into `/var/lib/grafana`; Grafana loads plugins only at startup, so the init container copies the plugins first.
+- The HTTP listener on 5000 opens only after DB connect and schema update: never start it on an empty database (hence `replicas`).
+- Expected log noise: `Error getting Docker container image`, `Watchtower update error` (no `docker.sock`, no Watchtower).
+- Grafana 13.2.4 in the upstream image refuses the Angular plugin `natel-discrete-panel`; `pr0ps-trackmap-panel` and `teslalogger-timeline-panel` load.
+- The mariadb-operator's retention cannot parse the `%3A` in QuObjects object keys, so old dumps are not deleted (ADR-0039). The first smoke dump (1.1 MB, with the `mysql` schema) could not be deleted either.
+
+# Runbook: import and cutover
+
+`ssh -o RemoteCommand=none -o RequestTTY=no dockerhost`; `sudo -n` works. Keep the files in `~/teslalogger-migration` on the workstation, outside the repository.
+
+1. **Final run only:** the user stops the legacy logger, DB left running: `sudo docker stop tesla-logger-teslalogger-1`. Do it while the car is parked.
+2. Dump on `dockerhost`: `mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --routines --triggers teslalogger | gzip` through `docker exec tesla-logger-database-1`, the four count queries (`pos`, `charging`, `drivestate`, `max(Datum)` of `pos`) into `counts.txt`, and copy `/opt/tesla-logger/TeslaLogger/bin/{settings.json,encryption.txt,geofence-private.csv}` plus `/var/lib/docker/volumes/tesla-logger_teslalogger-tmp/_data/nosharedata.txt` into `state/data` and `state/tmp`; `chown` to the login user; `scp -r` to the workstation (macOS `tar` adds `._*` files; delete `._nosharedata.txt` in `/tmp` afterwards).
+3. Import with the Deployment at 0 replicas: `DROP DATABASE IF EXISTS teslalogger; CREATE DATABASE teslalogger CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci` in `database-0`, then `gunzip -c teslalogger.sql.gz | kubectl -n teslalogger exec -i database-0 -- mariadb -uroot -pteslalogger teslalogger`; compare the counts with `counts.txt`. State files: Pod `state-import` (`busybox:1.37`, PVC `teslalogger` at `/state`), `tar -C state -cf - data tmp | kubectl exec -i state-import -- tar -xf - -C /state`, compare `sha256sum`, delete the Pod. Run a `kubectl create job --from=cronjob/database-mariadb-backup` smoke job so the imported data is in the bucket.
+4. Remove `replicas: 0` from `Pulumi.prod.yaml`, preview, `pulumi up`; wait for 3/3 Ready (schema update from 1.63.20.4 at start).
+5. The user runs `sudo systemctl disable --now tesla-logger` on `dockerhost` (files and images stay). Rollback until stage 2: `replicas: 0`, `up`, `sudo systemctl enable --now tesla-logger`; drives logged on k0s meanwhile are not in the legacy database, and a token refreshed on k0s may force a new login on the legacy copy.
+6. Apply the `observability` stack (alerts `teslalogger-down`, `mariadb-backup-stale`).
+7. **DNS (ADR-0029):** the user changes both Cloudflare A records to `10.10.88.1`; read zone and record IDs with the service-account token, add `utils.cloudflare.create_a_record` for `tesla-logger` and `grafana.tesla-logger` with `import_`, preview (two imports, no diff), `up`, remove `import_`, preview shows no changes.
+8. Stage 2 on `dockerhost` (role, `/opt/tesla-logger`, Traefik labels) needs the user's approval.
+
+# Rehearsal evidence (2026-10-28, legacy logger running)
+
+- Operator Pods Ready; `database-0` 1/1; `mariadb`, `database`, `backup` Ready; `select version()` `10.11.19-MariaDB-ubu2204`, `@@time_zone` `Europe/Berlin`, collation `utf8mb4_unicode_ci`.
+- Dump 7.7 MB gz from 10.4.7; import without errors; counts equal to the legacy ones (175206 `pos`, 251479 `charging`, 6440 `drivestate`, newest `2026-10-28 18:40:25.933`); state files equal by `sha256sum`.
+- Smoke backup after the import: 7.85 MB object under `mariadb-backups/teslalogger-db/`. The key reaches only that bucket (`cnpg-backups` returns `NoSuchBucket`).
+- NetworkPolicy: a Pod in `default` times out on port 3306.
+- Start: `Docker NET8: YES!`, `DB Version: 10.11.19-MariaDB-ubu2204`, `DBSchema Update finished`, `Restore Token OK`, car `Y SR (MIG BYD)`; admin panel HTTP 200 and lists `OAL-FA1E`; Grafana `/api/health` `database: ok` with a valid certificate; 42 dashboards.
+- Mimir has series for `kube_cronjob_created`, `kube_cronjob_status_last_successful_time`, `kube_statefulset_status_replicas_ready` and `kube_deployment_status_replicas_available{namespace="teslalogger"}`.
+
+# Still to verify after the final run
+
+Counts equal to a fresh dump; newer `max(Datum)` after the car drives; Longhorn backups of the MariaDB PVC (`kubectl -n teslalogger get pvc -l app.kubernetes.io/instance=database`) and `teslalogger` after 02:00 UTC; a `DAY-mysqldump*.gz` in `/etc/teslalogger/backup` within a day; keep `~/teslalogger-migration` and the stopped legacy until then.

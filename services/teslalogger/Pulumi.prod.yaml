@@ -1,0 +1,29 @@
+config:
+  teslalogger:config:
+    kubeconfig:
+      ref: op://Homelab/Kubeconfig prod/password
+    zone: 4jp.de
+    cloudflare-api-token:
+      ref: op://Homelab/Cloudflare [4jp.de]/password
+    teslalogger:
+      # renovate: datasource=docker packageName=bassmaster187/teslalogger versioning=loose
+      version: 1.63.24.0
+      host: tesla-logger
+      grafana-host: grafana.tesla-logger
+      storage-size: 5Gi
+      replicas: 0
+    database:
+      # renovate: datasource=docker packageName=mariadb versioning=semver
+      image-version: 10.11.19
+      storage-size: 5Gi
+      backup:
+        endpoint: qnap.4jp.de:8443
+        bucket: mariadb-backups
+        region: us-east-1
+        access-key-id:
+          ref: op://Homelab/QuObjects MariaDB Backup/username
+        secret-access-key:
+          ref: op://Homelab/QuObjects MariaDB Backup/password
+        # 21:00 UTC, one hour before the QNAP's 23:00-local snapshot in winter (ADR-0022)
+        schedule: "0 21 * * *"
+        max-retention: 336h
