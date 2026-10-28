@@ -12,6 +12,7 @@ node.name: wazuh-indexer
 network.host: 0.0.0.0
 path.data: /var/lib/wazuh-indexer
 discovery.type: single-node
+compatibility.override_main_response_version: true
 bootstrap.memory_lock: true
 plugins.security.ssl.transport.pemcert_filepath: certs/tls.crt
 plugins.security.ssl.transport.pemkey_filepath: certs/tls.key

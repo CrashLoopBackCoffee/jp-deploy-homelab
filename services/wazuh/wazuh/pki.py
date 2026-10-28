@@ -7,7 +7,7 @@ import pulumi_random as random
 import pulumi_tls as tls
 
 _USERS = {
-    'admin': ('admin-password', True, ['admin']),
+    'admin': ('admin-password-rotated-20261029', True, ['admin']),
     'kibanaserver': ('dashboard-password', True, []),
     'grafana_reader': ('grafana-reader-password', False, ['wazuh_grafana_reader']),
     'metrics_reader': ('metrics-reader-password', False, ['wazuh_metrics_reader']),

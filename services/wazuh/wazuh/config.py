@@ -3,6 +3,8 @@ import utils.model
 
 class ComponentConfig(utils.model.LocalBaseModel):
     kubeconfig: utils.model.OnePasswordRef
+    cloudflare_api_token: utils.model.OnePasswordRef
+    zone: str = '4jp.de'
     version: str = '4.14.9'
     namespace: str = 'wazuh'
     dashboard_hostname: str = 'wazuh.4jp.de'
