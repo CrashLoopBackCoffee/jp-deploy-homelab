@@ -13,6 +13,7 @@ dependencies = [
     "pulumi-onepassword==1.1.3",
     "pulumi-random==4.18.4",
     "pulumi==3.203.0",
+    "pulumi-tls==5.1.0",
 
     # Workspaces
     "backup",
@@ -24,6 +25,7 @@ dependencies = [
     "paperless",
     "tandoor",
     "teslalogger",
+    "wazuh",
 ]
 
 [dependency-groups]
@@ -47,6 +49,7 @@ observability = { workspace = true }
 paperless = { workspace = true }
 tandoor = { workspace = true }
 teslalogger = { workspace = true }
+wazuh = { workspace = true }
 utils = { workspace = true }
 
 [tool.uv]
@@ -153,3 +156,7 @@ model = "tandoor.config:PulumiConfigRoot"
 [tool.config-models.teslalogger]
 root = "services/teslalogger"
 model = "teslalogger.config:PulumiConfigRoot"
+
+[tool.config-models.wazuh]
+root = "services/wazuh"
+model = "wazuh.config:PulumiConfigRoot"
