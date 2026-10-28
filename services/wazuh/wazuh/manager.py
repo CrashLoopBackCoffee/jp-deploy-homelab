@@ -3,6 +3,7 @@
 import hashlib
 
 import pulumi as p
+import pulumi_cloudflare as cloudflare
 import pulumi_kubernetes as k8s
 import utils.cloudflare
 
@@ -26,6 +27,7 @@ def create_manager(
     provider: k8s.Provider,
     namespace: p.Input[str],
     credentials: k8s.core.v1.Secret,
+    cloudflare_provider: cloudflare.Provider,
 ) -> None:
     """Create the persistent standalone manager and source-restricted agent endpoint."""
     opts = p.ResourceOptions(provider=provider)
@@ -510,7 +512,7 @@ def create_manager(
         opts=p.ResourceOptions.merge(opts, p.ResourceOptions(depends_on=[stateful_set])),
     )
 
-    cloudflare_provider = utils.cloudflare.get_token_provider(config.cloudflare_api_token.value)
+    # The stack creates one Cloudflare provider and shares it across records.
     utils.cloudflare.create_a_record(
         'wazuh-manager-dns',
         host=config.manager_hostname.removesuffix(f'.{config.zone}'),
