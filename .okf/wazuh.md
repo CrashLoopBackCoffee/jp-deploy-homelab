@@ -1,15 +1,15 @@
 ---
 type: Architecture
-title: Wazuh security monitoring (planned)
-description: Proposed Wazuh 4.14.9 architecture, upstream pitfalls, LGTM integration contracts, and phased implementation plan.
+title: Wazuh security monitoring
+description: Wazuh 4.14.9 architecture, deployed stack, upstream pitfalls, LGTM integration contracts, and operational state.
 timestamp: 2026-10-26T00:00:00Z
 tags: [homelab, security, wazuh, vulnerability-management, kubernetes, observability]
 resource: https://github.com/wazuh/wazuh-kubernetes/tree/v4.14.9
 ---
 
-# Wazuh security monitoring (planned)
+# Wazuh security monitoring
 
-**[User decision]** Planned single-node Wazuh deployment on k0s; not deployed. Host software inventory/vulnerability reporting is primary, with manual operator triage and no automated remediation. Architecture, implementation, decisions and terms: [[Wazuh Security Monitoring]], [[Wazuh Implementation Plan]], [[ADR-0037 - Wazuh security monitoring on k0s]], [[GLOSSARY]].
+**[User decision; deployed]** Single-node Wazuh deployment on k0s; host software inventory/vulnerability reporting is primary, with manual operator triage and no automated remediation. Architecture, implementation, decisions and terms: [[Wazuh Security Monitoring]], [[Wazuh Implementation Plan]], [[ADR-0037 - Wazuh security monitoring on k0s]], [[GLOSSARY]].
 
 ## Upstream 4.14.9 facts and pitfalls
 
@@ -69,3 +69,11 @@ resource: https://github.com/wazuh/wazuh-kubernetes/tree/v4.14.9
 - Vulnerability Detection is enabled; manager inventory uses `https://wazuh-indexer.wazuh.svc:9200` with TLS. API user `wazuh-wui` uses key `api` in `wazuh-credentials`; enrollment key `enrollment` is mounted at `/var/ossec/etc/authd.pass`. Filebeat and the vulnerability connector use indexer user `admin` (key `admin`) and client certificate Secret `wazuh-filebeat`; CA Secret `wazuh-ca`.
 - `alerts-tail` reads `/var/ossec/logs/alerts/alerts.json`; `ossec-log-tail` reads `/var/ossec/logs/ossec.log`. Both expose the files through read-only log mounts and stdout.
 - **Live acceptance:** Pod reached 3/3 Ready; Wazuh API authentication returned HTTP 200. The first feed database decompression completed at `23:05:13` with `Database decompression finished.` in manager `ossec.log`; its corresponding sidecar output was not captured before a later pod replacement. `dockerhost` connected to 1514/1515; an in-cluster source outside the allowed ranges timed out on 1514. After deleting/recreating the manager Pod, the API RBAC database retained its inode and API login still succeeded; `client.keys` was empty before and after because no agents are enrolled yet. DNS resolved to `10.10.88.3`; the final Pulumi preview had no changes and `uv run ./scripts/run-all-checks.sh` passed.
+
+## Dashboard and LAN ingress (ticket #90)
+
+- `wazuh-dashboard` runs `wazuh/wazuh-dashboard:4.14.9` as a one-replica Deployment (label `app.kubernetes.io/name=wazuh-dashboard`) and ClusterIP Service on TCP/5601. It uses the #87 dashboard leaf certificate for HTTPS; the dashboard's OpenSearch connection uses the `kibanaserver` credential, and its Wazuh app API endpoint is `https://wazuh-manager.wazuh.svc:55000` using `wazuh-wui`. Both connections validate against `wazuh-ca`; credentials remain in `wazuh-credentials`.
+- Traefik's `wazuh-dashboard` ServersTransport trusts the internal CA and verifies the dashboard service SAN. The `wazuh.4jp.de` IngressRoute re-encrypts to the dashboard and uses the cluster wildcard certificate for the frontend. Cloudflare DNS points `wazuh.4jp.de` to Traefik's LAN address `10.10.88.1`; the indexer and manager API remain ClusterIP-only.
+- Admin password retrieval (prints only when deliberately run in a private terminal): `kubectl -n wazuh get secret wazuh-credentials -o jsonpath='{.data.admin}' | base64 -d`
+- **Live acceptance (2026-10-29):** Dashboard Pod is 1/1 Ready; `curl --resolve wazuh.4jp.de:443:10.10.88.1 https://wazuh.4jp.de/` returned HTTP 302 with TLS verification result 0. Login via `POST /auth/login` returned HTTP 200 and the authenticated session redirected `/` to `/app/home` (anonymous requests redirect to `/app/login`). The Wazuh app `POST /api/check-stored-api` returned HTTP 200 for ID `1513629884013`, with the configured manager URL, `wazuh-wui`, and manager `wazuh-manager-0`; Dashboard `/api/status` reported overall `green`. `kubectl get svc -n wazuh` showed indexer 9200 and manager API 55000 as ClusterIP.
+- Ticket #91 NetworkPolicy selectors/ports: indexer `app.kubernetes.io/name=wazuh-indexer`, TCP 9200/9300; manager `app.kubernetes.io/name=wazuh-manager`, TCP 1514/1515/55000; dashboard `app.kubernetes.io/name=wazuh-dashboard`, TCP 5601. Dashboard needs egress to indexer TCP/9200 and manager API TCP/55000; Traefik ingress reaches dashboard TCP/5601.
