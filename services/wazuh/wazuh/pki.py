@@ -18,59 +18,6 @@ _SERVICE_USERS = {
 }
 
 
-_ROLES_YAML = """\
----
-_meta:
-  type: "roles"
-  config_version: 2
-
-wazuh_grafana_reader:
-  cluster_permissions:
-  - "cluster_composite_ops_ro"
-  - "cluster_monitor"
-  index_permissions:
-  - index_patterns:
-    - "wazuh-alerts-*"
-    - "wazuh-states-*"
-    allowed_actions:
-    - "read"
-
-wazuh_metrics_reader:
-  cluster_permissions:
-  - "cluster_monitor"
-  index_permissions:
-  - index_patterns:
-    - "wazuh-alerts-*"
-    allowed_actions:
-    - "read"
-"""
-_ROLE_MAPPINGS_YAML = """\
----
-_meta:
-  type: "rolesmapping"
-  config_version: 2
-
-all_access:
-  backend_roles:
-  - "admin"
-security_rest_api_access:
-  backend_roles:
-  - "admin"
-kibana_server:
-  users:
-  - "kibanaserver"
-manage_wazuh_index:
-  users:
-  - "kibanaserver"
-wazuh_grafana_reader:
-  backend_roles:
-  - "wazuh_grafana_reader"
-wazuh_metrics_reader:
-  backend_roles:
-  - "wazuh_metrics_reader"
-"""
-
-
 def _bcrypt_salt(seed: str) -> str:
     alphabet = './ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
     data = hashlib.sha256(seed.encode()).digest()[:16]
@@ -96,7 +43,9 @@ def _hash(password: p.Output[str], salt_seed: p.Output[str]) -> p.Output[str]:
     )
 
 
-def create_pki(config, provider: k8s.Provider, namespace: p.Input[str]) -> None:
+def create_pki(
+    config, provider: k8s.Provider, namespace: p.Input[str]
+) -> tuple[k8s.core.v1.Secret, k8s.core.v1.Secret]:
     opts = p.ResourceOptions(provider=provider)
     ca_key = tls.PrivateKey('wazuh-ca-key', algorithm='RSA', rsa_bits=4096)
     ca_cert = tls.SelfSignedCert(
@@ -204,15 +153,13 @@ def create_pki(config, provider: k8s.Provider, namespace: p.Input[str]) -> None:
             )
         )
     )
-    k8s.core.v1.Secret(
+    credentials = k8s.core.v1.Secret(
         'wazuh-credentials',
         metadata={'name': 'wazuh-credentials', 'namespace': namespace},
         string_data={
             **passwords,
             **service_passwords,
             'internal_users.yml': internal_users,
-            'roles.yml': _ROLES_YAML,
-            'roles_mapping.yml': _ROLE_MAPPINGS_YAML,
         },
         type='Opaque',
         opts=opts,
@@ -220,3 +167,4 @@ def create_pki(config, provider: k8s.Provider, namespace: p.Input[str]) -> None:
     p.export('ca_pem', ca_cert.cert_pem)
     for name, password in {**passwords, **service_passwords}.items():
         p.export(f'{name}_password', p.Output.secret(password))
+    return ca_secret, credentials

@@ -13,6 +13,7 @@ class ComponentConfig(utils.model.LocalBaseModel):
     indexer_heap: str = '2g'
     indexer_memory_request: str = '3Gi'
     indexer_memory_limit: str = '4Gi'
+    indexer_cpu_request: str = '500m'
 
 
 class StackConfig(utils.model.LocalBaseModel):
