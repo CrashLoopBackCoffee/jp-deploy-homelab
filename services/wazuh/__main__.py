@@ -2,6 +2,7 @@ import pulumi as p
 import pulumi_kubernetes as k8s
 
 from wazuh.config import ComponentConfig
+from wazuh.indexer import create_indexer
 from wazuh.pki import create_pki
 
 config = ComponentConfig.model_validate(p.Config().require_object('config'))
@@ -11,4 +12,5 @@ namespace = k8s.core.v1.Namespace(
     metadata={'name': config.namespace},
     opts=p.ResourceOptions(provider=provider),
 )
-create_pki(config, provider, namespace.metadata.name)
+ca_secret, credentials = create_pki(config, provider, namespace.metadata.name)
+create_indexer(config, provider, namespace.metadata.name, ca_secret, credentials)
