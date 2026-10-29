@@ -12,6 +12,27 @@ from wazuh.config import ComponentConfig
 
 _ALERTS_TAIL = 'exec tail -n 0 -F /var/ossec/logs/alerts/alerts.json'
 _LOG_TAIL = 'exec tail -n 0 -F /var/ossec/logs/ossec.log'
+_CTI_FRESHNESS = """import datetime, json, time, urllib.request
+url = "https://cti.wazuh.com/api/v1/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0"
+request = urllib.request.Request(url, headers={"User-Agent": "curl/8.12.1"})
+while True:
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            data = json.load(response)["data"]
+        event = {
+            "timestamp": now,
+            "event": "cti_freshness",
+            "context": data["context"],
+            "consumer": data["name"],
+            "remote_offset": data["last_offset"],
+            "remote_updated_at": data["updated_at"],
+        }
+    except Exception as error:
+        event = {"timestamp": now, "event": "cti_freshness_error", "error": type(error).__name__, "http_status": getattr(error, "code", 0)}
+    print(json.dumps(event, separators=(",", ":")), flush=True)
+    time.sleep(600)
+"""
 
 
 def _secret_env(name: str, key: str) -> dict[str, object]:
@@ -386,6 +407,22 @@ def create_manager(
                                     'readOnly': True,
                                 },
                             ],
+                        },
+                        {
+                            'name': 'cti-freshness',
+                            'image': f'wazuh/wazuh-manager:{config.version}',
+                            'command': ['python3', '-u', '-c', _CTI_FRESHNESS],
+                            'resources': {
+                                'requests': {'cpu': '10m', 'memory': '32Mi'},
+                                'limits': {'memory': '64Mi'},
+                            },
+                            'securityContext': {
+                                'allowPrivilegeEscalation': False,
+                                'readOnlyRootFilesystem': True,
+                                'runAsNonRoot': True,
+                                'runAsUser': 1000,
+                                'runAsGroup': 999,
+                            },
                         },
                     ],
                     'volumes': [

@@ -1581,6 +1581,43 @@ def _wazuh_dashboard() -> str:
             width=24,
             height=10,
         ),
+        {
+            'id': 11,
+            'type': 'logs',
+            'title': 'Vulnerability transitions (best-effort)',
+            'datasource': _datasource('loki'),
+            'targets': [
+                {'expr': '{namespace="wazuh", job="wazuh-alerts"} | json | rule_id=~"2350[2-6]"'}
+            ],
+            'gridPos': {'x': 0, 'y': 63, 'w': 24, 'h': 10},
+            'description': 'Selected Active/Solved transition alerts. CVE, agent and package remain log fields, not labels.',
+        },
+        {
+            'id': 12,
+            'type': 'logs',
+            'title': 'CTI feed completion and errors',
+            'datasource': _datasource('loki'),
+            'targets': [
+                {
+                    'expr': '{namespace="wazuh", job="wazuh-ossec-log"} |~ "(Feed update process completed|Error updating feed)"'
+                }
+            ],
+            'gridPos': {'x': 0, 'y': 73, 'w': 24, 'h': 8},
+            'description': 'Completion indicates that new content was applied, not a periodic heartbeat; absence is not proof of staleness.',
+        },
+        {
+            'id': 13,
+            'type': 'logs',
+            'title': 'CTI catalog freshness signal (remote offset)',
+            'datasource': _datasource('loki'),
+            'targets': [
+                {
+                    'expr': '{namespace="wazuh", job="wazuh-cti-freshness"} | json | event="cti_freshness"'
+                }
+            ],
+            'gridPos': {'x': 0, 'y': 81, 'w': 24, 'h': 8},
+            'description': 'Read-only CTI catalog consumer offset sampled every 10 minutes. This measures remote catalog metadata, not proof of local manager application.',
+        },
     ]
     # Inventory state has no date field; its configured time field is numeric
     # wazuh.schema.version. Keep these current-state metrics independent of the
