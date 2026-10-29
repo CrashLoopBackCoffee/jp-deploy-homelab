@@ -1,15 +1,15 @@
 ---
 type: Architecture
-title: Wazuh security monitoring — deployed, no agents yet
-description: Wazuh 4.14.9 deployment and architecture, upstream pitfalls, LGTM integration contracts, and operational state; Phase 2 accepted, no agents enrolled yet.
+title: Wazuh security monitoring — k0s0 pilot enrolled
+description: Wazuh 4.14.9 deployment, k0s0 pilot evidence and stop/go review, upstream pitfalls, LGTM integration contracts, and operational state.
 timestamp: 2026-10-29T00:00:00Z
 tags: [homelab, security, wazuh, vulnerability-management, kubernetes, observability]
 resource: https://github.com/wazuh/wazuh-kubernetes/tree/v4.14.9
 ---
 
-# Wazuh security monitoring — deployed, no agents yet
+# Wazuh security monitoring — k0s0 pilot enrolled
 
-**[User decision; deployed, no agents yet]**
+**[Deployed; k0s0 pilot active. Expansion is STOP pending the review gates below.]**
 
 Single-node Wazuh deployment on k0s; host software inventory/vulnerability reporting is primary, with manual operator triage and no automated remediation. Architecture, implementation, decisions and terms: [[Wazuh Security Monitoring]], [[Wazuh Implementation Plan]], [[ADR-0037 - Wazuh security monitoring on k0s]], [[GLOSSARY]].
 
@@ -90,7 +90,7 @@ Single-node Wazuh deployment on k0s; host software inventory/vulnerability repor
 - `wazuh-indexer-exporter` is a ClusterIP Service on TCP/9114 using `quay.io/prometheuscommunity/elasticsearch-exporter:v1.11.0`; its live `/metrics` includes `elasticsearch_cluster_health_status`, `elasticsearch_cluster_health_number_of_nodes`, `elasticsearch_cluster_health_active_shards` and `elasticsearch_cluster_health_unassigned_shards`.
 - `wazuh-findings-exporter` is a ClusterIP Service on TCP/7979 using `quay.io/prometheuscommunity/json-exporter:v0.8.0`. Its `wazuh_vulnerabilities` module POSTs aggregations to `wazuh-states-vulnerabilities-*` and exposes `wazuh_vulnerability_findings_by_severity_count{severity}` and `wazuh_vulnerability_findings_by_agent_count{agent_id,agent_name}` using upstream 4.14.9 fields `vulnerability.severity`, `agent.id` and `agent.name`. Severity emits at most 8 series; the per-agent composite is capped at 592, keeping the combined ceiling at 600.
 - Both exporters send the #87 `wazuh-metrics-reader` TLS certificate and trust `wazuh-ca`; HTTP Basic credentials for `metrics_reader` come from `wazuh-credentials`. The user has only `cluster_monitor` and `read` on `wazuh-*`; a live PUT returned HTTP 403. Exporters are internal-only; no Alloy scrape configuration is included (#96).
-- **Live result:** Both exporter Deployments are 1/1 Ready. `wazuh-indexer-exporter/metrics` returned cluster health series (one node, 25 active shards); the indexer returned a successful vulnerability state count of zero and the JSON `/probe` returned HTTP 200 with no findings samples. `client.keys` has zero enrolled agents; no fake index data was inserted. Thus both findings metrics currently return no samples because the state index is empty.
+- **Pilot update (ticket #94):** Agent `k0s0` is now enrolled as ID `001` in group `k0s-nodes`, running and held at exactly 4.14.9; see the stop/go review below. Findings exporter samples are now expected.
 
 ## Phase 2 acceptance verification (2026-10-29; ticket #93)
 
@@ -103,3 +103,26 @@ Single-node Wazuh deployment on k0s; host software inventory/vulnerability repor
 - `kubectl -n wazuh logs wazuh-manager-0 -c ossec-log-tail --since=24h`: `2026/10/29 00:03:55 wazuh-modulesd:vulnerability-scanner: INFO: Feed update process completed.` Upstream v4.14.9 `databaseFeedManager.hpp` logs this after `postUpdateCallback()`; decompression and module-start lines are earlier lifecycle messages.
 - Grafana reader index `PUT` returned HTTP 403; `GET` on the alert index returned HTTP 200. Default-namespace BusyBox `nc -z -w 5 wazuh-indexer.wazuh.svc 9200` exited 1 (blocked); probe deleted.
 - Indexer exporter `/metrics`: `elasticsearch_cluster_health_status{color="green"} 1`, one node, 26 active shards and zero unassigned shards. Findings exporter had no `wazuh_vulnerability_findings` samples; current findings count is zero and no agents are enrolled, so no findings samples are expected.
+
+## k0s0 pilot agent and stop/go review (ticket #94; 2026-10-29)
+
+**Verdict: STOP before expanding enrollment.** The k0s0 pilot is enrolled and its first inventory/finding data passes the quantitative gate, but the review found a CTI freshness concern and a sharp initial alert burst. Keep only k0s0 enrolled while feed health and alert behaviour are reviewed; do not add any other host.
+
+### Reproducible operations
+
+- Inventory and playbook: `services/wazuh/ansible/inventory.yaml` and `install-agent.yaml`. `k0s0` (`10.10.8.1`) connects as `k0sctl` over the SSH agent with passwordless sudo. The playbook pins `wazuh-agent` to `4.14.9-1`, writes the manager mapping `10.10.88.3 wazuh-manager.4jp.de` because the host's configured LAN DNS (`10.10.0.1`) did not resolve that name, configures `WAZUH_MANAGER=wazuh-manager.4jp.de`, sets `WAZUH_AGENT_GROUP=k0s-nodes` at installation, holds the package and enables its service.
+- Run from the repository root after `kubectl` is configured, without putting the enrollment secret in source or output: `WAZUH_ENROLLMENT_PASSWORD="$(kubectl -n wazuh get secret wazuh-credentials -o jsonpath='{.data.enrollment}' | base64 -d)" ansible-playbook -i services/wazuh/ansible/inventory.yaml services/wazuh/ansible/install-agent.yaml --limit k0s0`. The enrollment task is `no_log`; do not enable shell tracing for this command.
+- Manager groups are created idempotently in the manager container; re-run the following to ensure all requested groups exist:
+  `kubectl -n wazuh exec wazuh-manager-0 -c manager -- sh -c 'for group in k0s-nodes proxmox vms lxc docker-hosts opnsense; do if /var/ossec/bin/agent_groups -l | grep -Fq "  $group ("; then printf "%s already exists\n" "$group"; else /var/ossec/bin/agent_groups -a -q -g "$group"; fi; done'`
+- `ansible-playbook -i services/wazuh/ansible/inventory.yaml --syntax-check services/wazuh/ansible/install-agent.yaml` passed. `uv run ./scripts/run-all-checks.sh` passed (all repository hooks).
+
+### Live evidence and review
+
+- Enrolled at 2026-10-29 05:03 UTC. Manager `agent_control -l` reported agent `001`, `k0s0`, `Active`; authenticated manager API `GET /agents?agents_list=001` returned `status=active`, `group=["k0s-nodes"]`, `version="Wazuh v4.14.9"`. `dpkg-query` showed `4.14.9-1`, dpkg selection `hold`, service `enabled` and `active`. This is not newer than manager 4.14.9.
+- First syscollector results arrived within minutes, well inside the one-hour gate. Manager API `GET /syscollector/001/packages?limit=1` reported 519 packages; the package state index count query for agent `001` returned 510 documents, versus 520 from `dpkg -l | wc -l` on k0s0 (1.92% difference, including dpkg's header/summary rows in the host count). Process and port inventory queries returned 690 and 747 agent documents. `wazuh-states-vulnerabilities-*` contained 7,014 current findings for agent `001`.
+- Current findings severity aggregation for agent `001`: Critical 285, High 2,138, Medium 1,692, Low 301, and `-`/unclassified 2,598 (total 7,014). The `-` bucket is explicitly unclassified; it is not counted as a severity level.
+- Event behaviour since enrollment: 353 alert documents for agent `001`; Wazuh rule levels 3: 228, 7: 124, 4: 1. This initial burst is consistent with first-run inventory/security activity but is large enough to monitor; it is not the same metric as vulnerability current state. No other agent was enrolled.
+- At 2026-10-29 05:06 UTC, `kubectl top node k0s0` showed 1,651m CPU (13%) and 18,357Mi memory (57%). `free -h` showed 13Gi available, 267Mi free and no swap; this distinction indicates cache/reclaimable memory, not only 267Mi usable. Wazuh Pods used about 4.2Gi total at the same sample (indexer 2,838Mi; manager 1,143Mi; dashboard 193Mi; exporters 19Mi). Host load average was 2.95/1.74/1.40. No pre-enrollment resource sample was captured, so these are post-enrollment measurements, not a measured delta.
+- Feed health: no `Error updating feed` appeared in the sampled manager log; the latest success was `2026/10/29 00:03:55 ... Feed update process completed.` At 05:06 UTC it was about five hours old. This exceeds the two-hour freshness threshold specified for the feed signal, so CTI freshness is unconfirmed/stale at review time. Resolve and observe the feed-success signal before expansion; do not infer health from absence of an error.
+- Group list confirmed all six groups: `k0s-nodes`, `proxmox`, `vms`, `lxc`, `docker-hosts`, `opnsense`.
+- Surprises: the k0s0 LAN resolver did not resolve `wazuh-manager.4jp.de` although public DNS resolved it to `10.10.88.3`; the Ansible-managed `/etc/hosts` entry restored name resolution. Enrollment then succeeded. The agent and manager are both exactly 4.14.9; no version skew was observed. Feed staleness and the initial alert volume—not package matching, inventory, or resource usage—drive the stop decision.
