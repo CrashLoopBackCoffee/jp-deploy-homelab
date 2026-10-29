@@ -1,15 +1,17 @@
 ---
 type: Architecture
-title: Wazuh security monitoring
-description: Wazuh 4.14.9 architecture, deployed stack, upstream pitfalls, LGTM integration contracts, and operational state.
-timestamp: 2026-10-26T00:00:00Z
+title: Wazuh security monitoring — deployed, no agents yet
+description: Wazuh 4.14.9 deployment and architecture, upstream pitfalls, LGTM integration contracts, and operational state; Phase 2 accepted, no agents enrolled yet.
+timestamp: 2026-10-29T00:00:00Z
 tags: [homelab, security, wazuh, vulnerability-management, kubernetes, observability]
 resource: https://github.com/wazuh/wazuh-kubernetes/tree/v4.14.9
 ---
 
-# Wazuh security monitoring
+# Wazuh security monitoring — deployed, no agents yet
 
-**[User decision; deployed]** Single-node Wazuh deployment on k0s; host software inventory/vulnerability reporting is primary, with manual operator triage and no automated remediation. Architecture, implementation, decisions and terms: [[Wazuh Security Monitoring]], [[Wazuh Implementation Plan]], [[ADR-0037 - Wazuh security monitoring on k0s]], [[GLOSSARY]].
+**[User decision; deployed, no agents yet]**
+
+Single-node Wazuh deployment on k0s; host software inventory/vulnerability reporting is primary, with manual operator triage and no automated remediation. Architecture, implementation, decisions and terms: [[Wazuh Security Monitoring]], [[Wazuh Implementation Plan]], [[ADR-0037 - Wazuh security monitoring on k0s]], [[GLOSSARY]].
 
 ## Upstream 4.14.9 facts and pitfalls
 
@@ -89,3 +91,15 @@ resource: https://github.com/wazuh/wazuh-kubernetes/tree/v4.14.9
 - `wazuh-findings-exporter` is a ClusterIP Service on TCP/7979 using `quay.io/prometheuscommunity/json-exporter:v0.8.0`. Its `wazuh_vulnerabilities` module POSTs aggregations to `wazuh-states-vulnerabilities-*` and exposes `wazuh_vulnerability_findings_by_severity_count{severity}` and `wazuh_vulnerability_findings_by_agent_count{agent_id,agent_name}` using upstream 4.14.9 fields `vulnerability.severity`, `agent.id` and `agent.name`. Severity emits at most 8 series; the per-agent composite is capped at 592, keeping the combined ceiling at 600.
 - Both exporters send the #87 `wazuh-metrics-reader` TLS certificate and trust `wazuh-ca`; HTTP Basic credentials for `metrics_reader` come from `wazuh-credentials`. The user has only `cluster_monitor` and `read` on `wazuh-*`; a live PUT returned HTTP 403. Exporters are internal-only; no Alloy scrape configuration is included (#96).
 - **Live result:** Both exporter Deployments are 1/1 Ready. `wazuh-indexer-exporter/metrics` returned cluster health series (one node, 25 active shards); the indexer returned a successful vulnerability state count of zero and the JSON `/probe` returned HTTP 200 with no findings samples. `client.keys` has zero enrolled agents; no fake index data was inserted. Thus both findings metrics currently return no samples because the state index is empty.
+
+## Phase 2 acceptance verification (2026-10-29; ticket #93)
+
+**Accepted 2026-10-29; the full Phase 2 live acceptance passed after fixing single-node replica defaults.** Initial health was yellow because two OpenSearch system indices had one replica each. The code-managed hashed security Job now sets zero replicas on those existing indices and persistently configures ISM history to create future daily history indices with zero replicas. Admin `_cluster/health` is green, one node, 26 active primary shards and zero unassigned shards. Persistent `_cluster/settings` shows `plugins.index_state_management.history.number_of_replicas=0`; a throwaway Wazuh index verified `index.number_of_replicas=0` and was deleted.
+
+- `direnv exec ../.. pulumi preview --stack prod --non-interactive --expect-no-changes`: 56 unchanged.
+- `kubectl -n wazuh get pods -o wide`: indexer, manager (3/3), dashboard and both exporters Ready; security configuration Job Complete. Both Wazuh PVCs Bound with `recurring-job-group.longhorn.io/default=enabled`.
+- Admin `GET /_cluster/health?pretty`: `green`, one node/data node, 26 active primary/active shards, zero unassigned shards. `_cat/indices` included `wazuh-alerts-4.x-2026.10.28` and `wazuh-states-vulnerabilities-wazuh-manager-0`.
+- Dashboard `POST /auth/login` returned HTTP 200; authenticated `/app/home` returned HTTP 200.
+- `kubectl -n wazuh logs wazuh-manager-0 -c ossec-log-tail --since=24h`: `2026/10/29 00:03:55 wazuh-modulesd:vulnerability-scanner: INFO: Feed update process completed.` Upstream v4.14.9 `databaseFeedManager.hpp` logs this after `postUpdateCallback()`; decompression and module-start lines are earlier lifecycle messages.
+- Grafana reader index `PUT` returned HTTP 403; `GET` on the alert index returned HTTP 200. Default-namespace BusyBox `nc -z -w 5 wazuh-indexer.wazuh.svc 9200` exited 1 (blocked); probe deleted.
+- Indexer exporter `/metrics`: `elasticsearch_cluster_health_status{color="green"} 1`, one node, 26 active shards and zero unassigned shards. Findings exporter had no `wazuh_vulnerability_findings` samples; current findings count is zero and no agents are enrolled, so no findings samples are expected.
