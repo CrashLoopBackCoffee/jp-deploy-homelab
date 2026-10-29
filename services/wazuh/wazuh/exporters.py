@@ -80,7 +80,7 @@ _FINDINGS_CONFIG = {
                         'size': 0,
                         'aggs': {
                             'status': {
-                                'terms': {'field': 'status', 'size': 8},
+                                'terms': {'field': 'status.keyword', 'size': 8},
                             }
                         },
                     },

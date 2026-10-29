@@ -162,6 +162,18 @@ discovery.relabel "metrics_pods" {
 		regex         = "trivy-operator"
 		action        = "drop"
 	}
+	// Wazuh exporters are scraped explicitly through allow-lists below; avoid their broad default metrics.
+	rule {
+		source_labels = ["__meta_kubernetes_namespace"]
+		regex         = "wazuh"
+		action        = "drop"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_container_name"]
+		regex         = "wazuh-(indexer|findings)-exporter"
+		action        = "drop"
+	}
 
 	rule {
 		source_labels = ["__meta_kubernetes_namespace"]
@@ -298,7 +310,7 @@ prometheus.relabel "wazuh_indexer" {
 
 	rule {
 		source_labels = ["__name__", "index", "area"]
-		regex         = "^(elasticsearch_cluster_health_(status|number_of_nodes|active_shards|unassigned_shards);;|elasticsearch_indices_(store_size_bytes_total|docs_total);wazuh-.*;|elasticsearch_jvm_memory_(used|max)_bytes;;heap|elasticsearch_filesystem_data_(available|size)_bytes;;)$"
+		regex         = "^(up;;|elasticsearch_cluster_health_(status|number_of_nodes|active_shards|unassigned_shards);;|elasticsearch_indices_(store_size_bytes_total|docs_total);wazuh-.*;|elasticsearch_jvm_memory_(used|max)_bytes;;heap|elasticsearch_filesystem_data_(available|size)_bytes;;)$"
 		action        = "keep"
 	}
 }
@@ -321,7 +333,7 @@ prometheus.relabel "wazuh_findings" {
 
 	rule {
 		source_labels = ["__name__"]
-		regex         = "^(wazuh_agent_status_count|wazuh_high_level_events)$"
+		regex         = "^(up|wazuh_agent_status_count|wazuh_high_level_events)$"
 		action        = "keep"
 	}
 }
