@@ -7,13 +7,21 @@ from wazuh.dashboard import create_dashboard
 from wazuh.exporters import create_exporters
 from wazuh.indexer import create_indexer
 from wazuh.manager import create_manager
+from wazuh.network import create_network_policies
 from wazuh.pki import create_pki
 
 config = ComponentConfig.model_validate(p.Config().require_object('config'))
 provider = k8s.Provider('k8s', kubeconfig=config.kubeconfig.value)
 namespace = k8s.core.v1.Namespace(
     'wazuh-namespace',
-    metadata={'name': config.namespace},
+    metadata={
+        'name': config.namespace,
+        'labels': {
+            'pod-security.kubernetes.io/enforce': 'baseline',
+            'pod-security.kubernetes.io/warn': 'baseline',
+            'pod-security.kubernetes.io/audit': 'baseline',
+        },
+    },
     opts=p.ResourceOptions(provider=provider),
 )
 cloudflare_provider = utils.cloudflare.get_token_provider(config.cloudflare_api_token.value)
@@ -24,3 +32,4 @@ create_manager(config, provider, namespace.metadata.name, credentials, cloudflar
 create_dashboard(
     config, provider, namespace.metadata.name, ca_secret, credentials, cloudflare_provider
 )
+create_network_policies(provider, namespace.metadata.name)
