@@ -102,6 +102,9 @@ def create_grafana(
     wazuh_password = wazuh_credentials.data.apply(
         lambda data: base64.b64decode(data['grafana_reader']).decode()
     )
+    wazuh_password_checksum = wazuh_password.apply(
+        lambda password: hashlib.sha256(password.encode()).hexdigest()
+    )
     wazuh_ca_cert = wazuh_ca.data.apply(lambda data: base64.b64decode(data['tls.crt']).decode())
     admin_password = random.RandomPassword('grafana-admin-password', length=32, special=False)
     secret_key = random.RandomPassword('grafana-secret-key', length=64, special=False)
@@ -150,8 +153,10 @@ def create_grafana(
             },
             'testFramework': {'enabled': False},
             'plugins': ['grafana-opensearch-datasource@2.34.5'],
-            # Grafana reads alerting provisioning only at startup, so changed content rolls the pod.
-            'podAnnotations': {'checksum/provisioning': _checksum(alerting_files)},
+            'podAnnotations': {
+                'checksum/provisioning': _checksum(alerting_files),
+                'checksum/wazuh-credentials': wazuh_password_checksum,
+            },
             'datasources': {
                 'datasources.yaml': {
                     'apiVersion': 1,

@@ -25,10 +25,14 @@ namespace = k8s.core.v1.Namespace(
     opts=p.ResourceOptions(provider=provider),
 )
 cloudflare_provider = utils.cloudflare.get_token_provider(config.cloudflare_api_token.value)
-ca_secret, credentials = create_pki(config, provider, namespace.metadata.name)
+ca_secret, credentials, admin_password, metrics_password = create_pki(
+    config, provider, namespace.metadata.name
+)
 create_indexer(config, provider, namespace.metadata.name, ca_secret, credentials)
-create_exporters(config, provider, namespace.metadata.name, ca_secret)
-create_manager(config, provider, namespace.metadata.name, credentials, cloudflare_provider)
+create_exporters(config, provider, namespace.metadata.name, ca_secret, metrics_password)
+create_manager(
+    config, provider, namespace.metadata.name, credentials, admin_password, cloudflare_provider
+)
 create_dashboard(
     config, provider, namespace.metadata.name, ca_secret, credentials, cloudflare_provider
 )
