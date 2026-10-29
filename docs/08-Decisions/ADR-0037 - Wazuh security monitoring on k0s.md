@@ -1,10 +1,10 @@
 ---
 tags: [homelab, adr, security, wazuh, observability]
 type: adr
-status: proposed
+status: accepted
 date: 2026-10-26
 created: 2026-10-26
-updated: 2026-10-26
+updated: 2026-10-29
 adr: 37
 ---
 
@@ -12,7 +12,7 @@ adr: 37
 
 ## Status
 
-Proposed on 2026-10-26; becomes accepted after Phase 2 verification.
+Accepted on 2026-10-29 after the full Phase 2 live acceptance gate passed. Implementation refinements from the proposal: Wazuh 4.14.9's Filebeat client required `compatibility.override_main_response_version: true`; Pulumi TLS leaf keys are PKCS#8; the generated indexer admin credential was rotated after diagnostic exposure; recommended sizing was retained after the Phase 1 capacity gate passed; the agent endpoint is MetalLB `10.10.88.3`; security configuration, users, roles, templates, ISM policies and single-node replica settings are applied by the hashed Pulumi security Job; NetworkPolicies enforce ingress-only isolation while egress remains open.
 
 ## Context
 

@@ -292,6 +292,14 @@ for name in alerts monitoring; do
     -H 'Content-Type: application/json' -X PUT -d "@/custom/ism-$name.json" "$url"
 done
 curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{{"persistent":{{"plugins.index_state_management.history.number_of_replicas":0}}}}' \\
+  'https://wazuh-indexer:9200/_cluster/settings'
+for index in '.opendistro-ism-managed-index-history-*' '.opendistro-job-scheduler-lock'; do
+  curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+    -H 'Content-Type: application/json' -X PUT -d '{{"index.number_of_replicas":0}}' \\
+    "https://wazuh-indexer:9200/$index/_settings"
+done
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
   -H 'Content-Type: application/json' -X PUT -d '{{"index_patterns":["wazuh-*"],"priority":1,"template":{{"settings":{{"index.number_of_replicas":0}}}}}}' \\
   'https://wazuh-indexer:9200/_index_template/wazuh-single-node'
 curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
