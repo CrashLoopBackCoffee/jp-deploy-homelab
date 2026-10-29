@@ -162,7 +162,9 @@ def create_grafana(
                 'analytics': {'reporting_enabled': False, 'check_for_updates': False},
             },
             'testFramework': {'enabled': False},
-            'plugins': ['grafana-opensearch-datasource@2.34.5'],
+            'plugins': [
+                f'grafana-opensearch-datasource@{grafana_config.opensearch_plugin_version}'
+            ],
             'podAnnotations': {
                 'checksum/provisioning': _checksum(alerting_files),
                 'checksum/wazuh-credentials': wazuh_password_checksum,

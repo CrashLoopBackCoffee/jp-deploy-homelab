@@ -49,7 +49,7 @@ def create_trivy_operator(
             },
             'trivy': {
                 'mode': 'Standalone',
-                'image': {'tag': '0.75.0'},
+                'image': {'tag': component_config.trivy_operator.trivy_image_version},
                 'resources': {
                     'requests': {'cpu': '500m', 'memory': '512Mi'},
                     'limits': {'memory': '2Gi'},

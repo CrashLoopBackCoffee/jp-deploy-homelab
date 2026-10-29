@@ -41,7 +41,7 @@ def create_network_policies(provider: k8s.Provider, namespace: p.Input[str]) -> 
     k8s.networking.v1.NetworkPolicy(
         'wazuh-indexer-ingress',
         metadata={'name': 'wazuh-indexer-ingress', 'namespace': namespace},
-        spec={  # type: ignore
+        spec={  # type: ignore[reportArgumentType]  # Nested Kubernetes input inference loses the generated spec type.
             'pod_selector': {'match_labels': {'app.kubernetes.io/name': 'wazuh-indexer'}},
             'policy_types': ['Ingress'],
             'ingress': [
@@ -58,7 +58,7 @@ def create_network_policies(provider: k8s.Provider, namespace: p.Input[str]) -> 
     k8s.networking.v1.NetworkPolicy(
         'wazuh-manager-ingress',
         metadata={'name': 'wazuh-manager-ingress', 'namespace': namespace},
-        spec={  # type: ignore
+        spec={  # type: ignore[reportArgumentType]  # Nested Kubernetes input inference loses the generated spec type.
             'pod_selector': {'match_labels': {'app.kubernetes.io/name': 'wazuh-manager'}},
             'policy_types': ['Ingress'],
             'ingress': [
@@ -110,7 +110,7 @@ def create_network_policies(provider: k8s.Provider, namespace: p.Input[str]) -> 
         k8s.networking.v1.NetworkPolicy(
             resource_name,
             metadata={'name': resource_name, 'namespace': namespace},
-            spec={  # type: ignore
+            spec={  # type: ignore[reportArgumentType]  # Nested Kubernetes input inference loses the generated spec type.
                 'pod_selector': {'match_labels': {'app.kubernetes.io/name': app_name}},
                 'policy_types': ['Ingress'],
                 'ingress': [

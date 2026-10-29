@@ -4,18 +4,20 @@ import utils.model
 class ComponentConfig(utils.model.LocalBaseModel):
     kubeconfig: utils.model.OnePasswordRef
     cloudflare_api_token: utils.model.OnePasswordRef
-    zone: str = '4jp.de'
-    version: str = '4.14.9'
+    zone: str
+    version: str
     namespace: str = 'wazuh'
-    dashboard_hostname: str = 'wazuh.4jp.de'
-    manager_hostname: str = 'wazuh-manager.4jp.de'
-    agent_address: str = '10.10.88.3'
+    dashboard_hostname: str
+    manager_hostname: str
+    agent_address: str
+    agent_source_ranges: list[str]
     indexer_storage: str = '50Gi'
     manager_storage: str = '20Gi'
     indexer_heap: str = '2g'
     indexer_memory_request: str = '3Gi'
     indexer_memory_limit: str = '4Gi'
     indexer_cpu_request: str = '500m'
+    busybox_version: str
 
 
 class StackConfig(utils.model.LocalBaseModel):

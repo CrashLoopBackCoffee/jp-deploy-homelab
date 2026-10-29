@@ -815,7 +815,6 @@ NETBOX_PANELS = [
 ]
 
 # OPNsense (ADR-0038): `opnsense` is the API exporter, `opnsense-node` the os-node_exporter plugin
-
 # (FreeBSD names: wired/active/inactive/laundry/cache/free memory, no MemAvailable), `opnsense-syslog`
 # the remote log. Gateway status codes: 0 offline, 1 online, 2 unknown, 3 pending, 4 packet loss,
 # 5 latency, 6 forced offline.
@@ -1485,7 +1484,7 @@ def _wazuh_dashboard() -> str:
             'title': 'State versus event history',
             'options': {
                 'mode': 'markdown',
-                'content': '**Current state is authoritative.** Vulnerability transition events are '
+                'content': '**Current state is authoritative.** Vulnerability transition events are\n\n'
                 'best-effort history and do not represent a complete lifecycle ledger.',
             },
             'gridPos': {'x': 0, 'y': 0, 'w': 24, 'h': 4},

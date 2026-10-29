@@ -84,6 +84,7 @@ class MariadbOperatorConfig(utils.model.LocalBaseModel):
 
 class TrivyOperatorConfig(utils.model.LocalBaseModel):
     version: str
+    trivy_image_version: str
 
 
 class ComponentConfig(utils.model.LocalBaseModel):

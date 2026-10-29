@@ -7,6 +7,8 @@ import pulumi_kubernetes as k8s
 import pulumi_random as random
 import pulumi_tls as tls
 
+from wazuh.config import ComponentConfig
+
 _USERS = {
     'admin': ('admin-password-rotated-20261029', True, ['admin']),
     'kibanaserver': ('dashboard-password', True, []),
@@ -19,6 +21,7 @@ _SERVICE_USERS = {
 }
 
 
+# Derive a stable bcrypt salt from the password seed so unchanged Pulumi inputs yield stable hashes.
 def _bcrypt_salt(seed: str) -> str:
     alphabet = './ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
     data = hashlib.sha256(seed.encode()).digest()[:16]
@@ -45,7 +48,7 @@ def _hash(password: p.Output[str], salt_seed: p.Output[str]) -> p.Output[str]:
 
 
 def create_pki(
-    config, provider: k8s.Provider, namespace: p.Input[str]
+    config: ComponentConfig, provider: k8s.Provider, namespace: p.Input[str]
 ) -> tuple[k8s.core.v1.Secret, k8s.core.v1.Secret, p.Output[str], p.Output[str]]:
     opts = p.ResourceOptions(provider=provider)
     ca_key = tls.PrivateKey('wazuh-ca-key', algorithm='RSA', rsa_bits=4096)

@@ -11,6 +11,11 @@ config:
     dashboard-hostname: wazuh.4jp.de
     manager-hostname: wazuh-manager.4jp.de
     agent-address: 10.10.88.3
+    agent-source-ranges:
+      - 10.10.0.0/16
+      - 192.168.178.125/32
+    # renovate: datasource=docker packageName=busybox versioning=loose
+    busybox-version: 1.37.0
     indexer-storage: 50Gi
     manager-storage: 20Gi
     indexer-heap: 2g

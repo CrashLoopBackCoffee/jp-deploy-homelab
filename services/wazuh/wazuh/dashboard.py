@@ -53,15 +53,15 @@ opensearch.password: ${{DASHBOARD_PASSWORD}}
     deployment = k8s.apps.v1.Deployment(
         'wazuh-dashboard',
         metadata={'name': 'wazuh-dashboard', 'namespace': namespace},
-        spec={  # type: ignore
+        spec={  # type: ignore[reportArgumentType]  # Nested Kubernetes input inference loses the generated spec type.
             'replicas': 1,
-            'selector': {'matchLabels': labels},
+            'selector': {'match_labels': labels},
             'strategy': {'type': 'Recreate'},
             'template': {
                 'metadata': {'labels': labels},
                 'spec': {
-                    'securityContext': {'fsGroup': 1000},
-                    'initContainers': [
+                    'security_context': {'fs_group': 1000},
+                    'init_containers': [
                         {
                             'name': 'prepare-api-config',
                             'image': f'wazuh/wazuh-dashboard:{config.version}',
@@ -76,23 +76,26 @@ opensearch.password: ${{DASHBOARD_PASSWORD}}
                             'env': [
                                 {
                                     'name': 'API_PASSWORD',
-                                    'valueFrom': {
-                                        'secretKeyRef': {'name': 'wazuh-credentials', 'key': 'api'}
+                                    'value_from': {
+                                        'secret_key_ref': {
+                                            'name': 'wazuh-credentials',
+                                            'key': 'api',
+                                        }
                                     },
                                 },
                             ],
-                            'volumeMounts': [
-                                {'name': 'config', 'mountPath': '/source', 'readOnly': True},
-                                {'name': 'wazuh-config', 'mountPath': '/writable'},
+                            'volume_mounts': [
+                                {'name': 'config', 'mount_path': '/source', 'read_only': True},
+                                {'name': 'wazuh-config', 'mount_path': '/writable'},
                             ],
-                            'securityContext': {'allowPrivilegeEscalation': False},
+                            'security_context': {'allow_privilege_escalation': False},
                         }
                     ],
                     'containers': [
                         {
                             'name': 'wazuh-dashboard',
                             'image': f'wazuh/wazuh-dashboard:{config.version}',
-                            'ports': [{'name': 'https', 'containerPort': DASHBOARD_PORT}],
+                            'ports': [{'name': 'https', 'container_port': DASHBOARD_PORT}],
                             'env': [
                                 {
                                     'name': 'INDEXER_URL',
@@ -101,8 +104,8 @@ opensearch.password: ${{DASHBOARD_PASSWORD}}
                                 {'name': 'INDEXER_USERNAME', 'value': 'kibanaserver'},
                                 {
                                     'name': 'INDEXER_PASSWORD',
-                                    'valueFrom': {
-                                        'secretKeyRef': {
+                                    'value_from': {
+                                        'secret_key_ref': {
                                             'name': 'wazuh-credentials',
                                             'key': 'kibanaserver',
                                         }
@@ -111,8 +114,8 @@ opensearch.password: ${{DASHBOARD_PASSWORD}}
                                 {'name': 'DASHBOARD_USERNAME', 'value': 'kibanaserver'},
                                 {
                                     'name': 'DASHBOARD_PASSWORD',
-                                    'valueFrom': {
-                                        'secretKeyRef': {
+                                    'value_from': {
+                                        'secret_key_ref': {
                                             'name': 'wazuh-credentials',
                                             'key': 'kibanaserver',
                                         }
@@ -125,40 +128,44 @@ opensearch.password: ${{DASHBOARD_PASSWORD}}
                                     },
                                 },
                             ],
-                            'volumeMounts': [
+                            'volume_mounts': [
                                 {
                                     'name': 'config',
-                                    'mountPath': '/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml',
-                                    'subPath': 'opensearch_dashboards.yml',
-                                    'readOnly': True,
+                                    'mount_path': '/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml',
+                                    'sub_path': 'opensearch_dashboards.yml',
+                                    'read_only': True,
                                 },
                                 {
                                     'name': 'wazuh-config',
-                                    'mountPath': '/usr/share/wazuh-dashboard/data/wazuh/config',
-                                    'readOnly': False,
+                                    'mount_path': '/usr/share/wazuh-dashboard/data/wazuh/config',
+                                    'read_only': False,
                                 },
                                 {
                                     'name': 'dashboard-certs',
-                                    'mountPath': '/usr/share/wazuh-dashboard/certs/cert.pem',
-                                    'subPath': 'tls.crt',
-                                    'readOnly': True,
+                                    'mount_path': '/usr/share/wazuh-dashboard/certs/cert.pem',
+                                    'sub_path': 'tls.crt',
+                                    'read_only': True,
                                 },
                                 {
                                     'name': 'dashboard-certs',
-                                    'mountPath': '/usr/share/wazuh-dashboard/certs/key.pem',
-                                    'subPath': 'tls.key',
-                                    'readOnly': True,
+                                    'mount_path': '/usr/share/wazuh-dashboard/certs/key.pem',
+                                    'sub_path': 'tls.key',
+                                    'read_only': True,
                                 },
                                 {
                                     'name': 'ca',
-                                    'mountPath': '/usr/share/wazuh-dashboard/certs/ca',
-                                    'readOnly': True,
+                                    'mount_path': '/usr/share/wazuh-dashboard/certs/ca',
+                                    'read_only': True,
                                 },
                             ],
-                            'readinessProbe': {
-                                'httpGet': {'path': '/', 'port': DASHBOARD_PORT, 'scheme': 'HTTPS'},
-                                'initialDelaySeconds': 30,
-                                'periodSeconds': 10,
+                            'readiness_probe': {
+                                'http_get': {
+                                    'path': '/',
+                                    'port': DASHBOARD_PORT,
+                                    'scheme': 'HTTPS',
+                                },
+                                'initial_delay_seconds': 30,
+                                'period_seconds': 10,
                             },
                             'resources': {
                                 'requests': {'cpu': '100m', 'memory': '512Mi'},
@@ -167,13 +174,13 @@ opensearch.password: ${{DASHBOARD_PASSWORD}}
                         },
                     ],
                     'volumes': [
-                        {'name': 'config', 'configMap': {'name': config_map.metadata.name}},
-                        {'name': 'wazuh-config', 'emptyDir': {}},
-                        {'name': 'dashboard-certs', 'secret': {'secretName': 'wazuh-dashboard'}},
+                        {'name': 'config', 'config_map': {'name': config_map.metadata.name}},
+                        {'name': 'wazuh-config', 'empty_dir': {}},
+                        {'name': 'dashboard-certs', 'secret': {'secret_name': 'wazuh-dashboard'}},
                         {
                             'name': 'ca',
                             'secret': {
-                                'secretName': ca_secret.metadata.name,
+                                'secret_name': ca_secret.metadata.name,
                                 'items': [{'key': 'ca.crt', 'path': 'ca.crt'}],
                             },
                         },
@@ -188,10 +195,10 @@ opensearch.password: ${{DASHBOARD_PASSWORD}}
     service = k8s.core.v1.Service(
         'wazuh-dashboard',
         metadata={'name': 'wazuh-dashboard', 'namespace': namespace},
-        spec={  # type: ignore
+        spec={
             'type': 'ClusterIP',
             'selector': labels,
-            'ports': [{'name': 'https', 'port': DASHBOARD_PORT, 'targetPort': DASHBOARD_PORT}],
+            'ports': [{'name': 'https', 'port': DASHBOARD_PORT, 'target_port': DASHBOARD_PORT}],
         },
         opts=p.ResourceOptions.merge(opts, p.ResourceOptions(depends_on=[deployment])),
     )

@@ -14,6 +14,7 @@ _ALERTS_TAIL = 'exec tail -n 0 -F /var/ossec/logs/alerts/alerts.json'
 _LOG_TAIL = 'exec tail -n 0 -F /var/ossec/logs/ossec.log'
 _CTI_FRESHNESS = """import datetime, json, time, urllib.request
 url = "https://cti.wazuh.com/api/v1/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0"
+# CTI accepts this curl-compatible agent string; keep requests identifiable as the probe client.
 request = urllib.request.Request(url, headers={"User-Agent": "curl/8.12.1"})
 while True:
     now = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
@@ -142,10 +143,10 @@ def create_manager(
     stateful_set = k8s.apps.v1.StatefulSet(
         'wazuh-manager',
         metadata={'name': 'wazuh-manager', 'namespace': namespace},
-        spec={  # type: ignore
-            'serviceName': 'wazuh-manager-headless',
+        spec={  # type: ignore[reportArgumentType]  # Nested Kubernetes input inference loses the generated spec type.
+            'service_name': 'wazuh-manager-headless',
             'replicas': 1,
-            'selector': {'matchLabels': labels},
+            'selector': {'match_labels': labels},
             'template': {
                 'metadata': {
                     'labels': labels,
@@ -159,8 +160,8 @@ def create_manager(
                     },
                 },
                 'spec': {
-                    'securityContext': {'fsGroup': 101},
-                    'initContainers': [
+                    'security_context': {'fs_group': 101},
+                    'init_containers': [
                         {
                             'name': 'seed-manager-state',
                             'image': f'wazuh/wazuh-manager:{config.version}',
@@ -181,7 +182,7 @@ def create_manager(
                                 'cp /run/wazuh-api-cert/server.key /state/api/configuration/ssl/server.key; '
                                 'chmod 640 /state/api/configuration/ssl/server.key',
                             ],
-                            'volumeMounts': [
+                            'volume_mounts': [
                                 {'name': 'manager-data', 'mountPath': '/state'},
                                 {
                                     'name': 'manager-api-cert',
@@ -206,7 +207,7 @@ def create_manager(
                                 {'name': 'INDEXER_USERNAME', 'value': 'admin'},
                                 _secret_env('INDEXER_PASSWORD', 'admin'),
                             ],
-                            'volumeMounts': [
+                            'volume_mounts': [
                                 {
                                     'name': 'manager-data',
                                     'mountPath': '/var/ossec/etc',
@@ -220,13 +221,13 @@ def create_manager(
                             'name': 'manager',
                             'image': f'wazuh/wazuh-manager:{config.version}',
                             'ports': [
-                                {'name': 'agents', 'containerPort': 1514, 'protocol': 'TCP'},
+                                {'name': 'agents', 'container_port': 1514, 'protocol': 'TCP'},
                                 {
                                     'name': 'enrollment',
-                                    'containerPort': 1515,
+                                    'container_port': 1515,
                                     'protocol': 'TCP',
                                 },
-                                {'name': 'api', 'containerPort': 55000, 'protocol': 'TCP'},
+                                {'name': 'api', 'container_port': 55000, 'protocol': 'TCP'},
                             ],
                             'env': [
                                 {'name': 'INDEXER_URL', 'value': indexer_url},
@@ -246,11 +247,11 @@ def create_manager(
                                 'requests': {'cpu': '500m', 'memory': '1536Mi'},
                                 'limits': {'memory': '3Gi'},
                             },
-                            'securityContext': {
-                                'allowPrivilegeEscalation': False,
+                            'security_context': {
+                                'allow_privilege_escalation': False,
                                 'capabilities': {'add': ['SYS_CHROOT']},
                             },
-                            'volumeMounts': [
+                            'volume_mounts': [
                                 {
                                     'name': 'manager-config',
                                     'mountPath': '/wazuh-config-mount/etc/ossec.conf',
@@ -349,33 +350,33 @@ def create_manager(
                                     'readOnly': True,
                                 },
                             ],
-                            'readinessProbe': {
-                                'tcpSocket': {'port': 55000},
-                                'periodSeconds': 10,
-                                'failureThreshold': 6,
+                            'readiness_probe': {
+                                'tcp_socket': {'port': 55000},
+                                'period_seconds': 10,
+                                'failure_threshold': 6,
                             },
-                            'startupProbe': {
-                                'tcpSocket': {'port': 55000},
-                                'periodSeconds': 10,
-                                'failureThreshold': 60,
+                            'startup_probe': {
+                                'tcp_socket': {'port': 55000},
+                                'period_seconds': 10,
+                                'failure_threshold': 60,
                             },
                         },
                         {
                             'name': 'alerts-tail',
-                            'image': 'busybox:1.37.0',
+                            'image': f'busybox:{config.busybox_version}',
                             'command': ['/bin/sh', '-c', _ALERTS_TAIL],
                             'resources': {
                                 'requests': {'cpu': '10m', 'memory': '16Mi'},
                                 'limits': {'memory': '32Mi'},
                             },
-                            'securityContext': {
-                                'allowPrivilegeEscalation': False,
-                                'readOnlyRootFilesystem': True,
-                                'runAsNonRoot': True,
-                                'runAsUser': 1000,
-                                'runAsGroup': 999,
+                            'security_context': {
+                                'allow_privilege_escalation': False,
+                                'read_only_root_filesystem': True,
+                                'run_as_non_root': True,
+                                'run_as_user': 1000,
+                                'run_as_group': 999,
                             },
-                            'volumeMounts': [
+                            'volume_mounts': [
                                 {
                                     'name': 'manager-data',
                                     'mountPath': '/var/ossec/logs',
@@ -386,20 +387,20 @@ def create_manager(
                         },
                         {
                             'name': 'ossec-log-tail',
-                            'image': 'busybox:1.37.0',
+                            'image': f'busybox:{config.busybox_version}',
                             'command': ['/bin/sh', '-c', _LOG_TAIL],
                             'resources': {
                                 'requests': {'cpu': '10m', 'memory': '16Mi'},
                                 'limits': {'memory': '32Mi'},
                             },
-                            'securityContext': {
-                                'allowPrivilegeEscalation': False,
-                                'readOnlyRootFilesystem': True,
-                                'runAsNonRoot': True,
-                                'runAsUser': 1000,
-                                'runAsGroup': 999,
+                            'security_context': {
+                                'allow_privilege_escalation': False,
+                                'read_only_root_filesystem': True,
+                                'run_as_non_root': True,
+                                'run_as_user': 1000,
+                                'run_as_group': 999,
                             },
-                            'volumeMounts': [
+                            'volume_mounts': [
                                 {
                                     'name': 'manager-data',
                                     'mountPath': '/var/ossec/logs',
@@ -416,31 +417,31 @@ def create_manager(
                                 'requests': {'cpu': '10m', 'memory': '32Mi'},
                                 'limits': {'memory': '64Mi'},
                             },
-                            'securityContext': {
-                                'allowPrivilegeEscalation': False,
-                                'readOnlyRootFilesystem': True,
-                                'runAsNonRoot': True,
-                                'runAsUser': 1000,
-                                'runAsGroup': 999,
+                            'security_context': {
+                                'allow_privilege_escalation': False,
+                                'read_only_root_filesystem': True,
+                                'run_as_non_root': True,
+                                'run_as_user': 1000,
+                                'run_as_group': 999,
                             },
                         },
                     ],
                     'volumes': [
                         {
                             'name': 'manager-config',
-                            'configMap': {'name': manager_config.metadata.name},
+                            'config_map': {'name': manager_config.metadata.name},
                         },
                         {
                             'name': 'ca-cert',
                             'secret': {
-                                'secretName': 'wazuh-ca',
+                                'secret_name': 'wazuh-ca',
                                 'items': [{'key': 'ca.crt', 'path': 'root-ca.pem'}],
                             },
                         },
                         {
                             'name': 'filebeat-cert',
                             'secret': {
-                                'secretName': 'wazuh-filebeat',
+                                'secret_name': 'wazuh-filebeat',
                                 'items': [
                                     {'key': 'tls.crt', 'path': 'filebeat.pem'},
                                     {'key': 'tls.key', 'path': 'filebeat.key'},
@@ -450,7 +451,7 @@ def create_manager(
                         {
                             'name': 'manager-cert',
                             'secret': {
-                                'secretName': 'wazuh-manager',
+                                'secret_name': 'wazuh-manager',
                                 'items': [
                                     {'key': 'tls.crt', 'path': 'manager.crt'},
                                     {'key': 'tls.key', 'path': 'manager.key'},
@@ -460,7 +461,7 @@ def create_manager(
                         {
                             'name': 'manager-api-cert',
                             'secret': {
-                                'secretName': 'wazuh-manager',
+                                'secret_name': 'wazuh-manager',
                                 'items': [
                                     {'key': 'tls.crt', 'path': 'server.crt'},
                                     {'key': 'tls.key', 'path': 'server.key'},
@@ -470,22 +471,22 @@ def create_manager(
                         {
                             'name': 'authd-password',
                             'secret': {
-                                'secretName': 'wazuh-credentials',
+                                'secret_name': 'wazuh-credentials',
                                 'items': [{'key': 'enrollment', 'path': 'authd.pass'}],
-                                'defaultMode': 288,
+                                'default_mode': 288,
                             },
                         },
                     ],
                 },
             },
-            'volumeClaimTemplates': [
+            'volume_claim_templates': [
                 {
                     'metadata': {
                         'name': 'manager-data',
                         'labels': {'recurring-job-group.longhorn.io/default': 'enabled'},
                     },
                     'spec': {
-                        'accessModes': ['ReadWriteOnce'],
+                        'access_modes': ['ReadWriteOnce'],
                         'resources': {'requests': {'storage': config.manager_storage}},
                     },
                 },
@@ -500,31 +501,31 @@ def create_manager(
     k8s.core.v1.Service(
         'wazuh-manager-headless',
         metadata={'name': 'wazuh-manager-headless', 'namespace': namespace},
-        spec={'clusterIP': 'None', 'selector': labels, 'ports': [{'name': 'api', 'port': 55000}]},  # type: ignore
+        spec={'cluster_ip': 'None', 'selector': labels, 'ports': [{'name': 'api', 'port': 55000}]},
         opts=p.ResourceOptions.merge(opts, p.ResourceOptions(depends_on=[stateful_set])),
     )
     k8s.core.v1.Service(
         'wazuh-manager',
         metadata={'name': 'wazuh-manager', 'namespace': namespace},
-        spec={  # type: ignore
+        spec={
             'type': 'ClusterIP',
             'selector': labels,
-            'ports': [{'name': 'api', 'port': 55000, 'targetPort': 55000}],
+            'ports': [{'name': 'api', 'port': 55000, 'target_port': 55000}],
         },
         opts=p.ResourceOptions.merge(opts, p.ResourceOptions(depends_on=[stateful_set])),
     )
     k8s.core.v1.Service(
         'wazuh-manager-internal',
         metadata={'name': 'wazuh-manager-internal', 'namespace': namespace},
-        spec={  # type: ignore
+        spec={
             'type': 'ClusterIP',
             'selector': labels,
             'ports': [
-                {'name': 'agents', 'port': 1514, 'targetPort': 1514, 'protocol': 'TCP'},
+                {'name': 'agents', 'port': 1514, 'target_port': 1514, 'protocol': 'TCP'},
                 {
                     'name': 'enrollment',
                     'port': 1515,
-                    'targetPort': 1515,
+                    'target_port': 1515,
                     'protocol': 'TCP',
                 },
             ],
@@ -534,18 +535,18 @@ def create_manager(
     k8s.core.v1.Service(
         'wazuh-manager-agents',
         metadata={'name': 'wazuh-manager-agents', 'namespace': namespace},
-        spec={  # type: ignore
+        spec={
             'type': 'LoadBalancer',
-            'loadBalancerIP': config.agent_address,
-            'loadBalancerSourceRanges': ['10.10.0.0/16', '192.168.178.125/32'],
-            'externalTrafficPolicy': 'Local',
+            'load_balancer_ip': config.agent_address,
+            'load_balancer_source_ranges': config.agent_source_ranges,
+            'external_traffic_policy': 'Local',
             'selector': labels,
             'ports': [
-                {'name': 'agents', 'port': 1514, 'targetPort': 1514, 'protocol': 'TCP'},
+                {'name': 'agents', 'port': 1514, 'target_port': 1514, 'protocol': 'TCP'},
                 {
                     'name': 'enrollment',
                     'port': 1515,
-                    'targetPort': 1515,
+                    'target_port': 1515,
                     'protocol': 'TCP',
                 },
             ],
