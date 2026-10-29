@@ -791,6 +791,7 @@ NETBOX_PANELS = [
 ]
 
 # OPNsense (ADR-0038): `opnsense` is the API exporter, `opnsense-node` the os-node_exporter plugin
+
 # (FreeBSD names: wired/active/inactive/laundry/cache/free memory, no MemAvailable), `opnsense-syslog`
 # the remote log. Gateway status codes: 0 offline, 1 online, 2 unknown, 3 pending, 4 packet loss,
 # 5 latency, 6 forced offline.
@@ -941,6 +942,28 @@ OPNSENSE_PANELS = [
         'Services',
         labels=(LabelColumn('name', 'Service'), LabelColumn('description', 'Description')),
         columns=(Column('Running', 'opnsense_services_status', 'short'),),
+    ),
+]
+
+# Trivy Operator (vulnerability reports only; per-CVE metrics are deliberately not enabled).
+_TRIVY = 'job="trivy-operator"'
+TRIVY_PANELS = [
+    Panel(
+        'Vulnerabilities by namespace and severity',
+        f'sum by (namespace, severity) (trivy_image_vulnerabilities{{{_TRIVY}}})',
+        legend='{{namespace}} / {{severity}}',
+        stack=True,
+    ),
+    Panel(
+        'Vulnerabilities by namespace',
+        f'sum by (namespace) (trivy_image_vulnerabilities{{{_TRIVY}}})',
+        legend='{{namespace}}',
+    ),
+    Panel(
+        'Vulnerabilities by severity',
+        f'sum by (severity) (trivy_image_vulnerabilities{{{_TRIVY}}})',
+        legend='{{severity}}',
+        kind='stat',
     ),
 ]
 
@@ -1386,6 +1409,7 @@ def provisioning_files() -> dict[str, str]:
         ),
         'tandoor.json': _dashboard('homelab-tandoor', 'Tandoor', TANDOOR_PANELS),
         'netbox.json': _dashboard('homelab-netbox', 'NetBox', NETBOX_PANELS),
+        'trivy-operator.json': _dashboard('homelab-trivy-operator', 'Trivy Operator', TRIVY_PANELS),
         'opnsense.json': _dashboard('homelab-opnsense', 'OPNsense', OPNSENSE_PANELS),
         'opnsense-logs.json': _dashboard(
             'homelab-opnsense-logs',
