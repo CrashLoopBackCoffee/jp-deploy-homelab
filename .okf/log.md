@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-10-29
+* **Verification (Wazuh ticket #99):** Applied Trivy Operator chart 0.37.0 with Trivy 0.75.0; its Pod is Ready and config confirms standalone vulnerability scanning only, one concurrent job, and all other scanners disabled. Only VulnerabilityReport objects appear. Alloy's vulnerability metric allow-list feeds Mimir; `count({job="trivy-operator"})` returned 115 active series, with dashboard queries returning vulnerability totals by workload namespace/severity. `cortex_discarded_samples_total` remained 1,917,029 before and after the scrape. Operator usage was 2m CPU/70Mi memory against requests of 100m/128Mi and a 512Mi limit; each single-concurrency scan job requests 500m/512Mi with a 2Gi memory limit. Both final Pulumi previews were clean (kubernetes: 202 unchanged; observability: 30 unchanged), and `uv run ./scripts/run-all-checks.sh` passed.
+
 ## 2026-10-28
 
 * **Change (Wazuh ticket #87):** Added and applied the production `services/wazuh` Pulumi workspace with Wazuh 4.14.9 defaults, recommended sizing, namespace, RSA CA, cert-manager issuer and PKCS#8 leaf certificates, generated credentials and bcrypt-hashed internal users. Secret names and certificate DNs are recorded in `.okf/wazuh.md`. All seven certificates became Ready; keys validated with `openssl pkey`; generated user hashes validated; final Pulumi preview had no changes; `uv run ./scripts/run-all-checks.sh` passed. No Wazuh workloads were deployed at that stage.

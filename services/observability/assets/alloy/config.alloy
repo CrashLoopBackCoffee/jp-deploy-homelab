@@ -156,6 +156,13 @@ discovery.relabel "metrics_pods" {
 		action        = "drop"
 	}
 
+	// Trivy is scraped separately below so only the bounded vulnerability summary metric is sent.
+	rule {
+		source_labels = ["__meta_kubernetes_namespace"]
+		regex         = "trivy-operator"
+		action        = "drop"
+	}
+
 	rule {
 		source_labels = ["__meta_kubernetes_namespace"]
 		target_label  = "namespace"
@@ -259,6 +266,29 @@ prometheus.scrape "grafana" {
 	targets         = discovery.relabel.grafana.output
 	forward_to      = [prometheus.remote_write.mimir.receiver]
 	scrape_interval = "30s"
+	scrape_timeout  = "10s"
+}
+
+// Vulnerability summary only; omitting the per-CVE metric avoids unbounded label cardinality.
+prometheus.relabel "trivy_operator" {
+	forward_to = [prometheus.remote_write.mimir.receiver]
+
+	rule {
+		source_labels = ["__name__"]
+		regex         = "^(trivy_image_vulnerabilities|up)$"
+		action        = "keep"
+	}
+}
+
+prometheus.scrape "trivy_operator" {
+	targets = [{
+		// The service is headless, so use the endpoint port rather than its 80/TCP service port.
+		"__address__" = "trivy-operator.trivy-operator.svc:8080",
+	}]
+
+	forward_to      = [prometheus.relabel.trivy_operator.receiver]
+	job_name        = "trivy-operator"
+	scrape_interval = "60s"
 	scrape_timeout  = "10s"
 }
 

@@ -12,6 +12,7 @@ from kubernetes.mariadb_operator import create_mariadb_operator
 from kubernetes.metallb import create_metallb
 from kubernetes.openebs_lvm import create_openebs_lvm
 from kubernetes.traefik import create_traefik
+from kubernetes.trivy_operator import create_trivy_operator
 
 component_config = ComponentConfig.model_validate(p.Config().require_object('config'))
 
@@ -27,5 +28,6 @@ create_traefik(component_config, issuer, k8s_provider)
 cnpg_plugin = create_cloudnative_pg(component_config, k8s_provider)
 create_postgres_cluster(component_config, k8s_provider, cnpg_plugin, postgres_storage_class)
 create_mariadb_operator(component_config, k8s_provider)
+create_trivy_operator(component_config, k8s_provider)
 
 p.export('kubeconfig', component_config.kubeconfig.value)

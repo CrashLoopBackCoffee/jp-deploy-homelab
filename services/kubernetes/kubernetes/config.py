@@ -82,6 +82,10 @@ class MariadbOperatorConfig(utils.model.LocalBaseModel):
     version: str
 
 
+class TrivyOperatorConfig(utils.model.LocalBaseModel):
+    version: str
+
+
 class ComponentConfig(utils.model.LocalBaseModel):
     cert_manager: CertManagerConfig
     cloudflare: CloudflareConfig
@@ -92,6 +96,7 @@ class ComponentConfig(utils.model.LocalBaseModel):
     mariadb_operator: MariadbOperatorConfig
     metallb: MetallbConfig
     openebs_lvm: OpenEbsLvmConfig
+    trivy_operator: TrivyOperatorConfig
     traefik: TraefikConfig
 
 
