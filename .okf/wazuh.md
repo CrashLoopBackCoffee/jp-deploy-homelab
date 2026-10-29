@@ -126,3 +126,44 @@ Single-node Wazuh deployment on k0s; host software inventory/vulnerability repor
 - Feed health: no `Error updating feed` appeared in the sampled manager log; the latest success was `2026/10/29 00:03:55 ... Feed update process completed.` At 05:06 UTC it was about five hours old. This exceeds the two-hour freshness threshold specified for the feed signal, so CTI freshness is unconfirmed/stale at review time. Resolve and observe the feed-success signal before expansion; do not infer health from absence of an error.
 - Group list confirmed all six groups: `k0s-nodes`, `proxmox`, `vms`, `lxc`, `docker-hosts`, `opnsense`.
 - Surprises: the k0s0 LAN resolver did not resolve `wazuh-manager.4jp.de` although public DNS resolved it to `10.10.88.3`; the Ansible-managed `/etc/hosts` entry restored name resolution. Enrollment then succeeded. The agent and manager are both exactly 4.14.9; no version skew was observed. Feed staleness and the initial alert volume—not package matching, inventory, or resource usage—drive the stop decision.
+
+## Recovery and negative-access verification (ticket #100; 2026-10-29)
+
+### Recovery runbook
+
+- Identify the current source PVC and its Longhorn volume with `kubectl -n wazuh get pvc -o wide`. Match its `spec.volumeName` to `longhorn-system`'s `BackupVolume` KubernetesStatus label, then select a completed `backups.longhorn.io` entry whose `status.url` names that source volume. The manager PVC is `manager-data-wazuh-manager-0`; the indexer PVC is `data-wazuh-indexer-0`.
+- For a non-destructive restore, create a uniquely named `longhorn.io/v1beta2 Volume` in `longhorn-system` with `spec.fromBackup` set to that backup URL, `spec.size` set to the backup's exact `status.volumeSize` (quoted bytes), and `numberOfReplicas: 1`. Create a manually bound PV/PVC using that volume handle. Wait until `.status.restoreRequired` is false and the volume is detached before attaching it to a read-only inspection Pod. Use a throwaway namespace with Pod Security `baseline`; mount the PVC read-only and do not start an indexer on restored production data.
+- Compare `/var/ossec/etc/client.keys` in the restored manager path with the live manager path using `wc -l`. Inspect preserved directories with `find`; for indexer data, check `/usr/share/wazuh-indexer/data/nodes/0/indices`. Delete the inspection Pod, namespace/PVC, PV and Longhorn Volume CR, then confirm each is absent. The volume is separate from the live claim throughout.
+- A manager-based rebuild would recreate current inventory/state indices from the manager's current inventory, but it cannot recreate historical alert documents; alert history is lost. This is an operational consequence, not a rebuild exercised in this ticket.
+
+### Ticket #100 live results
+
+- Restored the completed 2026-10-29 02:03 UTC manager backup `backup-0500a130bf5d4b74` (20 GiB; source `pvc-f92dd1a9-14a7-4586-b2c0-73065c5a2701`) and the 02:20 UTC indexer backup `backup-33b9900c6b2a486e` (50 GiB; source `pvc-8ee761c0-8e8a-4c35-bc03-251bee2475c0`) into separate temporary Longhorn volumes. Restore-to-detached completed in about 2m43s for the manager and 2m40s for the indexer; the manager restore had taken about 2m43s at inspection. Both restore states reported `restoreRequired=false`.
+- **Nightly manager restore result:** the live manager's `/var/ossec/etc/client.keys` contained 1 line; the 02:03 backup's file contained 0. Agent `001` (`k0s0`) enrolled at 05:03 UTC, so this nightly backup accurately represents its pre-enrollment point in time but cannot recover that later enrollment. An on-demand post-enrollment backup/restore below closed the current-key recovery gate.
+- Took an on-demand Longhorn snapshot of the live manager volume at 05:19:48 UTC, then a Longhorn backup completed at 05:20:10 UTC (100%, 20 GiB volume; only about 34 MB newly uploaded). Restored that backup to a distinct temporary Longhorn volume. Restore completed at 05:23:15 UTC; the baseline-PSS read-only inspection Pod mounted it at 05:25:19 UTC. `client.keys` had 1 line in both the live and restored volume, preserving enrolled agent `001`; the restored manager state directories were present as listed above. The temporary Backup CR and remote backup object were deleted after inspection; Longhorn's on-demand Snapshot CR is marked removed and its purge is still running (see cleanup evidence below).
+- The manager restore retained the expected `/etc`, `/logs`, `/queue`, `/var`, `/filebeat`, `active-response`, `agentless`, `api`, `integrations` and `wodles` state directories. The restored indexer data directory contained `nodes/0/indices` and index UUID directories. This verified restore of the stored OpenSearch data files only; no second indexer was started and no production credentials were used.
+- The Grafana reader (`grafana_reader`) and `metrics_reader` each returned HTTP 200 for a search and HTTP 403 for document PUT, document POST, index creation and deletion. Authentication used their mounted client certificates and secret-injected passwords; no credential values were printed. Commands were executed from a temporary, policy-allowed pod, then removed.
+- BusyBox probes in both `default` and `observability` were blocked (TCP connect failed) to indexer 9200, manager API 55000, dashboard 5601 and manager agent/enrollment 1514/1515. The requested SSH retry to `dockerhost` timed out after 45 seconds; this is consistent with a locked/unanswered 1Password prompt but was not proven. Ticket #91's earlier live evidence recorded dockerhost reaching `10.10.88.3:1514` and `:1515`; the allowlist-positive path was not re-proven in this run.
+- Cleanup confirmed the temporary restore namespace, all temporary PVs, Longhorn restore Volume CRs, reader probe, both network probes, and the temporary Backup CR/remote S3 object were absent. Deleting the namespace removed the bound PVCs; PV reclaim policy was `Delete`. The only pending cleanup is the on-demand source-volume snapshot noted below. No Wazuh production workload, PVC, credentials or stack configuration was changed.
+
+### Longhorn snapshot purge follow-up
+
+- `t100-manager-live-snapshot` on live Longhorn volume `pvc-f92dd1a9-14a7-4586-b2c0-73065c5a2701` has deletion timestamp `2026-10-29T05:26:45Z`, `status.markRemoved=true`, `status.readyToUse=false`, and the `longhorn.io` finalizer. The Longhorn manager logged `SnapshotPurge` start at 05:26:46Z. After the requested 15-minute wait it remained pending; do not remove its finalizer manually. The live manager volume remained `attached/healthy`.
+- `kubectl -n longhorn-system get snapshots.longhorn.io -l longhornvolume=pvc-f92dd1a9-14a7-4586-b2c0-73065c5a2701` showed two entries: the pre-existing scheduled snapshot `longhorn-3e16123f-20eb-4043-9ac9-5c085f3a67dd` and this marked-removed ticket snapshot. The `t100-manager-ondemand-backup` CR and remote backup object were deleted (Longhorn logged `Complete deleting backup`); only the snapshot purge remains.
+- If the CR is still present, use the Longhorn UI's live manager volume **Snapshots** view to purge/delete `t100-manager-live-snapshot`; wait for the purge operation to complete and verify that this CR disappears and the volume has only its pre-existing scheduled snapshot. Leave the finalizer intact.
+
+### Secret-safe probe commands
+
+The test pod mounts each reader certificate Secret read-only and receives the corresponding `wazuh-credentials` password through `secretKeyRef`; never fetch or echo decoded Secret values. For each identity, set only shell variables inside the probe container (`user`, `password`, `certdir`, `index`) and run:
+
+```sh
+curl -sS --cacert /certs/ca/ca.crt --cert "$certdir/tls.crt" --key "$certdir/tls.key" \
+  -u "$user:$password" -o /dev/null -w '%{http_code}\n' \
+  "https://wazuh-indexer.wazuh.svc:9200/$index/_search?size=0"
+curl -sS --cacert /certs/ca/ca.crt --cert "$certdir/tls.crt" --key "$certdir/tls.key" \
+  -u "$user:$password" -o /dev/null -w '%{http_code}\n' -X PUT \
+  -H 'Content-Type: application/json' --data '{"probe":true}' \
+  https://wazuh-indexer.wazuh.svc:9200/t100-ticket100-write-test/_doc/1
+```
+
+Repeat writes with `POST /t100-ticket100-write-test/_doc`, `PUT /t100-ticket100-write-test` (index creation), and `DELETE /t100-ticket100-write-test`; expected outcomes for both read-only identities are search `200` and all four writes `403`. For each source namespace, use `kubectl exec -n <namespace> t100-netprobe -- nc -z -w 3 <service> <port>` against `wazuh-indexer.wazuh.svc:9200`, `wazuh-manager.wazuh.svc:55000`, `wazuh-dashboard.wazuh.svc:5601`, and `wazuh-manager-internal.wazuh.svc:{1514,1515}`; blocked connections exit nonzero. These commands use no literal credential values.
