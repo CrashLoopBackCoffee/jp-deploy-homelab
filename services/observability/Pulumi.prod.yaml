@@ -59,6 +59,8 @@ config:
       version: 13.5.1
       host: g
       storage-size-gb: 2
+      # renovate: datasource=github-releases packageName=grafana/grafana-opensearch-datasource versioning=semver
+      opensearch-plugin-version: 2.34.5
       pushover:
         # username holds the Pushover user key, password the application API token
         user-key:

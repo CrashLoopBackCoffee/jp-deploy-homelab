@@ -54,6 +54,8 @@ config:
     trivy-operator:
       # renovate: datasource=helm registryUrl=https://aquasecurity.github.io/helm-charts packageName=trivy-operator versioning=helm
       version: 0.37.0
+      # renovate: datasource=docker packageName=aquasecurity/trivy versioning=semver
+      trivy-image-version: 0.75.0
     metallb:
       # renovate: datasource=github-releases packageName=metallb/metallb versioning=semver
       version: 0.16.1

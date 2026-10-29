@@ -417,8 +417,13 @@ RULES = [
 ]
 
 
-def _loki_rule(rule: LokiAlertRule) -> dict[str, t.Any]:
-    """Render an alert rule whose query is evaluated by Loki."""
+def _render_rule(
+    rule: AlertRule | LokiAlertRule,
+    *,
+    datasource_uid: str,
+    relative_time_range: dict[str, int],
+    model: dict[str, t.Any],
+) -> dict[str, t.Any]:
     return {
         'uid': rule.uid,
         'title': rule.title,
@@ -426,17 +431,9 @@ def _loki_rule(rule: LokiAlertRule) -> dict[str, t.Any]:
         'data': [
             {
                 'refId': 'A',
-                'relativeTimeRange': {'from': 1800, 'to': 0},
-                'datasourceUid': LOKI_DATASOURCE_UID,
-                'model': {
-                    'refId': 'A',
-                    'expr': rule.expr,
-                    'queryType': 'instant',
-                    'editorMode': 'code',
-                    'direction': 'backward',
-                    'intervalMs': 1000,
-                    'maxDataPoints': 43200,
-                },
+                'relativeTimeRange': relative_time_range,
+                'datasourceUid': datasource_uid,
+                'model': model,
             },
             {
                 'refId': 'B',
@@ -468,57 +465,40 @@ def _loki_rule(rule: LokiAlertRule) -> dict[str, t.Any]:
         'annotations': {'summary': rule.summary.replace('$', '$$')},
         'labels': {'severity': rule.severity},
     }
+
+
+def _loki_rule(rule: LokiAlertRule) -> dict[str, t.Any]:
+    """Render an alert rule whose query is evaluated by Loki."""
+    return _render_rule(
+        rule,
+        datasource_uid=LOKI_DATASOURCE_UID,
+        relative_time_range={'from': 1800, 'to': 0},
+        model={
+            'refId': 'A',
+            'expr': rule.expr,
+            'queryType': 'instant',
+            'editorMode': 'code',
+            'direction': 'backward',
+            'intervalMs': 1000,
+            'maxDataPoints': 43200,
+        },
+    )
 
 
 def _rule(rule: AlertRule) -> dict[str, t.Any]:
-    return {
-        'uid': rule.uid,
-        'title': rule.title,
-        'condition': 'C',
-        'data': [
-            {
-                'refId': 'A',
-                'relativeTimeRange': {'from': 600, 'to': 0},
-                'datasourceUid': MIMIR_DATASOURCE_UID,
-                'model': {
-                    'refId': 'A',
-                    'expr': rule.expr,
-                    'instant': True,
-                    'intervalMs': 1000,
-                    'maxDataPoints': 43200,
-                },
-            },
-            {
-                'refId': 'B',
-                'datasourceUid': '__expr__',
-                'model': {
-                    'refId': 'B',
-                    'type': 'reduce',
-                    'expression': 'A',
-                    'reducer': 'last',
-                    'settings': {'mode': 'dropNN'},
-                    'datasource': EXPRESSION_DATASOURCE,
-                },
-            },
-            {
-                'refId': 'C',
-                'datasourceUid': '__expr__',
-                'model': {
-                    'refId': 'C',
-                    'type': 'threshold',
-                    'expression': 'B',
-                    'conditions': [{'evaluator': {'type': 'gt', 'params': [0]}}],
-                    'datasource': EXPRESSION_DATASOURCE,
-                },
-            },
-        ],
-        'noDataState': rule.no_data_state,
-        'execErrState': 'Error',
-        'for': rule.for_,
-        # Grafana expands $VAR in provisioning files; `$$` yields a literal `$` for templates.
-        'annotations': {'summary': rule.summary.replace('$', '$$')},
-        'labels': {'severity': rule.severity},
-    }
+    # Keep the Mimir provisioning model byte-for-byte stable.
+    return _render_rule(
+        rule,
+        datasource_uid=MIMIR_DATASOURCE_UID,
+        relative_time_range={'from': 600, 'to': 0},
+        model={
+            'refId': 'A',
+            'expr': rule.expr,
+            'instant': True,
+            'intervalMs': 1000,
+            'maxDataPoints': 43200,
+        },
+    )
 
 
 def provisioning() -> dict[str, t.Any]:

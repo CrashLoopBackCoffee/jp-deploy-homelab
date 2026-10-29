@@ -2,6 +2,7 @@ import pulumi as p
 import pulumi_kubernetes as k8s
 import utils.cloudflare
 
+from wazuh.certificate_rotation import create_certificate_rotation
 from wazuh.config import ComponentConfig
 from wazuh.dashboard import create_dashboard
 from wazuh.exporters import create_exporters
@@ -37,3 +38,4 @@ create_dashboard(
     config, provider, namespace.metadata.name, ca_secret, credentials, cloudflare_provider
 )
 create_network_policies(provider, namespace.metadata.name)
+create_certificate_rotation(config, provider, namespace.metadata.name)

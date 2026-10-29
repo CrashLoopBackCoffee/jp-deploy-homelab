@@ -73,6 +73,23 @@ _ISM_POLICY = {
             ],
         }
     },
+    'security-auditlog': {
+        'policy': {
+            'description': 'Delete security audit log indices after 30 days.',
+            'default_state': 'active',
+            'states': [
+                {
+                    'name': 'active',
+                    'actions': [],
+                    'transitions': [
+                        {'state_name': 'delete', 'conditions': {'min_index_age': '30d'}}
+                    ],
+                },
+                {'name': 'delete', 'actions': [{'delete': {}}], 'transitions': []},
+            ],
+            'ism_template': [{'index_patterns': ['security-auditlog-*'], 'priority': 100}],
+        }
+    },
 }
 
 _NODES_DN = """---
@@ -137,128 +154,11 @@ def create_indexer(
         'wazuh-indexer-security-settings',
         metadata={'name': 'wazuh-indexer-security-settings', 'namespace': namespace},
         data={
-            'internal_users.yml': credentials.data.apply(
-                lambda data: base64.b64decode(data['internal_users.yml']).decode()
-            ),
             'nodes_dn.yml': _NODES_DN,
             'ism-alerts.json': json.dumps(_ISM_POLICY['alerts']),
             'ism-monitoring.json': json.dumps(_ISM_POLICY['monitoring']),
         },
         opts=opts,
-    )
-
-    labels = {'app.kubernetes.io/name': 'wazuh-indexer'}
-    stateful_set = k8s.apps.v1.StatefulSet(
-        'wazuh-indexer',
-        metadata={'name': 'wazuh-indexer', 'namespace': namespace},
-        spec={  # type: ignore
-            'serviceName': 'wazuh-indexer',
-            'replicas': 1,
-            'selector': {'matchLabels': labels},
-            'template': {
-                'metadata': {
-                    'labels': labels,
-                    'annotations': {
-                        'checksum/indexer-config': hashlib.sha256(
-                            _INDEXER_CONFIG.encode()
-                        ).hexdigest()
-                    },
-                },
-                'spec': {
-                    'securityContext': {
-                        'runAsNonRoot': True,
-                        'runAsUser': 1000,
-                        'runAsGroup': 1000,
-                        'fsGroup': 1000,
-                        'fsGroupChangePolicy': 'OnRootMismatch',
-                    },
-                    'containers': [
-                        {
-                            'name': 'indexer',
-                            'image': f'wazuh/wazuh-indexer:{config.version}',
-                            'ports': [
-                                {'name': 'https', 'containerPort': 9200},
-                                {'name': 'transport', 'containerPort': 9300},
-                            ],
-                            'env': [
-                                {
-                                    'name': 'OPENSEARCH_JAVA_OPTS',
-                                    'value': f'-Xms{config.indexer_heap} -Xmx{config.indexer_heap}',
-                                }
-                            ],
-                            'resources': {
-                                'requests': {
-                                    'cpu': config.indexer_cpu_request,
-                                    'memory': config.indexer_memory_request,
-                                },
-                                'limits': {'memory': config.indexer_memory_limit},
-                            },
-                            'volumeMounts': [
-                                {'name': 'data', 'mountPath': '/var/lib/wazuh-indexer'},
-                                {
-                                    'name': 'config',
-                                    'mountPath': '/usr/share/wazuh-indexer/config/opensearch.yml',
-                                    'subPath': 'opensearch.yml',
-                                    'readOnly': True,
-                                },
-                                {
-                                    'name': 'indexer-cert',
-                                    'mountPath': '/usr/share/wazuh-indexer/config/certs',
-                                    'readOnly': True,
-                                },
-                                {
-                                    'name': 'ca-cert',
-                                    'mountPath': '/usr/share/wazuh-indexer/config/ca',
-                                    'readOnly': True,
-                                },
-                            ],
-                            'readinessProbe': {
-                                'tcpSocket': {'port': 9200},
-                                'initialDelaySeconds': 30,
-                                'periodSeconds': 10,
-                            },
-                        }
-                    ],
-                    'volumes': [
-                        {'name': 'config', 'configMap': {'name': config_map.metadata.name}},
-                        {
-                            'name': 'indexer-cert',
-                            'secret': {'secretName': 'wazuh-indexer'},
-                        },
-                        {'name': 'ca-cert', 'secret': {'secretName': 'wazuh-ca'}},
-                    ],
-                },
-            },
-            'volumeClaimTemplates': [
-                {
-                    'metadata': {
-                        'name': 'data',
-                        'labels': {
-                            'recurring-job-group.longhorn.io/default': 'enabled',
-                        },
-                    },
-                    'spec': {
-                        'accessModes': ['ReadWriteOnce'],
-                        'resources': {'requests': {'storage': config.indexer_storage}},
-                    },
-                }
-            ],
-        },
-        opts=p.ResourceOptions.merge(
-            opts, p.ResourceOptions(depends_on=[config_map, settings, ca, credentials])
-        ),
-    )
-    k8s.core.v1.Service(
-        'wazuh-indexer',
-        metadata={'name': 'wazuh-indexer', 'namespace': namespace},
-        spec={  # type: ignore
-            'type': 'ClusterIP',
-            'selector': labels,
-            'ports': [
-                {'name': 'https', 'port': 9200, 'targetPort': 9200},
-            ],
-        },
-        opts=p.ResourceOptions.merge(opts, p.ResourceOptions(depends_on=[stateful_set])),
     )
 
     role_payloads = {
@@ -269,10 +169,13 @@ def create_indexer(
 export OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk
 BASE=/usr/share/wazuh-indexer
 TOOLS=$BASE/plugins/opensearch-security/tools/securityadmin.sh
-until curl --silent --output /dev/null --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key https://wazuh-indexer:9200/; do sleep 5; done
+curl_tls() {{
+  curl --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key "$@"
+}}
+until curl_tls --silent --output /dev/null https://wazuh-indexer:9200/; do sleep 5; done
 mkdir -p /tmp/security-config
 cp -a "$BASE/config/opensearch-security/." /tmp/security-config/
-cp /custom/internal_users.yml /tmp/security-config/internal_users.yml
+cp /credentials/internal_users.yml /tmp/security-config/internal_users.yml
 cp /custom/nodes_dn.yml /tmp/security-config/nodes_dn.yml
 "$TOOLS" -h wazuh-indexer -p 9200 -cacert /ca/ca.crt -cert /certs/tls.crt -key /certs/tls.key -nhnv -cd /tmp/security-config -icl
 "$TOOLS" -h wazuh-indexer -p 9200 -cacert /ca/ca.crt -cert /certs/tls.crt -key /certs/tls.key -nhnv -icl -us 0
@@ -327,9 +230,181 @@ curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --ke
   -H 'Content-Type: application/json' -X PUT -d '{{"index.number_of_replicas":0}}' \\
   'https://wazuh-indexer:9200/security-auditlog-*/_settings'
 """
+    labels = {'app.kubernetes.io/name': 'wazuh-indexer'}
+    stateful_set = k8s.apps.v1.StatefulSet(
+        'wazuh-indexer',
+        metadata={'name': 'wazuh-indexer', 'namespace': namespace},
+        spec={
+            'service_name': 'wazuh-indexer',
+            'replicas': 1,
+            'selector': {'match_labels': labels},
+            'template': {
+                'metadata': {
+                    'labels': labels,
+                    'annotations': {
+                        'checksum/indexer-config': hashlib.sha256(
+                            _INDEXER_CONFIG.encode()
+                        ).hexdigest()
+                    },
+                },
+                'spec': {
+                    'security_context': {
+                        'run_as_non_root': True,
+                        'run_as_user': 1000,
+                        'run_as_group': 1000,
+                        'fs_group': 1000,
+                        'fs_group_change_policy': 'OnRootMismatch',
+                    },
+                    'containers': [
+                        {
+                            'name': 'indexer',
+                            'image': f'wazuh/wazuh-indexer:{config.version}',
+                            'ports': [
+                                {'name': 'https', 'container_port': 9200},
+                                {'name': 'transport', 'container_port': 9300},
+                            ],
+                            'env': [
+                                {
+                                    'name': 'OPENSEARCH_JAVA_OPTS',
+                                    'value': f'-Xms{config.indexer_heap} -Xmx{config.indexer_heap}',
+                                }
+                            ],
+                            'resources': {
+                                'requests': {
+                                    'cpu': config.indexer_cpu_request,
+                                    'memory': config.indexer_memory_request,
+                                },
+                                'limits': {'memory': config.indexer_memory_limit},
+                            },
+                            'volume_mounts': [
+                                {'name': 'data', 'mount_path': '/var/lib/wazuh-indexer'},
+                                {
+                                    'name': 'config',
+                                    'mount_path': '/usr/share/wazuh-indexer/config/opensearch.yml',
+                                    'sub_path': 'opensearch.yml',
+                                    'read_only': True,
+                                },
+                                {
+                                    'name': 'indexer-cert',
+                                    'mount_path': '/usr/share/wazuh-indexer/config/certs',
+                                    'read_only': True,
+                                },
+                                {
+                                    'name': 'ca-cert',
+                                    'mount_path': '/usr/share/wazuh-indexer/config/ca',
+                                    'read_only': True,
+                                },
+                            ],
+                            'readiness_probe': {
+                                'tcp_socket': {'port': 9200},
+                                'initial_delay_seconds': 30,
+                                'period_seconds': 10,
+                            },
+                        },
+                        {
+                            'name': 'security-reconciler',
+                            'image': f'wazuh/wazuh-indexer:{config.version}',
+                            'command': [
+                                'sh',
+                                '-c',
+                                f"{apply_script}\nprintf 'security configuration apply succeeded\\n'\nexec sleep infinity",
+                            ],
+                            'resources': {
+                                'requests': {'cpu': '20m', 'memory': '256Mi'},
+                                'limits': {'memory': '512Mi'},
+                            },
+                            'security_context': {
+                                'allow_privilege_escalation': False,
+                                'read_only_root_filesystem': True,
+                                'capabilities': {'drop': ['ALL']},
+                            },
+                            'volume_mounts': [
+                                {'name': 'security', 'mount_path': '/custom', 'read_only': True},
+                                {
+                                    'name': 'internal-users',
+                                    'mount_path': '/credentials',
+                                    'read_only': True,
+                                },
+                                {'name': 'admin-cert', 'mount_path': '/certs', 'read_only': True},
+                                {'name': 'ca-cert', 'mount_path': '/ca', 'read_only': True},
+                                {'name': 'security-tmp', 'mount_path': '/tmp'},
+                            ],
+                        },
+                    ],
+                    'volumes': [
+                        {'name': 'security-tmp', 'empty_dir': {}},
+                        {
+                            'name': 'security',
+                            'config_map': {
+                                'name': settings.metadata.name,
+                                'items': [
+                                    {'key': 'nodes_dn.yml', 'path': 'nodes_dn.yml'},
+                                    {'key': 'ism-alerts.json', 'path': 'ism-alerts.json'},
+                                    {'key': 'ism-monitoring.json', 'path': 'ism-monitoring.json'},
+                                ],
+                            },
+                        },
+                        {
+                            'name': 'internal-users',
+                            'secret': {
+                                'secret_name': 'wazuh-credentials',
+                                'items': [
+                                    {'key': 'internal_users.yml', 'path': 'internal_users.yml'}
+                                ],
+                            },
+                        },
+                        {'name': 'admin-cert', 'secret': {'secret_name': 'wazuh-admin'}},
+                        {'name': 'config', 'config_map': {'name': config_map.metadata.name}},
+                        {
+                            'name': 'indexer-cert',
+                            'secret': {'secret_name': 'wazuh-indexer'},
+                        },
+                        {
+                            'name': 'ca-cert',
+                            'secret': {
+                                'secret_name': 'wazuh-ca',
+                                'items': [{'key': 'tls.crt', 'path': 'ca.crt'}],
+                            },
+                        },
+                    ],
+                },
+            },
+            'volume_claim_templates': [
+                {
+                    'metadata': {
+                        'name': 'data',
+                        'labels': {
+                            'recurring-job-group.longhorn.io/default': 'enabled',
+                        },
+                    },
+                    'spec': {
+                        'access_modes': ['ReadWriteOnce'],
+                        'resources': {'requests': {'storage': config.indexer_storage}},
+                    },
+                }
+            ],
+        },
+        opts=p.ResourceOptions.merge(
+            opts, p.ResourceOptions(depends_on=[config_map, settings, ca, credentials])
+        ),
+    )
+    k8s.core.v1.Service(
+        'wazuh-indexer',
+        metadata={'name': 'wazuh-indexer', 'namespace': namespace},
+        spec={
+            'type': 'ClusterIP',
+            'selector': labels,
+            'ports': [
+                {'name': 'https', 'port': 9200, 'target_port': 9200},
+            ],
+        },
+        opts=p.ResourceOptions.merge(opts, p.ResourceOptions(depends_on=[stateful_set])),
+    )
+
     config_hash = p.Output.all(
         _INDEXER_CONFIG,
         settings.data,
+        credentials.data.apply(lambda data: base64.b64decode(data['internal_users.yml']).decode()),
         credentials.data.apply(lambda data: data['admin']),
         _SECURITY_ROLE_PAYLOADS,
         _ISM_POLICY,
@@ -343,39 +418,58 @@ curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --ke
             'name': config_hash.apply(lambda digest: f'wazuh-indexer-security-{digest}'),
             'namespace': namespace,
         },
-        spec={  # type: ignore
-            'backoffLimit': 4,
+        spec={
+            'backoff_limit': 4,
             'template': {
                 'metadata': {'labels': {'app.kubernetes.io/name': 'wazuh-indexer-security'}},
                 'spec': {
-                    'restartPolicy': 'OnFailure',
+                    'restart_policy': 'OnFailure',
                     'containers': [
                         {
                             'name': 'securityadmin',
                             'image': f'wazuh/wazuh-indexer:{config.version}',
                             'command': ['sh', '-c', apply_script],
-                            'volumeMounts': [
-                                {'name': 'security', 'mountPath': '/custom', 'readOnly': True},
-                                {'name': 'admin-cert', 'mountPath': '/certs', 'readOnly': True},
-                                {'name': 'ca-cert', 'mountPath': '/ca', 'readOnly': True},
+                            'volume_mounts': [
+                                {'name': 'security', 'mount_path': '/custom', 'read_only': True},
+                                {
+                                    'name': 'internal-users',
+                                    'mount_path': '/credentials',
+                                    'read_only': True,
+                                },
+                                {'name': 'admin-cert', 'mount_path': '/certs', 'read_only': True},
+                                {'name': 'ca-cert', 'mount_path': '/ca', 'read_only': True},
                             ],
                         }
                     ],
                     'volumes': [
                         {
                             'name': 'security',
-                            'configMap': {
+                            'config_map': {
                                 'name': settings.metadata.name,
                                 'items': [
-                                    {'key': 'internal_users.yml', 'path': 'internal_users.yml'},
                                     {'key': 'nodes_dn.yml', 'path': 'nodes_dn.yml'},
                                     {'key': 'ism-alerts.json', 'path': 'ism-alerts.json'},
                                     {'key': 'ism-monitoring.json', 'path': 'ism-monitoring.json'},
                                 ],
                             },
                         },
-                        {'name': 'admin-cert', 'secret': {'secretName': 'wazuh-admin'}},
-                        {'name': 'ca-cert', 'secret': {'secretName': 'wazuh-ca'}},
+                        {
+                            'name': 'internal-users',
+                            'secret': {
+                                'secret_name': 'wazuh-credentials',
+                                'items': [
+                                    {'key': 'internal_users.yml', 'path': 'internal_users.yml'}
+                                ],
+                            },
+                        },
+                        {'name': 'admin-cert', 'secret': {'secret_name': 'wazuh-admin'}},
+                        {
+                            'name': 'ca-cert',
+                            'secret': {
+                                'secret_name': 'wazuh-ca',
+                                'items': [{'key': 'tls.crt', 'path': 'ca.crt'}],
+                            },
+                        },
                     ],
                 },
             },

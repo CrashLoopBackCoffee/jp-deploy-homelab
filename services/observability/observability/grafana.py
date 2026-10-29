@@ -99,14 +99,10 @@ def create_grafana(
 ):
     grafana_config = component_config.grafana
     hostname = f'{grafana_config.host}.{component_config.zone}'
+    wazuh_stack = p.StackReference('wazuh-stack', 'jaypee-solutions/wazuh/prod')
     wazuh_credentials = k8s.core.v1.Secret.get(
         'wazuh-credentials',
         'wazuh/wazuh-credentials',
-        opts=p.ResourceOptions(provider=k8s_provider),
-    )
-    wazuh_ca = k8s.core.v1.Secret.get(
-        'wazuh-ca',
-        'wazuh/wazuh-ca',
         opts=p.ResourceOptions(provider=k8s_provider),
     )
     wazuh_password = wazuh_credentials.data.apply(
@@ -115,7 +111,7 @@ def create_grafana(
     wazuh_password_checksum = wazuh_password.apply(
         lambda password: hashlib.sha256(password.encode()).hexdigest()
     )
-    wazuh_ca_cert = wazuh_ca.data.apply(lambda data: base64.b64decode(data['tls.crt']).decode())
+    wazuh_ca_cert = wazuh_stack.get_output('ca_pem')
     admin_password = random.RandomPassword('grafana-admin-password', length=32, special=False)
     secret_key = random.RandomPassword('grafana-secret-key', length=64, special=False)
     secrets = k8s.core.v1.Secret(
@@ -162,7 +158,9 @@ def create_grafana(
                 'analytics': {'reporting_enabled': False, 'check_for_updates': False},
             },
             'testFramework': {'enabled': False},
-            'plugins': ['grafana-opensearch-datasource@2.34.5'],
+            'plugins': [
+                f'grafana-opensearch-datasource@{grafana_config.opensearch_plugin_version}'
+            ],
             'podAnnotations': {
                 'checksum/provisioning': _checksum(alerting_files),
                 'checksum/wazuh-credentials': wazuh_password_checksum,

@@ -31,6 +31,7 @@ class GrafanaConfig(ChartConfig):
     # Hostname below the zone, e.g. `g` for g.4jp.de
     host: str
     storage_size_gb: int
+    opensearch_plugin_version: str
     pushover: PushoverConfig
 
 

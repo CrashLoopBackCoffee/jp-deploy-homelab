@@ -78,9 +78,11 @@ _FINDINGS_CONFIG = {
                 'content': json.dumps(
                     {
                         'size': 0,
+                        'query': {'range': {'timestamp': {'gte': 'now-16m', 'lte': 'now'}}},
                         'aggs': {
                             'status': {
                                 'terms': {'field': 'status.keyword', 'size': 8},
+                                'aggs': {'agents': {'cardinality': {'field': 'id.keyword'}}},
                             }
                         },
                     },
@@ -105,7 +107,7 @@ _FINDINGS_CONFIG = {
                     'help': 'Wazuh agents by current status.',
                     'path': '{.aggregations.status.buckets[*]}',
                     'labels': {'status': '{.key}'},
-                    'values': {'count': '{.doc_count}'},
+                    'values': {'count': '{.agents.value}'},
                 },
             ],
         },
@@ -170,7 +172,7 @@ def _deployment(
     deployment = k8s.apps.v1.Deployment(
         name,
         metadata={'name': name, 'namespace': namespace},
-        spec={  # type: ignore
+        spec={  # type: ignore[reportArgumentType]  # Nested Kubernetes input inference loses the generated spec type.
             'replicas': 1,
             'selector': {'match_labels': labels},
             'template': {
@@ -185,16 +187,16 @@ def _deployment(
                             'image': image,
                             'args': command,
                             'env': env,
-                            'ports': [{'name': 'metrics', 'containerPort': port}],
-                            'volumeMounts': mounts,
+                            'ports': [{'name': 'metrics', 'container_port': port}],
+                            'volume_mounts': mounts,
                             'resources': {
                                 'requests': {'cpu': '10m', 'memory': '32Mi'},
                                 'limits': {'memory': '64Mi'},
                             },
-                            'readinessProbe': {
-                                'httpGet': {'path': '/metrics', 'port': port},
-                                'initialDelaySeconds': 3,
-                                'periodSeconds': 10,
+                            'readiness_probe': {
+                                'http_get': {'path': '/metrics', 'port': port},
+                                'initial_delay_seconds': 3,
+                                'period_seconds': 10,
                             },
                         }
                     ],
@@ -207,10 +209,10 @@ def _deployment(
     k8s.core.v1.Service(
         f'{name}-service',
         metadata={'name': name, 'namespace': namespace},
-        spec={  # type: ignore
+        spec={
             'type': 'ClusterIP',
             'selector': labels,
-            'ports': [{'name': 'metrics', 'port': port, 'targetPort': port}],
+            'ports': [{'name': 'metrics', 'port': port, 'target_port': port}],
         },
         opts=p.ResourceOptions(provider=provider, depends_on=[deployment]),
     )
