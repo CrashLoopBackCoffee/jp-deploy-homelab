@@ -404,6 +404,12 @@ discovery.relabel "pod_logs" {
 		regex         = "(.+)"
 		target_label  = "app"
 	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_namespace"]
+		regex         = "wazuh"
+		action        = "drop"
+	}
 }
 
 loki.process "pod_logs" {
@@ -419,6 +425,117 @@ loki.process "pod_logs" {
 loki.source.kubernetes "pod_logs" {
 	targets    = discovery.relabel.pod_logs.output
 	forward_to = [loki.process.pod_logs.receiver]
+}
+
+discovery.relabel "wazuh_pod_logs" {
+	targets = discovery.kubernetes.pods.targets
+
+	rule {
+		source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_label_app_kubernetes_io_name", "__meta_kubernetes_pod_container_name"]
+		regex         = "wazuh;wazuh-manager;(alerts-tail|ossec-log-tail|cti-freshness)"
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_namespace"]
+		target_label  = "namespace"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_name"]
+		target_label  = "pod"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_container_name"]
+		target_label  = "container"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_container_name"]
+		regex         = "alerts-tail"
+		target_label  = "job"
+		replacement   = "wazuh-alerts"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_container_name"]
+		regex         = "ossec-log-tail"
+		target_label  = "job"
+		replacement   = "wazuh-ossec-log"
+	}
+
+	rule {
+		source_labels = ["__meta_kubernetes_pod_container_name"]
+		regex         = "cti-freshness"
+		target_label  = "job"
+		replacement   = "wazuh-cti-freshness"
+	}
+}
+
+// Wazuh manager sidecars already expose selected source files through the ordinary pod-log
+// source. Keep their labels bounded and parse source timestamps from the emitted JSON/log lines.
+loki.process "wazuh_pod_logs" {
+	forward_to = [loki.write.loki.receiver]
+
+	stage.match {
+		selector = `{namespace="wazuh", container="alerts-tail"}`
+
+		stage.json {
+			expressions = {
+				rule_id   = "rule.id",
+				status    = "data.vulnerability.status",
+				severity  = "data.vulnerability.severity",
+				timestamp = "timestamp",
+			}
+		}
+
+		stage.labels {
+			values = {
+				status   = "",
+				severity = "",
+			}
+		}
+
+		stage.timestamp {
+			source            = "timestamp"
+			format            = "2006-01-02T15:04:05.999999999-0700"
+			action_on_failure = "skip"
+		}
+	}
+
+	stage.match {
+		selector = `{namespace="wazuh", container="ossec-log-tail"}`
+
+		stage.regex {
+			expression = `^(?P<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<component>[^ ]+) (?P<level>[^:]+): (?P<message>.*)$`
+		}
+
+		stage.timestamp {
+			source            = "timestamp"
+			format            = "2006/01/02 15:04:05"
+			action_on_failure = "skip"
+		}
+	}
+
+	stage.match {
+		selector = `{namespace="wazuh", container="cti-freshness"}`
+
+		stage.json {
+			expressions = {timestamp = "timestamp"}
+		}
+
+		stage.timestamp {
+			source            = "timestamp"
+			format            = "RFC3339Nano"
+			action_on_failure = "skip"
+		}
+	}
+}
+
+loki.source.kubernetes "wazuh_pod_logs" {
+	targets    = discovery.relabel.wazuh_pod_logs.output
+	forward_to = [loki.process.wazuh_pod_logs.receiver]
 }
 
 loki.source.kubernetes_events "cluster_events" {
