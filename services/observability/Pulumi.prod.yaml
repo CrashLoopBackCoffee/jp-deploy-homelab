@@ -21,6 +21,7 @@ config:
       secret-access-key:
         ref: op://Homelab/QuObjects Mimir Metrics/password
       ingester-storage-size-gb: 10
+      max-global-series-per-user: 250000
       store-gateway-storage-size-gb: 5
       compactor-storage-size-gb: 10
     alloy:

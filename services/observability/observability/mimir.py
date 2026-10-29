@@ -69,6 +69,7 @@ def create_mimir(
                     'store_gateway': {'sharding_ring': {'replication_factor': 1}},
                     'limits': {
                         'compactor_blocks_retention_period': f'{mimir_config.retention_days}d',
+                        'max_global_series_per_user': mimir_config.max_global_series_per_user,
                     },
                     'compactor': {'data_dir': '/data'},
                 },
