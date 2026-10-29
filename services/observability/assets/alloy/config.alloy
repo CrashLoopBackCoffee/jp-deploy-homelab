@@ -326,14 +326,13 @@ prometheus.scrape "wazuh_indexer" {
 	scrape_timeout  = "15s"
 }
 
-// The findings exporter probes the OpenSearch APIs. It returns at most one bucket per agent
-// status and one bounded high-level-event count over the last 15 minutes.
+// The findings exporter probes OpenSearch. Keep the bounded aggregates only.
 prometheus.relabel "wazuh_findings" {
 	forward_to = [prometheus.remote_write.mimir.receiver]
 
 	rule {
 		source_labels = ["__name__"]
-		regex         = "^(up|wazuh_agent_status_count|wazuh_high_level_events)$"
+		regex         = "^(up|wazuh_agent_status_count|wazuh_high_level_events|wazuh_vulnerability_findings_by_(severity|agent)_count)$"
 		action        = "keep"
 	}
 }
@@ -348,6 +347,20 @@ prometheus.scrape "wazuh_agent_status" {
 
 	forward_to      = [prometheus.relabel.wazuh_findings.receiver]
 	job_name        = "wazuh-agent-status"
+	scrape_interval = "60s"
+	scrape_timeout  = "15s"
+}
+
+prometheus.scrape "wazuh_vulnerabilities" {
+	targets = [{
+		"__address__"      = "wazuh-findings-exporter.wazuh.svc:7979",
+		"__metrics_path__" = "/probe",
+		"__param_module"   = "wazuh_vulnerabilities",
+		"__param_target"   = "https://wazuh-indexer.wazuh.svc:9200/wazuh-states-vulnerabilities-*/_search",
+	}]
+
+	forward_to      = [prometheus.relabel.wazuh_findings.receiver]
+	job_name        = "wazuh-vulnerabilities"
 	scrape_interval = "60s"
 	scrape_timeout  = "15s"
 }

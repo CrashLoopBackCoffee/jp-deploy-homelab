@@ -78,9 +78,11 @@ _FINDINGS_CONFIG = {
                 'content': json.dumps(
                     {
                         'size': 0,
+                        'query': {'range': {'timestamp': {'gte': 'now-16m', 'lte': 'now'}}},
                         'aggs': {
                             'status': {
                                 'terms': {'field': 'status.keyword', 'size': 8},
+                                'aggs': {'agents': {'cardinality': {'field': 'id.keyword'}}},
                             }
                         },
                     },
@@ -105,7 +107,7 @@ _FINDINGS_CONFIG = {
                     'help': 'Wazuh agents by current status.',
                     'path': '{.aggregations.status.buckets[*]}',
                     'labels': {'status': '{.key}'},
-                    'values': {'count': '{.doc_count}'},
+                    'values': {'count': '{.agents.value}'},
                 },
             ],
         },

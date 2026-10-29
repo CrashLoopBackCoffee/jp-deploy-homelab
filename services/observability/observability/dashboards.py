@@ -1491,8 +1491,8 @@ def _wazuh_dashboard() -> str:
         },
         _wazuh_panel(
             2,
-            'Current vulnerability findings — endpoint k0s0 (agent 001)',
-            'agent.id:001',
+            'Current vulnerability findings — endpoint $agent',
+            'agent.id:$agent',
             'opensearch-vulnerabilities',
             description='Current findings, not transition events. Unclassified severity is retained.',
             x=0,
@@ -1502,8 +1502,8 @@ def _wazuh_dashboard() -> str:
         ),
         _wazuh_panel(
             3,
-            'Current findings by severity (including unclassified)',
-            'agent.id:001',
+            'Findings by severity (including unclassified)',
+            'agent.id:$agent',
             'opensearch-vulnerabilities',
             kind='barchart',
             x=0,
@@ -1514,7 +1514,7 @@ def _wazuh_dashboard() -> str:
         _wazuh_panel(
             4,
             'Agent status — manager monitoring index',
-            'id:001',
+            'id:$agent',
             'opensearch-agent-status',
             description='Wazuh manager monitoring history is the source for Active/Disconnected status.',
             x=12,
@@ -1562,7 +1562,7 @@ def _wazuh_dashboard() -> str:
         _wazuh_panel(
             9,
             'Operating system',
-            'agent.id:001',
+            'agent.id:$agent',
             'opensearch-system',
             description='Operating system name from the current Wazuh inventory state.',
             x=12,
@@ -1572,7 +1572,7 @@ def _wazuh_dashboard() -> str:
         _wazuh_panel(
             10,
             'Recent Wazuh alerts (best-effort events)',
-            'agent.id:001',
+            'agent.id:$agent',
             'opensearch-alerts',
             description='Security events are not a complete vulnerability lifecycle ledger; current state is authoritative.',
             x=0,
@@ -1617,6 +1617,20 @@ def _wazuh_dashboard() -> str:
             'gridPos': {'x': 0, 'y': 81, 'w': 24, 'h': 8},
             'description': 'Read-only CTI catalog consumer offset sampled every 10 minutes. This measures remote catalog metadata, not proof of local manager application.',
         },
+        {
+            'id': 14,
+            'type': 'timeseries',
+            'title': 'Current vulnerability findings by severity',
+            'datasource': _datasource('prometheus'),
+            'targets': [
+                {
+                    'refId': 'A',
+                    'expr': 'wazuh_vulnerability_findings_by_severity_count',
+                    'legendFormat': '{{severity}}',
+                }
+            ],
+            'gridPos': {'x': 0, 'y': 89, 'w': 24, 'h': 9},
+        },
     ]
     # Inventory state has no date field; its configured time field is numeric
     # wazuh.schema.version. Keep these current-state metrics independent of the
@@ -1633,6 +1647,22 @@ def _wazuh_dashboard() -> str:
             'schemaVersion': 39,
             'refresh': '5m',
             'time': {'from': 'now-24h', 'to': 'now'},
+            'templating': {
+                'list': [
+                    {
+                        'name': 'agent',
+                        'label': 'Agent',
+                        'type': 'query',
+                        'datasource': _datasource('opensearch-inventory'),
+                        'query': '{"find":"terms","field":"agent.id"}',
+                        'refresh': 2,
+                        'multi': True,
+                        'includeAll': True,
+                        'allValue': '*',
+                        'current': {'selected': True, 'text': 'All', 'value': '$__all'},
+                    }
+                ]
+            },
             'panels': panels,
         },
         indent=2,
