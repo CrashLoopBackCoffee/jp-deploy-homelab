@@ -73,6 +73,23 @@ _ISM_POLICY = {
             ],
         }
     },
+    'security-auditlog': {
+        'policy': {
+            'description': 'Delete security audit log indices after 30 days.',
+            'default_state': 'active',
+            'states': [
+                {
+                    'name': 'active',
+                    'actions': [],
+                    'transitions': [
+                        {'state_name': 'delete', 'conditions': {'min_index_age': '30d'}}
+                    ],
+                },
+                {'name': 'delete', 'actions': [{'delete': {}}], 'transitions': []},
+            ],
+            'ism_template': [{'index_patterns': ['security-auditlog-*'], 'priority': 100}],
+        }
+    },
 }
 
 _NODES_DN = """---
