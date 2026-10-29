@@ -65,30 +65,41 @@ The manager's `cti-freshness` sidecar polls the public catalog endpoint every 10
 
 ## Certificate renewal and pod restart
 
-cert-manager renews the leaf Certificates and updates their corresponding Secrets, but updating a Secret does not by itself restart a pod that consumes it. The affected process must reload the new key/certificate. Inspect mapping with `kubectl -n wazuh get certificates` and `kubectl -n wazuh describe certificate <certificate>`; wait for `Ready=True` and confirm the matching Secret's resource version changed. Do not hand-edit certificate Secrets.
+cert-manager renews the leaf Certificates and updates their corresponding Secrets, but updating a Secret does not by itself restart a pod that consumes it. The `wazuh-certificate-rotation` CronJob runs daily at 03:17 UTC, hashes the served certificate data and records a metadata-only baseline on each owning workload. This initial observation does not change pod templates; later differences update pod-template annotations and roll consumers in dependency order. Inspect its result with:
 
-For a planned/manual renewal, `cmctl` can request renewal (install/use the supported cmctl matching cluster cert-manager):
+```sh
+kubectl -n wazuh get cronjob wazuh-certificate-rotation
+kubectl -n wazuh create job --from=cronjob/wazuh-certificate-rotation cert-rotation-manual
+kubectl -n wazuh logs job/cert-rotation-manual
+kubectl -n wazuh delete job cert-rotation-manual
+```
+
+The job uses a namespace Role and restricted baseline-compatible security context. It reconciles in dependency order: `wazuh-indexer` and `wazuh-admin` → indexer; `wazuh-manager` and `wazuh-filebeat` → manager; `wazuh-dashboard` → dashboard; and reader certificates → exporters. The initial run records metadata-only baselines, avoiding a pod-template change; changed hashes patch the owning pod templates. Verify rollout completion, all Pods Ready, indexer green and agent `001` Active.
+
+For a planned renewal, `cmctl` can request renewal (use a supported cmctl matching cluster cert-manager):
 
 ```sh
 cmctl renew -n wazuh <certificate-name>
 kubectl -n wazuh wait --for=condition=Ready certificate/<certificate-name> --timeout=5m
+kubectl -n wazuh create job --from=cronjob/wazuh-certificate-rotation cert-rotation-manual
 ```
 
-Renew only the necessary leaf. Then restart consumers in dependency order; indexer first, manager next, dashboard after manager, and exporters last. For all-leaf rotation, renew the relevant certificates and let each become Ready before restarting:
+Do not hand-edit certificate Secrets. For an individual cert, verify only its consumer rolls; for a full rotation, verify indexer first, manager next, dashboard after manager, and exporters last.
+
+## Indexer security configuration after rebuild
+
+The indexer Pod includes a `security-reconciler` sidecar that runs the same idempotent security-configuration script as the Pulumi Job after every pod start. It waits for indexer HTTPS readiness, then applies the code-managed OpenSearch Security roles/mappings, templates, ISM policies and replica settings, logs success, and remains alive. It mounts only the required security ConfigMap, `internal_users.yml`, `wazuh-admin` certificate and `wazuh-ca` CA certificate read-only; `/tmp` is an `emptyDir` for the script's scratch files. No additional API permissions or elevated Pod Security settings are used.
+
+After an indexer pod restart/rebuild, inspect the sidecar log and validate cluster health and admin access:
 
 ```sh
-kubectl -n wazuh rollout restart statefulset/wazuh-indexer
-kubectl -n wazuh rollout status statefulset/wazuh-indexer --timeout=10m
-kubectl -n wazuh rollout restart statefulset/wazuh-manager
-kubectl -n wazuh rollout status statefulset/wazuh-manager --timeout=10m
-kubectl -n wazuh rollout restart deployment/wazuh-dashboard
-kubectl -n wazuh rollout status deployment/wazuh-dashboard --timeout=10m
-kubectl -n wazuh rollout restart deployment/wazuh-indexer-exporter deployment/wazuh-findings-exporter
-kubectl -n wazuh rollout status deployment/wazuh-indexer-exporter --timeout=5m
-kubectl -n wazuh rollout status deployment/wazuh-findings-exporter --timeout=5m
+kubectl -n wazuh logs wazuh-indexer-0 -c security-reconciler
+kubectl -n wazuh exec wazuh-indexer-0 -c security-reconciler -- \
+  curl --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt \
+  --key /certs/tls.key https://wazuh-indexer:9200/_cluster/health
 ```
 
-For an individual cert, restart only its consumer: indexer node/admin certs → indexer, manager/filebeat certs → manager, dashboard cert → dashboard, metrics-reader → both exporters, Grafana-reader → its Grafana consumer (not a Wazuh pod). Afterward verify all Pods Ready, indexer green, manager API responding and agent 001 Active. If the deployed cert-manager lacks `cmctl`, follow cert-manager's supported renewal procedure; deleting a Secret is not the normal procedure and can create an outage.
+Require a successful security-admin apply, `status=green`, zero unassigned shards, reader write requests denied with HTTP 403, all Grafana datasource health checks OK, all Pods Ready and agent `001` Active. If the sidecar fails or its log lacks the success output, inspect its logs and events; the input-hashed Pulumi security Job remains available as a manual recovery path after indexer readiness. Do not enable OpenSearch default security initialization or hand-edit roles.
 
 ## 4.14.x upgrade rehearsal / procedure
 

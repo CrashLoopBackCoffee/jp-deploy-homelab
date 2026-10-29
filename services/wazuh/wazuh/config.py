@@ -18,6 +18,7 @@ class ComponentConfig(utils.model.LocalBaseModel):
     indexer_memory_limit: str = '4Gi'
     indexer_cpu_request: str = '500m'
     busybox_version: str
+    kubectl_version: str
 
 
 class StackConfig(utils.model.LocalBaseModel):

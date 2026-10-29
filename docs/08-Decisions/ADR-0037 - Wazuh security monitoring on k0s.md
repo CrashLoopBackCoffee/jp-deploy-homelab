@@ -46,6 +46,8 @@ Accepted on 2026-10-29 after the full Phase 2 live acceptance gate passed. Imple
 22. **Dashboard identity:** Authentik SAML is optional post-core work; retain local basic authentication as break-glass. **[User decision; Verified (upstream)]** https://documentation.wazuh.com/current/user-manual/user-administration/single-sign-on/authentik.html
 23. **Alert notification:** warning-severity Grafana rules use normal Pushover, not emergency-priority paging. Wazuh detection-rule levels remain a separate scale. **[User decision]**
 24. **Access risk:** accept the manager’s indexer-administrator trust and document the compromise blast radius. **[User decision]**
+25. **Certificate rotation:** A daily baseline-PSA CronJob hashes served leaf Secrets and updates workload pod-template annotations on change, so consumers restart without an initial annotation-driven restart storm; RBAC is namespace-scoped and limited to required reads and workload patches.
+26. **Security configuration after indexer restart:** An indexer-pod sidecar waits for HTTPS readiness, runs the existing idempotent securityadmin configuration once per pod start using read-only config/credential/certificate mounts, then sleeps. This repairs the security index after an empty-PVC rebuild without relying on Pulumi input changes.
 
 ## Consequences
 

@@ -161,6 +161,75 @@ def create_indexer(
         opts=opts,
     )
 
+    role_payloads = {
+        name: json.dumps(payload, separators=(',', ':'))
+        for name, payload in _SECURITY_ROLE_PAYLOADS.items()
+    }
+    apply_script = f"""set -eu
+export OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk
+BASE=/usr/share/wazuh-indexer
+TOOLS=$BASE/plugins/opensearch-security/tools/securityadmin.sh
+curl_tls() {{
+  curl --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key "$@"
+}}
+until curl_tls --silent --output /dev/null https://wazuh-indexer:9200/; do sleep 5; done
+mkdir -p /tmp/security-config
+cp -a "$BASE/config/opensearch-security/." /tmp/security-config/
+cp /credentials/internal_users.yml /tmp/security-config/internal_users.yml
+cp /custom/nodes_dn.yml /tmp/security-config/nodes_dn.yml
+"$TOOLS" -h wazuh-indexer -p 9200 -cacert /ca/ca.crt -cert /certs/tls.crt -key /certs/tls.key -nhnv -cd /tmp/security-config -icl
+"$TOOLS" -h wazuh-indexer -p 9200 -cacert /ca/ca.crt -cert /certs/tls.crt -key /certs/tls.key -nhnv -icl -us 0
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{role_payloads['wazuh_grafana_reader']}' \\
+  'https://wazuh-indexer:9200/_plugins/_security/api/roles/wazuh_grafana_reader'
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{role_payloads['wazuh_metrics_reader']}' \\
+  'https://wazuh-indexer:9200/_plugins/_security/api/roles/wazuh_metrics_reader'
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{{"backend_roles":["admin"]}}' \\
+  'https://wazuh-indexer:9200/_plugins/_security/api/rolesmapping/security_rest_api_access'
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{{"backend_roles":["wazuh_grafana_reader"]}}' \\
+  'https://wazuh-indexer:9200/_plugins/_security/api/rolesmapping/wazuh_grafana_reader'
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{{"backend_roles":["wazuh_metrics_reader"]}}' \\
+  'https://wazuh-indexer:9200/_plugins/_security/api/rolesmapping/wazuh_metrics_reader'
+for name in alerts monitoring; do
+  url="https://wazuh-indexer:9200/_plugins/_ism/policies/wazuh-$name-retention"
+  status=$(curl --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+    -o /tmp/ism-policy.json -w '%{{http_code}}' "$url" || true)
+  if [ "$status" = 200 ]; then
+    sequence=$(sed -n 's/.*"_seq_no":\\([0-9][0-9]*\\).*/\\1/p' /tmp/ism-policy.json)
+    term=$(sed -n 's/.*"_primary_term":\\([0-9][0-9]*\\).*/\\1/p' /tmp/ism-policy.json)
+    url="$url?if_seq_no=$sequence&if_primary_term=$term"
+  fi
+  curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+    -H 'Content-Type: application/json' -X PUT -d "@/custom/ism-$name.json" "$url"
+done
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{{"persistent":{{"plugins.index_state_management.history.number_of_replicas":0}}}}' \\
+  'https://wazuh-indexer:9200/_cluster/settings'
+for index in '.opendistro-ism-managed-index-history-*' '.opendistro-job-scheduler-lock'; do
+  curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+    -H 'Content-Type: application/json' -X PUT -d '{{"index.number_of_replicas":0}}' \\
+    "https://wazuh-indexer:9200/$index/_settings"
+done
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{{"index_patterns":["wazuh-*"],"priority":1,"template":{{"settings":{{"index.number_of_replicas":0}}}}}}' \\
+  'https://wazuh-indexer:9200/_index_template/wazuh-single-node'
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{{"index_patterns":["wazuh-*"],"order":1000,"settings":{{"index.number_of_replicas":0}}}}' \\
+  'https://wazuh-indexer:9200/_template/wazuh-single-node'
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{{"index_patterns":["security-auditlog-*"],"order":1000,"settings":{{"index.number_of_replicas":0}}}}' \\
+  'https://wazuh-indexer:9200/_template/wazuh-security-auditlog-single-node'
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{{"index.number_of_replicas":0}}' \\
+  'https://wazuh-indexer:9200/.opendistro-ism-config/_settings'
+curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -H 'Content-Type: application/json' -X PUT -d '{{"index.number_of_replicas":0}}' \\
+  'https://wazuh-indexer:9200/security-auditlog-*/_settings'
+"""
     labels = {'app.kubernetes.io/name': 'wazuh-indexer'}
     stateful_set = k8s.apps.v1.StatefulSet(
         'wazuh-indexer',
@@ -231,9 +300,60 @@ def create_indexer(
                                 'initial_delay_seconds': 30,
                                 'period_seconds': 10,
                             },
-                        }
+                        },
+                        {
+                            'name': 'security-reconciler',
+                            'image': f'wazuh/wazuh-indexer:{config.version}',
+                            'command': [
+                                'sh',
+                                '-c',
+                                f"{apply_script}\nprintf 'security configuration apply succeeded\\n'\nexec sleep infinity",
+                            ],
+                            'resources': {
+                                'requests': {'cpu': '20m', 'memory': '256Mi'},
+                                'limits': {'memory': '512Mi'},
+                            },
+                            'security_context': {
+                                'allow_privilege_escalation': False,
+                                'read_only_root_filesystem': True,
+                                'capabilities': {'drop': ['ALL']},
+                            },
+                            'volume_mounts': [
+                                {'name': 'security', 'mount_path': '/custom', 'read_only': True},
+                                {
+                                    'name': 'internal-users',
+                                    'mount_path': '/credentials',
+                                    'read_only': True,
+                                },
+                                {'name': 'admin-cert', 'mount_path': '/certs', 'read_only': True},
+                                {'name': 'ca-cert', 'mount_path': '/ca', 'read_only': True},
+                                {'name': 'security-tmp', 'mount_path': '/tmp'},
+                            ],
+                        },
                     ],
                     'volumes': [
+                        {'name': 'security-tmp', 'empty_dir': {}},
+                        {
+                            'name': 'security',
+                            'config_map': {
+                                'name': settings.metadata.name,
+                                'items': [
+                                    {'key': 'nodes_dn.yml', 'path': 'nodes_dn.yml'},
+                                    {'key': 'ism-alerts.json', 'path': 'ism-alerts.json'},
+                                    {'key': 'ism-monitoring.json', 'path': 'ism-monitoring.json'},
+                                ],
+                            },
+                        },
+                        {
+                            'name': 'internal-users',
+                            'secret': {
+                                'secret_name': 'wazuh-credentials',
+                                'items': [
+                                    {'key': 'internal_users.yml', 'path': 'internal_users.yml'}
+                                ],
+                            },
+                        },
+                        {'name': 'admin-cert', 'secret': {'secret_name': 'wazuh-admin'}},
                         {'name': 'config', 'config_map': {'name': config_map.metadata.name}},
                         {
                             'name': 'indexer-cert',
@@ -281,75 +401,6 @@ def create_indexer(
         opts=p.ResourceOptions.merge(opts, p.ResourceOptions(depends_on=[stateful_set])),
     )
 
-    role_payloads = {
-        name: json.dumps(payload, separators=(',', ':'))
-        for name, payload in _SECURITY_ROLE_PAYLOADS.items()
-    }
-    apply_script = f"""set -eu
-export OPENSEARCH_JAVA_HOME=/usr/share/wazuh-indexer/jdk
-BASE=/usr/share/wazuh-indexer
-TOOLS=$BASE/plugins/opensearch-security/tools/securityadmin.sh
-curl_tls() {{
-  curl --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key "$@"
-}}
-until curl_tls --silent --output /dev/null https://wazuh-indexer:9200/; do sleep 5; done
-mkdir -p /tmp/security-config
-cp -a "$BASE/config/opensearch-security/." /tmp/security-config/
-cp /credentials/internal_users.yml /tmp/security-config/internal_users.yml
-cp /custom/nodes_dn.yml /tmp/security-config/nodes_dn.yml
-"$TOOLS" -h wazuh-indexer -p 9200 -cacert /ca/ca.crt -cert /certs/tls.crt -key /certs/tls.key -nhnv -cd /tmp/security-config -icl
-"$TOOLS" -h wazuh-indexer -p 9200 -cacert /ca/ca.crt -cert /certs/tls.crt -key /certs/tls.key -nhnv -icl -us 0
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{role_payloads['wazuh_grafana_reader']}' \\
-  'https://wazuh-indexer:9200/_plugins/_security/api/roles/wazuh_grafana_reader'
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{role_payloads['wazuh_metrics_reader']}' \\
-  'https://wazuh-indexer:9200/_plugins/_security/api/roles/wazuh_metrics_reader'
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{{"backend_roles":["admin"]}}' \\
-  'https://wazuh-indexer:9200/_plugins/_security/api/rolesmapping/security_rest_api_access'
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{{"backend_roles":["wazuh_grafana_reader"]}}' \\
-  'https://wazuh-indexer:9200/_plugins/_security/api/rolesmapping/wazuh_grafana_reader'
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{{"backend_roles":["wazuh_metrics_reader"]}}' \\
-  'https://wazuh-indexer:9200/_plugins/_security/api/rolesmapping/wazuh_metrics_reader'
-for name in alerts monitoring; do
-  url="https://wazuh-indexer:9200/_plugins/_ism/policies/wazuh-$name-retention"
-  status=$(curl --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-    -o /tmp/ism-policy.json -w '%{{http_code}}' "$url" || true)
-  if [ "$status" = 200 ]; then
-    sequence=$(sed -n 's/.*"_seq_no":\\([0-9][0-9]*\\).*/\\1/p' /tmp/ism-policy.json)
-    term=$(sed -n 's/.*"_primary_term":\\([0-9][0-9]*\\).*/\\1/p' /tmp/ism-policy.json)
-    url="$url?if_seq_no=$sequence&if_primary_term=$term"
-  fi
-  curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-    -H 'Content-Type: application/json' -X PUT -d "@/custom/ism-$name.json" "$url"
-done
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{{"persistent":{{"plugins.index_state_management.history.number_of_replicas":0}}}}' \\
-  'https://wazuh-indexer:9200/_cluster/settings'
-for index in '.opendistro-ism-managed-index-history-*' '.opendistro-job-scheduler-lock'; do
-  curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-    -H 'Content-Type: application/json' -X PUT -d '{{"index.number_of_replicas":0}}' \\
-    "https://wazuh-indexer:9200/$index/_settings"
-done
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{{"index_patterns":["wazuh-*"],"priority":1,"template":{{"settings":{{"index.number_of_replicas":0}}}}}}' \\
-  'https://wazuh-indexer:9200/_index_template/wazuh-single-node'
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{{"index_patterns":["wazuh-*"],"order":1000,"settings":{{"index.number_of_replicas":0}}}}' \\
-  'https://wazuh-indexer:9200/_template/wazuh-single-node'
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{{"index_patterns":["security-auditlog-*"],"order":1000,"settings":{{"index.number_of_replicas":0}}}}' \\
-  'https://wazuh-indexer:9200/_template/wazuh-security-auditlog-single-node'
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{{"index.number_of_replicas":0}}' \\
-  'https://wazuh-indexer:9200/.opendistro-ism-config/_settings'
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{{"index.number_of_replicas":0}}' \\
-  'https://wazuh-indexer:9200/security-auditlog-*/_settings'
-"""
     config_hash = p.Output.all(
         _INDEXER_CONFIG,
         settings.data,
