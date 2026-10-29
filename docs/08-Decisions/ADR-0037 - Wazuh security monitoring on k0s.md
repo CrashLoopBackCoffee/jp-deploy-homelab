@@ -87,6 +87,10 @@ Accepted on 2026-10-29 after the full Phase 2 live acceptance gate passed. Imple
 
 **[Verified (upstream)]** `json_exporter` supports POST bodies and JSONPath extraction; maintained Elasticsearch exporter is available. https://github.com/prometheus-community/json_exporter ; https://github.com/prometheus-community/elasticsearch_exporter. **[Inference]** Reject stale pyToshka Wazuh exporter; use these maintained components and Alloy's embedded exporter where suitable.
 
+## Addendum (2026-10-29)
+
+- Loki keeps selected manager events only: `alerts-tail` vulnerability transition rules 23502–23506 plus alerts at level 12+, `ossec-log-tail` vulnerability scanner/feed lines and ERROR/WARNING/CRITICAL lines, while CTI heartbeat output is unchanged. Ordinary pod-log collection excludes only these three sidecars, so Wazuh platform, exporter, and Job logs remain available in Loki. No additional event-derived labels are introduced; status and severity remain the only data-derived alert labels.
+
 ## Related notes
 
 [[Wazuh Security Monitoring]], [[Wazuh Implementation Plan]], [[GLOSSARY]], [[ADR-0019 - LGTM observability stack on k0s]], [[ADR-0014 - Longhorn on a dedicated ext4 data disk]]

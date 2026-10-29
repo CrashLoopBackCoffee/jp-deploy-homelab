@@ -515,24 +515,6 @@ def create_manager(
         opts=p.ResourceOptions.merge(opts, p.ResourceOptions(depends_on=[stateful_set])),
     )
     k8s.core.v1.Service(
-        'wazuh-manager-internal',
-        metadata={'name': 'wazuh-manager-internal', 'namespace': namespace},
-        spec={
-            'type': 'ClusterIP',
-            'selector': labels,
-            'ports': [
-                {'name': 'agents', 'port': 1514, 'target_port': 1514, 'protocol': 'TCP'},
-                {
-                    'name': 'enrollment',
-                    'port': 1515,
-                    'target_port': 1515,
-                    'protocol': 'TCP',
-                },
-            ],
-        },
-        opts=p.ResourceOptions.merge(opts, p.ResourceOptions(depends_on=[stateful_set])),
-    )
-    k8s.core.v1.Service(
         'wazuh-manager-agents',
         metadata={'name': 'wazuh-manager-agents', 'namespace': namespace},
         spec={

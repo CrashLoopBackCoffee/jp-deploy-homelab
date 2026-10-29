@@ -18,7 +18,7 @@ Wazuh is a single-node, non-HA deployment in namespace `wazuh`, managed by the `
 | Component | Kubernetes resource / location | Role |
 | --- | --- | --- |
 | Indexer | StatefulSet/Pod `wazuh-indexer-0`, Service `wazuh-indexer:9200`, PVC `data-wazuh-indexer-0` | OpenSearch-compatible alert, inventory and vulnerability indices |
-| Manager | StatefulSet/Pod `wazuh-manager-0`, API Service `wazuh-manager:55000`, internal agent Service `wazuh-manager-internal`, public agent LB `wazuh-manager-agents` (`10.10.88.3`) | Agent enrollment, analysis, vulnerability scanner and Filebeat indexing |
+| Manager | StatefulSet/Pod `wazuh-manager-0`, API Service `wazuh-manager:55000`, public agent LB `wazuh-manager-agents` (`10.10.88.3`) | Agent enrollment, analysis, vulnerability scanner and Filebeat indexing |
 | Dashboard | Deployment `wazuh-dashboard`, LAN ingress `https://wazuh.4jp.de` | Wazuh app and operator interface |
 | Exporters | Deployments `wazuh-indexer-exporter`, `wazuh-findings-exporter` | Indexer and findings metrics to Alloy/Mimir |
 | CTI freshness | `cti-freshness` manager sidecar; `ossec-log-tail` forwards manager log lines | Remote Wazuh CTI endpoint reachability heartbeat and scanner log signal to Loki |

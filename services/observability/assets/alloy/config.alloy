@@ -170,12 +170,6 @@ discovery.relabel "metrics_pods" {
 	}
 
 	rule {
-		source_labels = ["__meta_kubernetes_pod_container_name"]
-		regex         = "wazuh-(indexer|findings)-exporter"
-		action        = "drop"
-	}
-
-	rule {
 		source_labels = ["__meta_kubernetes_namespace"]
 		target_label  = "namespace"
 	}
@@ -419,8 +413,8 @@ discovery.relabel "pod_logs" {
 	}
 
 	rule {
-		source_labels = ["__meta_kubernetes_namespace"]
-		regex         = "wazuh"
+		source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"]
+		regex         = "wazuh;(alerts-tail|ossec-log-tail|cti-freshness)"
 		action        = "drop"
 	}
 }
@@ -486,20 +480,26 @@ discovery.relabel "wazuh_pod_logs" {
 	}
 }
 
-// Wazuh manager sidecars already expose selected source files through the ordinary pod-log
-// source. Keep their labels bounded and parse source timestamps from the emitted JSON/log lines.
+// Wazuh manager sidecars are collected only by this dedicated pipeline, which selects events
+// before sending them to Loki and keeps the bounded label set.
 loki.process "wazuh_pod_logs" {
 	forward_to = [loki.write.loki.receiver]
 
+	stage.label_drop {
+		values = ["instance", "service_name", "detected_level"]
+	}
+
 	stage.match {
-		selector = `{namespace="wazuh", container="alerts-tail"}`
+		selector = "{namespace=\"wazuh\", container=\"alerts-tail\"} |~ \"\\\"id\\\":\\\"2350[2-6]\\\"|\\\"level\\\":(1[2-9]|[2-9][0-9])\""
+		action   = "keep"
 
 		stage.json {
 			expressions = {
-				rule_id   = "rule.id",
-				status    = "data.vulnerability.status",
-				severity  = "data.vulnerability.severity",
-				timestamp = "timestamp",
+				rule_id    = "rule.id",
+				rule_level = "rule.level",
+				status     = "data.vulnerability.status",
+				severity   = "data.vulnerability.severity",
+				timestamp  = "timestamp",
 			}
 		}
 
@@ -518,7 +518,8 @@ loki.process "wazuh_pod_logs" {
 	}
 
 	stage.match {
-		selector = `{namespace="wazuh", container="ossec-log-tail"}`
+		selector = "{namespace=\"wazuh\", container=\"ossec-log-tail\"} |~ \"(?i)(ERROR|WARNING|CRITICAL|vulnerability|scanner|feed)\""
+		action   = "keep"
 
 		stage.regex {
 			expression = `^(?P<timestamp>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<component>[^ ]+) (?P<level>[^:]+): (?P<message>.*)$`
