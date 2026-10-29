@@ -85,11 +85,19 @@ wazuh:
 """
 _SECURITY_ROLE_PAYLOADS = {
     'wazuh_grafana_reader': {
-        'cluster_permissions': ['cluster_composite_ops_ro', 'cluster_monitor'],
+        'cluster_permissions': [
+            'cluster_composite_ops_ro',
+            'cluster_monitor',
+        ],
         'index_permissions': [
             {
-                'index_patterns': ['wazuh-alerts-*', 'wazuh-states-*'],
-                'allowed_actions': ['read'],
+                'index_patterns': ['wazuh-alerts-*', 'wazuh-states-*', 'wazuh-monitoring-*'],
+                'allowed_actions': [
+                    'read',
+                    'indices:admin/mappings/fields/get',
+                    'indices:admin/mappings/get',
+                    'indices:monitor/settings/get',
+                ],
             }
         ],
     },

@@ -40,4 +40,4 @@ def main():
     create_node_proxy_access(k8s_opts, alloy)
     create_syslog_service(component_config, k8s_opts, alloy)
     create_longhorn_metrics_access(k8s_provider)
-    create_grafana(component_config, k8s_opts, depends_on=[loki, mimir])
+    create_grafana(component_config, k8s_provider, k8s_opts, depends_on=[loki, mimir])
