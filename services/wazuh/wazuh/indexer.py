@@ -97,7 +97,7 @@ _SECURITY_ROLE_PAYLOADS = {
         'cluster_permissions': ['cluster_monitor'],
         'index_permissions': [
             {
-                'index_patterns': ['wazuh-alerts-*'],
+                'index_patterns': ['wazuh-*'],
                 'allowed_actions': ['read'],
             }
         ],
