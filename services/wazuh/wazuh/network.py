@@ -1,13 +1,12 @@
 import pulumi as p
 import pulumi_kubernetes as k8s
 
-_WAZUH_NAMESPACE = 'wazuh'
 _OBSERVABILITY_NAMESPACE = 'observability'
 
 
-def _same_namespace(app_name: str) -> dict:
+def _same_namespace(namespace: p.Input[str], app_name: str) -> dict:
     return {
-        'namespace_selector': {'match_labels': {'kubernetes.io/metadata.name': _WAZUH_NAMESPACE}},
+        'namespace_selector': {'match_labels': {'kubernetes.io/metadata.name': namespace}},
         'pod_selector': {'match_labels': {'app.kubernetes.io/name': app_name}},
     }
 
@@ -32,11 +31,11 @@ def create_network_policies(provider: k8s.Provider, namespace: p.Input[str]) -> 
     )
 
     indexer_sources = [
-        _same_namespace('wazuh-manager'),
-        _same_namespace('wazuh-dashboard'),
-        _same_namespace('wazuh-indexer-security'),
-        _same_namespace('wazuh-indexer-exporter'),
-        _same_namespace('wazuh-findings-exporter'),
+        _same_namespace(namespace, 'wazuh-manager'),
+        _same_namespace(namespace, 'wazuh-dashboard'),
+        _same_namespace(namespace, 'wazuh-indexer-security'),
+        _same_namespace(namespace, 'wazuh-indexer-exporter'),
+        _same_namespace(namespace, 'wazuh-findings-exporter'),
         _observability_pod('grafana'),
     ]
     k8s.networking.v1.NetworkPolicy(
@@ -48,7 +47,7 @@ def create_network_policies(provider: k8s.Provider, namespace: p.Input[str]) -> 
             'ingress': [
                 {'from_': indexer_sources, 'ports': [{'port': 9200, 'protocol': 'TCP'}]},
                 {
-                    'from_': [_same_namespace('wazuh-indexer')],
+                    'from_': [_same_namespace(namespace, 'wazuh-indexer')],
                     'ports': [{'port': 9300, 'protocol': 'TCP'}],
                 },
             ],
@@ -74,7 +73,7 @@ def create_network_policies(provider: k8s.Provider, namespace: p.Input[str]) -> 
                     ],
                 },
                 {
-                    'from_': [_same_namespace('wazuh-dashboard')],
+                    'from_': [_same_namespace(namespace, 'wazuh-dashboard')],
                     'ports': [{'port': 55000, 'protocol': 'TCP'}],
                 },
             ],
