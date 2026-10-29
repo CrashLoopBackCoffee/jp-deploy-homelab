@@ -13,9 +13,8 @@ An endpoint’s observed operating-system, package, process, hardware, and netwo
 _Avoid_: Finding, alert.
 
 **Current vulnerability finding**:
-A present match between an endpoint’s software inventory and a known vulnerability.
+A present match between an endpoint’s software inventory and a known vulnerability, representing current state rather than a notification of a change.
 _Avoid_: Vulnerability event, CVE alert.
-
 **Vulnerability transition event**:
 A time-stamped notification that a vulnerability was observed as active or solved; it is useful history, but not a complete ledger of every state change.
 _Avoid_: Current finding, complete audit record.
@@ -33,5 +32,5 @@ A query-evaluation rule that determines when an operator should be notified and 
 _Avoid_: Wazuh detection rule.
 
 **CTI feed freshness**:
-The observed remote CTI catalog metadata and probe health; it does not prove that the manager applied the remote content. Missing periodic probe output is an alert on probe/log-pipeline silence, not proof of stale locally applied feed data.
-_Avoid_: Manager health, age of the latest vulnerability alert, locally applied feed freshness inferred from probe silence.
+The recency of threat-intelligence content available for vulnerability detection.
+_Avoid_: Manager health, age of the latest vulnerability alert.

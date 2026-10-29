@@ -2,7 +2,7 @@
 type: Service
 title: Observability stack (Pulumi, prod)
 description: LGTM monitoring on k0s - what runs, how it is reached, alert routing to Pushover, verification evidence, and the metric and provisioning pitfalls found while building it.
-timestamp: 2026-10-24T00:00:00Z
+timestamp: 2026-10-29T00:00:00Z
 tags: [homelab, kubernetes, observability, grafana, loki, mimir, alloy, alerting, pushover]
 resource: https://app.pulumi.com/jaypee-solutions/observability/prod
 ---

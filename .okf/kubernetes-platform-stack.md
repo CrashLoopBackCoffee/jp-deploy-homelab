@@ -2,7 +2,7 @@
 type: Service
 title: Kubernetes platform stack (Pulumi, prod)
 description: What the Kubernetes Pulumi stack deploys on k0s, how it is configured, and how secrets, DNS, and certificates flow.
-timestamp: 2026-10-24T13:46:00Z
+timestamp: 2026-10-29T00:00:00Z
 tags: [homelab, kubernetes, pulumi, metallb, traefik, cert-manager, cloudnativepg, openebs, longhorn]
 resource: https://app.pulumi.com/jaypee-solutions/kubernetes/prod
 ---
