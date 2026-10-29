@@ -1,5 +1,7 @@
 """Prometheus exporters for Wazuh indexer health and vulnerability state."""
 
+import base64
+import hashlib
 import json
 
 import pulumi as p
@@ -66,7 +68,88 @@ _FINDINGS_CONFIG = {
                     'values': {'count': '{.doc_count}'},
                 },
             ],
-        }
+        },
+        'wazuh_agent_status': {
+            'headers': {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            'body': {
+                'content': json.dumps(
+                    {
+                        'size': 0,
+                        'aggs': {
+                            'status': {
+                                'terms': {'field': 'status.keyword', 'size': 8},
+                            }
+                        },
+                    },
+                    separators=(',', ':'),
+                )
+            },
+            'http_client_config': {
+                'basic_auth': {
+                    'username': 'metrics_reader',
+                    'password_file': '/credentials/password',
+                },
+                'tls_config': {
+                    'ca_file': '/ca/ca.crt',
+                    'cert_file': '/certs/tls.crt',
+                    'key_file': '/certs/tls.key',
+                },
+            },
+            'metrics': [
+                {
+                    'name': 'wazuh_agent_status',
+                    'type': 'object',
+                    'help': 'Wazuh agents by current status.',
+                    'path': '{.aggregations.status.buckets[*]}',
+                    'labels': {'status': '{.key}'},
+                    'values': {'count': '{.doc_count}'},
+                },
+            ],
+        },
+        'wazuh_high_level_events': {
+            'headers': {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            'body': {
+                'content': json.dumps(
+                    {
+                        'size': 0,
+                        'query': {
+                            'bool': {
+                                'filter': [
+                                    {'range': {'timestamp': {'gte': 'now-15m', 'lte': 'now'}}},
+                                    {'range': {'rule.level': {'gte': 12}}},
+                                ]
+                            }
+                        },
+                        'track_total_hits': True,
+                    },
+                    separators=(',', ':'),
+                )
+            },
+            'http_client_config': {
+                'basic_auth': {
+                    'username': 'metrics_reader',
+                    'password_file': '/credentials/password',
+                },
+                'tls_config': {
+                    'ca_file': '/ca/ca.crt',
+                    'cert_file': '/certs/tls.crt',
+                    'key_file': '/certs/tls.key',
+                },
+            },
+            'metrics': [
+                {
+                    'name': 'wazuh_high_level_events',
+                    'help': 'Wazuh alert documents with rule level 12 or higher from the last 15 minutes.',
+                    'path': '{.hits.total.value}',
+                },
+            ],
+        },
     }
 }
 
@@ -81,6 +164,7 @@ def _deployment(
     env: list[dict[str, object]],
     provider: k8s.Provider,
     namespace: p.Input[str],
+    credential_checksum: p.Input[str],
 ) -> k8s.apps.v1.Deployment:
     labels = {'app.kubernetes.io/name': name}
     deployment = k8s.apps.v1.Deployment(
@@ -90,7 +174,10 @@ def _deployment(
             'replicas': 1,
             'selector': {'match_labels': labels},
             'template': {
-                'metadata': {'labels': labels},
+                'metadata': {
+                    'labels': labels,
+                    'annotations': {'checksum/metrics-credentials': credential_checksum},
+                },
                 'spec': {
                     'containers': [
                         {
@@ -135,9 +222,13 @@ def create_exporters(
     provider: k8s.Provider,
     namespace: p.Input[str],
     ca_secret: k8s.core.v1.Secret,
+    metrics_password: p.Output[str],
 ) -> None:
     """Deploy internal-only indexer health and vulnerability finding exporters."""
     opts = p.ResourceOptions(provider=provider)
+    credential_checksum = metrics_password.apply(
+        lambda password: hashlib.sha256(base64.b64encode(password.encode())).hexdigest()
+    )
     findings_config = k8s.core.v1.ConfigMap(
         'wazuh-findings-exporter-config',
         metadata={'name': 'wazuh-findings-exporter-config', 'namespace': namespace},
@@ -179,6 +270,8 @@ def create_exporters(
             '--es.client-cert=/certs/tls.crt',
             '--es.client-private-key=/certs/tls.key',
             '--es.ca=/ca/ca.crt',
+            '--no-es.aliases',
+            '--es.indices',
         ],
         tls_mounts,
         tls_volumes,
@@ -193,6 +286,7 @@ def create_exporters(
         ],
         provider,
         namespace,
+        credential_checksum,
     )
     _deployment(
         'wazuh-findings-exporter',
@@ -213,4 +307,5 @@ def create_exporters(
         [],
         provider,
         namespace,
+        credential_checksum,
     )

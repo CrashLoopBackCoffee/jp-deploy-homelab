@@ -107,7 +107,11 @@ _SECURITY_ROLE_PAYLOADS = {
             {
                 'index_patterns': ['wazuh-*'],
                 'allowed_actions': ['read'],
-            }
+            },
+            {
+                'index_patterns': ['*'],
+                'allowed_actions': ['indices:monitor/stats'],
+            },
         ],
     },
 }

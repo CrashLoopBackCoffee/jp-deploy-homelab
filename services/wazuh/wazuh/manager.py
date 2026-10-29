@@ -1,5 +1,6 @@
 """Provision the Wazuh standalone manager, API, and restricted agent endpoint."""
 
+import base64
 import hashlib
 
 import pulumi as p
@@ -27,6 +28,7 @@ def create_manager(
     provider: k8s.Provider,
     namespace: p.Input[str],
     credentials: k8s.core.v1.Secret,
+    admin_password: p.Output[str],
     cloudflare_provider: cloudflare.Provider,
 ) -> None:
     """Create the persistent standalone manager and source-restricted agent endpoint."""
@@ -128,8 +130,10 @@ def create_manager(
                     'labels': labels,
                     'annotations': {
                         'checksum/manager-config': hashlib.sha256(ossec_conf.encode()).hexdigest(),
-                        'checksum/credentials': credentials.data.apply(
-                            lambda data: hashlib.sha256(data['admin'].encode()).hexdigest()
+                        'checksum/credentials': admin_password.apply(
+                            lambda password: hashlib.sha256(
+                                base64.b64encode(password.encode())
+                            ).hexdigest()
                         ),
                     },
                 },

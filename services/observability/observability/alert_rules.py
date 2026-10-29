@@ -238,6 +238,58 @@ RULES = [
         for_='10m',
         no_data_state='Alerting',
     ),
+    # Absence of agent-status buckets is normal when no agents are enrolled; scrape failures
+    # are separately reported by the generic target-down rule.
+    AlertRule(
+        uid='wazuh-agent-disconnected',
+        title='Wazuh agent disconnected',
+        expr='wazuh_agent_status_count{status="disconnected"} > bool 0',
+        summary='One or more Wazuh agents have been disconnected from the manager',
+        for_='1h',
+        no_data_state='OK',
+    ),
+    AlertRule(
+        uid='wazuh-indexer-red',
+        title='Wazuh indexer cluster is red',
+        expr='elasticsearch_cluster_health_status{color="red"} == bool 1',
+        summary='Wazuh indexer cluster health is red',
+        for_='10m',
+        no_data_state='OK',
+    ),
+    AlertRule(
+        uid='wazuh-indexer-disk-low',
+        title='Wazuh indexer disk below 20% available',
+        expr=(
+            '(kubelet_volume_stats_available_bytes{namespace="wazuh",'
+            ' persistentvolumeclaim="data-wazuh-indexer-0"}'
+            ' / kubelet_volume_stats_capacity_bytes{namespace="wazuh",'
+            ' persistentvolumeclaim="data-wazuh-indexer-0"}) < bool 0.2'
+        ),
+        summary='Wazuh indexer PVC has less than 20% disk space available',
+        for_='30m',
+        no_data_state='OK',
+    ),
+    # This workload must exist; no kube-state-metrics series is treated as an outage.
+    AlertRule(
+        uid='wazuh-manager-down',
+        title='Wazuh manager is not ready',
+        expr=(
+            'kube_statefulset_status_replicas_ready{namespace="wazuh",'
+            ' statefulset="wazuh-manager"} == bool 0'
+        ),
+        summary='Wazuh manager StatefulSet has no ready replica',
+        for_='10m',
+        no_data_state='Alerting',
+    ),
+    # The exporter reports zero when no recent high-level events exist; lack of events is healthy.
+    AlertRule(
+        uid='wazuh-high-level-event',
+        title='Wazuh high-level alert event',
+        expr='wazuh_high_level_events > bool 0',
+        summary='Wazuh indexed a rule-level 12+ alert in the last 15 minutes',
+        for_='1m',
+        no_data_state='OK',
+    ),
     AlertRule(
         uid='certificate-expiring',
         title='Certificate expires within 14 days',

@@ -1,3 +1,4 @@
+import base64
 import hashlib
 
 import bcrypt
@@ -9,8 +10,8 @@ import pulumi_tls as tls
 _USERS = {
     'admin': ('admin-password-rotated-20261029', True, ['admin']),
     'kibanaserver': ('dashboard-password', True, []),
-    'grafana_reader': ('grafana-reader-password', False, ['wazuh_grafana_reader']),
-    'metrics_reader': ('metrics-reader-password', False, ['wazuh_metrics_reader']),
+    'grafana_reader': ('grafana-reader-password-rotated-20261029', False, ['wazuh_grafana_reader']),
+    'metrics_reader': ('metrics-reader-password-rotated-20261029', False, ['wazuh_metrics_reader']),
 }
 _SERVICE_USERS = {
     'api': 'api-password',
@@ -45,7 +46,7 @@ def _hash(password: p.Output[str], salt_seed: p.Output[str]) -> p.Output[str]:
 
 def create_pki(
     config, provider: k8s.Provider, namespace: p.Input[str]
-) -> tuple[k8s.core.v1.Secret, k8s.core.v1.Secret]:
+) -> tuple[k8s.core.v1.Secret, k8s.core.v1.Secret, p.Output[str], p.Output[str]]:
     opts = p.ResourceOptions(provider=provider)
     ca_key = tls.PrivateKey('wazuh-ca-key', algorithm='RSA', rsa_bits=4096)
     ca_cert = tls.SelfSignedCert(
@@ -153,18 +154,27 @@ def create_pki(
             )
         )
     )
+    credentials_data = p.Output.all(
+        **passwords,
+        **service_passwords,
+        internal_users_yaml=internal_users,
+    ).apply(
+        lambda values: {
+            **{
+                name: base64.b64encode(values[name].encode()).decode()
+                for name in {*passwords, *service_passwords}
+            },
+            'internal_users.yml': base64.b64encode(values['internal_users_yaml'].encode()).decode(),
+        }
+    )
     credentials = k8s.core.v1.Secret(
         'wazuh-credentials',
         metadata={'name': 'wazuh-credentials', 'namespace': namespace},
-        string_data={
-            **passwords,
-            **service_passwords,
-            'internal_users.yml': internal_users,
-        },
+        data=credentials_data,
         type='Opaque',
         opts=opts,
     )
     p.export('ca_pem', ca_cert.cert_pem)
     for name, password in {**passwords, **service_passwords}.items():
         p.export(f'{name}_password', p.Output.secret(password))
-    return ca_secret, credentials
+    return ca_secret, credentials, passwords['admin'], passwords['metrics_reader']
