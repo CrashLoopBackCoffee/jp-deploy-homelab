@@ -485,10 +485,6 @@ discovery.relabel "wazuh_pod_logs" {
 loki.process "wazuh_pod_logs" {
 	forward_to = [loki.write.loki.receiver]
 
-	stage.label_drop {
-		values = ["instance", "service_name", "detected_level"]
-	}
-
 	stage.match {
 		selector = "{namespace=\"wazuh\", container=\"alerts-tail\"} |~ \"\\\"id\\\":\\\"2350[2-6]\\\"|\\\"level\\\":(1[2-9]|[2-9][0-9])\""
 		action   = "keep"
