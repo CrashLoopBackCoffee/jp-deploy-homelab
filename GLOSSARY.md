@@ -33,5 +33,5 @@ A query-evaluation rule that determines when an operator should be notified and 
 _Avoid_: Wazuh detection rule.
 
 **CTI feed freshness**:
-The age of the latest successful completion of the vulnerability-intelligence feed update that has been observed.
-_Avoid_: Manager health, age of the latest vulnerability alert.
+The observed remote CTI catalog metadata and probe health; it does not prove that the manager applied the remote content. Missing periodic probe output is an alert on probe/log-pipeline silence, not proof of stale locally applied feed data.
+_Avoid_: Manager health, age of the latest vulnerability alert, locally applied feed freshness inferred from probe silence.

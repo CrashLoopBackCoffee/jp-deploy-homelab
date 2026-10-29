@@ -68,6 +68,16 @@ NOTIFICATION_POLICIES = {
             'repeat_interval': '12h',
             'routes': [
                 {
+                    'receiver': 'pushover',
+                    'object_matchers': [
+                        ['alertname', '=', 'New Active Critical vulnerability finding'],
+                    ],
+                    'group_by': ['alertname', 'agent_id'],
+                    'group_wait': '5m',
+                    'group_interval': '5m',
+                    'repeat_interval': '12h',
+                },
+                {
                     'receiver': 'pushover-emergency',
                     'object_matchers': [['severity', '=', 'critical']],
                 },

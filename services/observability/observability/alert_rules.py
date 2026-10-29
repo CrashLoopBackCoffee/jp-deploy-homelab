@@ -8,6 +8,7 @@ import dataclasses
 import typing as t
 
 MIMIR_DATASOURCE_UID = 'mimir'
+LOKI_DATASOURCE_UID = 'loki'
 FOLDER = 'Homelab'
 EXPRESSION_DATASOURCE = {'type': '__expr__', 'uid': '__expr__'}
 
@@ -32,6 +33,67 @@ class AlertRule:
     severity: str = 'warning'
     # State when the query returns no series. Alerting when the thing that must exist is absent.
     no_data_state: str = 'OK'
+
+
+@dataclasses.dataclass(frozen=True)
+class LokiAlertRule:
+    """A Grafana alert rule evaluated by Loki's LogQL datasource."""
+
+    uid: str
+    title: str
+    expr: str
+    summary: str
+    for_: str = '0s'
+    severity: str = 'warning'
+    no_data_state: str = 'OK'
+
+
+LOKI_RULES = [
+    LokiAlertRule(
+        uid='wazuh-critical-finding-active',
+        title='New Active Critical vulnerability finding',
+        expr=(
+            'sum by (agent_id, cve, package) (count_over_time('
+            '{namespace="wazuh",job="wazuh-alerts"} | json '
+            'rule_id="rule.id", agent_id="agent.id", cve="data.vulnerability.cve", '
+            'package="data.vulnerability.package.name", '
+            'status="data.vulnerability.status", '
+            'severity="data.vulnerability.severity" '
+            '| rule_id=~"2350[2-6]" | status="Active" | severity="Critical" [5m])) '
+            '> bool 0'
+        ),
+        summary=(
+            'New Active Critical finding on agent {{ $labels.agent_id }}: '
+            '{{ $labels.cve }} / {{ $labels.package }}'
+        ),
+    ),
+    LokiAlertRule(
+        uid='wazuh-feed-error',
+        title='Wazuh vulnerability feed error',
+        expr=(
+            'sum(count_over_time({namespace="wazuh",job="wazuh-ossec-log"} '
+            '|~ "Error updating feed" [5m])) > bool 0 '
+            'or sum(count_over_time({namespace="wazuh",job="wazuh-cti-freshness"} '
+            '| json | event="cti_freshness_error" [5m])) > bool 0'
+        ),
+        summary='Wazuh scanner feed or CTI freshness probe reported an error',
+    ),
+    LokiAlertRule(
+        uid='wazuh-cti-probe-silent',
+        title='Wazuh CTI freshness probe is silent',
+        expr=(
+            'absent_over_time({namespace="wazuh",job="wazuh-cti-freshness"} '
+            '| json | event="cti_freshness" [30m]) or (sum(count_over_time('
+            '{namespace="wazuh",job="wazuh-cti-freshness"} '
+            '| json | event="cti_freshness" [30m])) * 0)'
+        ),
+        summary=(
+            'No Wazuh CTI freshness heartbeat has reached Loki for 30 minutes; '
+            'this also detects a stopped manager log pipeline'
+        ),
+        no_data_state='Alerting',
+    ),
+]
 
 
 RULES = [
@@ -355,6 +417,59 @@ RULES = [
 ]
 
 
+def _loki_rule(rule: LokiAlertRule) -> dict[str, t.Any]:
+    """Render an alert rule whose query is evaluated by Loki."""
+    return {
+        'uid': rule.uid,
+        'title': rule.title,
+        'condition': 'C',
+        'data': [
+            {
+                'refId': 'A',
+                'relativeTimeRange': {'from': 1800, 'to': 0},
+                'datasourceUid': LOKI_DATASOURCE_UID,
+                'model': {
+                    'refId': 'A',
+                    'expr': rule.expr,
+                    'queryType': 'instant',
+                    'editorMode': 'code',
+                    'direction': 'backward',
+                    'intervalMs': 1000,
+                    'maxDataPoints': 43200,
+                },
+            },
+            {
+                'refId': 'B',
+                'datasourceUid': '__expr__',
+                'model': {
+                    'refId': 'B',
+                    'type': 'reduce',
+                    'expression': 'A',
+                    'reducer': 'last',
+                    'settings': {'mode': 'dropNN'},
+                    'datasource': EXPRESSION_DATASOURCE,
+                },
+            },
+            {
+                'refId': 'C',
+                'datasourceUid': '__expr__',
+                'model': {
+                    'refId': 'C',
+                    'type': 'threshold',
+                    'expression': 'B',
+                    'conditions': [{'evaluator': {'type': 'gt', 'params': [0]}}],
+                    'datasource': EXPRESSION_DATASOURCE,
+                },
+            },
+        ],
+        'noDataState': rule.no_data_state,
+        'execErrState': 'Error',
+        'for': rule.for_,
+        'annotations': {'summary': rule.summary.replace('$', '$$')},
+        'labels': {'severity': rule.severity},
+    }
+
+
 def _rule(rule: AlertRule) -> dict[str, t.Any]:
     return {
         'uid': rule.uid,
@@ -417,7 +532,9 @@ def provisioning() -> dict[str, t.Any]:
                 'name': 'homelab',
                 'folder': FOLDER,
                 'interval': '1m',
-                'rules': [_rule(rule) for rule in RULES],
+                'rules': (
+                    [_rule(rule) for rule in RULES] + [_loki_rule(rule) for rule in LOKI_RULES]
+                ),
             },
         ],
     }
