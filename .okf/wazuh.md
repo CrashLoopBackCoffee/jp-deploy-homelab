@@ -144,3 +144,19 @@ Single-node Wazuh deployment on k0s; host software inventory/vulnerability repor
 - The Grafana reader (`grafana_reader`) and `metrics_reader` each returned HTTP 200 for a search and HTTP 403 for document PUT, document POST, index creation and deletion. Authentication used their mounted client certificates and secret-injected passwords; no credential values were printed. Commands were executed from a temporary, policy-allowed pod, then removed.
 - BusyBox probes in both `default` and `observability` were blocked (TCP connect failed) to indexer 9200, manager API 55000, dashboard 5601 and manager agent/enrollment 1514/1515. A fresh SSH probe to `dockerhost` timed out in this session; ticket #91's earlier live evidence recorded dockerhost reaching `10.10.88.3:1514` and `:1515`. That allowlist-positive path was not independently re-proven here.
 - Cleanup confirmed the temporary restore namespace, both PVs, both Longhorn Volume CRs, reader probe and both network probes were absent. Deleting the namespace removed the bound PVCs; PV reclaim policy was `Delete`. No Wazuh production workload, PVC, credentials or stack configuration was changed.
+
+### Secret-safe probe commands
+
+The test pod mounts each reader certificate Secret read-only and receives the corresponding `wazuh-credentials` password through `secretKeyRef`; never fetch or echo decoded Secret values. For each identity, set only shell variables inside the probe container (`user`, `password`, `certdir`, `index`) and run:
+
+```sh
+curl -sS --cacert /certs/ca/ca.crt --cert "$certdir/tls.crt" --key "$certdir/tls.key" \
+  -u "$user:$password" -o /dev/null -w '%{http_code}\n' \
+  "https://wazuh-indexer.wazuh.svc:9200/$index/_search?size=0"
+curl -sS --cacert /certs/ca/ca.crt --cert "$certdir/tls.crt" --key "$certdir/tls.key" \
+  -u "$user:$password" -o /dev/null -w '%{http_code}\n' -X PUT \
+  -H 'Content-Type: application/json' --data '{"probe":true}' \
+  https://wazuh-indexer.wazuh.svc:9200/t100-ticket100-write-test/_doc/1
+```
+
+Repeat writes with `POST /t100-ticket100-write-test/_doc`, `PUT /t100-ticket100-write-test` (index creation), and `DELETE /t100-ticket100-write-test`; expected outcomes for both read-only identities are search `200` and all four writes `403`. For each source namespace, use `kubectl exec -n <namespace> t100-netprobe -- nc -z -w 3 <service> <port>` against `wazuh-indexer.wazuh.svc:9200`, `wazuh-manager.wazuh.svc:55000`, `wazuh-dashboard.wazuh.svc:5601`, and `wazuh-manager-internal.wazuh.svc:{1514,1515}`; blocked connections exit nonzero. These commands use no literal credential values.
