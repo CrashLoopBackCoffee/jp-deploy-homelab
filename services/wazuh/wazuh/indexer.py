@@ -154,9 +154,6 @@ def create_indexer(
         'wazuh-indexer-security-settings',
         metadata={'name': 'wazuh-indexer-security-settings', 'namespace': namespace},
         data={
-            'internal_users.yml': credentials.data.apply(
-                lambda data: base64.b64decode(data['internal_users.yml']).decode()
-            ),
             'nodes_dn.yml': _NODES_DN,
             'ism-alerts.json': json.dumps(_ISM_POLICY['alerts']),
             'ism-monitoring.json': json.dumps(_ISM_POLICY['monitoring']),
@@ -242,7 +239,13 @@ def create_indexer(
                             'name': 'indexer-cert',
                             'secret': {'secret_name': 'wazuh-indexer'},
                         },
-                        {'name': 'ca-cert', 'secret': {'secret_name': 'wazuh-ca'}},
+                        {
+                            'name': 'ca-cert',
+                            'secret': {
+                                'secret_name': 'wazuh-ca',
+                                'items': [{'key': 'tls.crt', 'path': 'ca.crt'}],
+                            },
+                        },
                     ],
                 },
             },
@@ -292,7 +295,7 @@ curl_tls() {{
 until curl_tls --silent --output /dev/null https://wazuh-indexer:9200/; do sleep 5; done
 mkdir -p /tmp/security-config
 cp -a "$BASE/config/opensearch-security/." /tmp/security-config/
-cp /custom/internal_users.yml /tmp/security-config/internal_users.yml
+cp /credentials/internal_users.yml /tmp/security-config/internal_users.yml
 cp /custom/nodes_dn.yml /tmp/security-config/nodes_dn.yml
 "$TOOLS" -h wazuh-indexer -p 9200 -cacert /ca/ca.crt -cert /certs/tls.crt -key /certs/tls.key -nhnv -cd /tmp/security-config -icl
 "$TOOLS" -h wazuh-indexer -p 9200 -cacert /ca/ca.crt -cert /certs/tls.crt -key /certs/tls.key -nhnv -icl -us 0
@@ -350,6 +353,7 @@ curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --ke
     config_hash = p.Output.all(
         _INDEXER_CONFIG,
         settings.data,
+        credentials.data.apply(lambda data: base64.b64decode(data['internal_users.yml']).decode()),
         credentials.data.apply(lambda data: data['admin']),
         _SECURITY_ROLE_PAYLOADS,
         _ISM_POLICY,
@@ -376,6 +380,11 @@ curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --ke
                             'command': ['sh', '-c', apply_script],
                             'volume_mounts': [
                                 {'name': 'security', 'mount_path': '/custom', 'read_only': True},
+                                {
+                                    'name': 'internal-users',
+                                    'mount_path': '/credentials',
+                                    'read_only': True,
+                                },
                                 {'name': 'admin-cert', 'mount_path': '/certs', 'read_only': True},
                                 {'name': 'ca-cert', 'mount_path': '/ca', 'read_only': True},
                             ],
@@ -387,15 +396,29 @@ curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --ke
                             'config_map': {
                                 'name': settings.metadata.name,
                                 'items': [
-                                    {'key': 'internal_users.yml', 'path': 'internal_users.yml'},
                                     {'key': 'nodes_dn.yml', 'path': 'nodes_dn.yml'},
                                     {'key': 'ism-alerts.json', 'path': 'ism-alerts.json'},
                                     {'key': 'ism-monitoring.json', 'path': 'ism-monitoring.json'},
                                 ],
                             },
                         },
+                        {
+                            'name': 'internal-users',
+                            'secret': {
+                                'secret_name': 'wazuh-credentials',
+                                'items': [
+                                    {'key': 'internal_users.yml', 'path': 'internal_users.yml'}
+                                ],
+                            },
+                        },
                         {'name': 'admin-cert', 'secret': {'secret_name': 'wazuh-admin'}},
-                        {'name': 'ca-cert', 'secret': {'secret_name': 'wazuh-ca'}},
+                        {
+                            'name': 'ca-cert',
+                            'secret': {
+                                'secret_name': 'wazuh-ca',
+                                'items': [{'key': 'tls.crt', 'path': 'ca.crt'}],
+                            },
+                        },
                     ],
                 },
             },
