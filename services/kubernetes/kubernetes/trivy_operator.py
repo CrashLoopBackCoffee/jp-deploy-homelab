@@ -37,6 +37,10 @@ def create_trivy_operator(
             'operator': {
                 'namespace': NAMESPACE,
                 'scanJobsConcurrentLimit': 1,
+                # Standalone scan jobs run one container per image in parallel on a shared cache, so
+                # multi-container workloads fail with "cache may be in use by another process".
+                # The built-in server owns one database and cache for all scans.
+                'builtInTrivyServer': True,
                 'vulnerabilityScannerEnabled': True,
                 'sbomGenerationEnabled': False,
                 'configAuditScannerEnabled': False,
@@ -48,11 +52,18 @@ def create_trivy_operator(
                 'metricsVulnIdEnabled': False,
             },
             'trivy': {
-                'mode': 'Standalone',
+                'mode': 'ClientServer',
                 'image': {'tag': component_config.trivy_operator.trivy_image_version},
                 'resources': {
                     'requests': {'cpu': '500m', 'memory': '512Mi'},
                     'limits': {'memory': '2Gi'},
+                },
+                'server': {
+                    'resources': {
+                        'requests': {'cpu': '200m', 'memory': '512Mi'},
+                        # None deletes the chart default `cpu: 1` (no CPU limits)
+                        'limits': {'cpu': None, 'memory': '1Gi'},
+                    },
                 },
             },
             'compliance': {'specs': []},
