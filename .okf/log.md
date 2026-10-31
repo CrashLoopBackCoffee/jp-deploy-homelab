@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-10-31
+* **Finding**: TeslaLogger restarted itself 7 times on 30–31.10 because upstream published 1.63.24.1 while k0s pinned 1.63.24.0; the in-app updater restarts the process, so the 24 h-uptime `DAY-mysqldump` stopped (last 2026-10-29 20:08). Bumped `teslalogger.version` to 1.63.24.1 (all three images share the tag); see `.okf/teslalogger.md`.
 * **Finding**: Wazuh dashboard home error on `manager.name` was caused by the composable index template `wazuh-single-node` shadowing the legacy Wazuh templates since ticket #88 (alert, monitoring and statistics indices had dynamic text mappings). Deleted it, moved the single-node settings into a legacy template (1 shard, 0 replicas), reindexed the five affected indices (no data lost), and switched the agent-status exporter query from `.keyword` fields to the keyword fields.
 * **Finding**: Trivy Operator scan jobs failed in a loop with `cache may be in use by another process` (Standalone mode runs one container per image in parallel on a shared cache; every multi-container workload failed). Switched to ClientServer with the chart's built-in server (StatefulSet `trivy-server`, 5 Gi Longhorn volume, no CPU limit); scans completed, 93 to 102 reports, no errors in 4 minutes. The operator pod itself was not crash-looping; its one restart was the k0s0 reboot.
 * **Change**: Rebooted k0s0 into kernel 6.8.0-147 (user approved; about 6 minutes of downtime for all workloads, everything recovered, Wazuh agents Active). Applied the fixable-findings exporter module, Alloy scrape and the two rules.
