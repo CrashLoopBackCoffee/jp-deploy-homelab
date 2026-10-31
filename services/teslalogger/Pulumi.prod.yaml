@@ -7,7 +7,7 @@ config:
       ref: op://Homelab/Cloudflare [4jp.de]/password
     teslalogger:
       # renovate: datasource=docker packageName=bassmaster187/teslalogger versioning=loose
-      version: 1.63.24.0
+      version: 1.63.24.1
       host: tesla-logger
       grafana-host: grafana.tesla-logger
       storage-size: 5Gi
