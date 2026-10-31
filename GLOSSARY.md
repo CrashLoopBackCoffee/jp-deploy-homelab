@@ -15,6 +15,10 @@ _Avoid_: Finding, alert.
 **Current vulnerability finding**:
 A present match between an endpoint’s software inventory and a known vulnerability, representing current state rather than a notification of a change.
 _Avoid_: Vulnerability event, CVE alert.
+**Fixable finding**:
+A current vulnerability finding for which a package version that resolves it is known. Findings without a known fix are not fixable findings and are not notified.
+_Avoid_: Actionable finding, patchable CVE.
+
 **Vulnerability transition event**:
 A time-stamped notification that a vulnerability was observed as active or solved; it is useful history, but not a complete ledger of every state change.
 _Avoid_: Current finding, complete audit record.

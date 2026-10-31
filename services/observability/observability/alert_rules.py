@@ -51,19 +51,22 @@ class LokiAlertRule:
 LOKI_RULES = [
     LokiAlertRule(
         uid='wazuh-critical-finding-active',
-        title='New Active Critical vulnerability finding',
+        title='New Active fixable Critical vulnerability finding',
+        # Findings whose condition is `Package default status` have no known fix and are skipped.
         expr=(
             'sum by (agent_id, cve, package) (count_over_time('
             '{namespace="wazuh",job="wazuh-alerts"} | json '
             'rule_id="rule.id", agent_id="agent.id", cve="data.vulnerability.cve", '
             'package="data.vulnerability.package.name", '
             'status="data.vulnerability.status", '
-            'severity="data.vulnerability.severity" '
-            '| rule_id=~"2350[2-6]" | status="Active" | severity="Critical" [5m])) '
+            'severity="data.vulnerability.severity", '
+            'condition="data.vulnerability.package.condition" '
+            '| rule_id=~"2350[2-6]" | status="Active" | severity="Critical" '
+            '| condition!="Package default status" [5m])) '
             '> bool 0'
         ),
         summary=(
-            'New Active Critical finding on agent {{ $labels.agent_id }}: '
+            'New fixable Critical finding on agent {{ $labels.agent_id }}: '
             '{{ $labels.cve }} / {{ $labels.package }}'
         ),
     ),
@@ -350,6 +353,19 @@ RULES = [
         expr='wazuh_high_level_events > bool 0',
         summary='Wazuh indexed a rule-level 12+ alert in the last 15 minutes',
         for_='1m',
+        no_data_state='OK',
+    ),
+    # The state is authoritative (ADR-0037): this fires when a Critical finding with a known fix has
+    # stayed open for a day, so a freshly published fix does not alert before it can be applied.
+    AlertRule(
+        uid='wazuh-fixable-critical-vulnerability',
+        title='Wazuh fixable Critical vulnerabilities',
+        expr='wazuh_vulnerability_fixable_findings_critical > bool 0',
+        summary=(
+            'Agent {{ $labels.agent_name }} has Critical vulnerabilities with an available fix '
+            'that stayed open for 24 hours'
+        ),
+        for_='24h',
         no_data_state='OK',
     ),
     AlertRule(
