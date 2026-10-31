@@ -31,7 +31,7 @@ So the rule "no application database migrates before the HBS 3 off-site copy is 
 | Portainer | Docker UI | Not decided; it manages the host that is being emptied |
 | Traefik v3.2 | Reverse proxy with Cloudflare DNS-01 for `*.4jp.de` | Goes when the last routed service has moved |
 | Watchtower | Keeps `latest` images current, also scraped by the legacy Prometheus | Goes with the host |
-| Home Assistant | Role exists, **no container runs** | Dead; removal approved in principle for stage 2 |
+| Home Assistant | Role existed, **no container ran** | **Removed from `dockerhost` on 2026-10-31** (`/opt/home-assistant`, 78 GB of which 77 GB were 2025 backups, the disabled unit, the Ansible role and playbook); config archived as `~/dockerhost-legacy-home-assistant-config.tar.gz` (without `config/backups`); the live Home Assistant runs on Proxmox |
 
 # Risks while services are still there
 
