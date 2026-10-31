@@ -157,8 +157,8 @@ _FINDINGS_CONFIG = {
                         'query': {'range': {'timestamp': {'gte': 'now-16m', 'lte': 'now'}}},
                         'aggs': {
                             'status': {
-                                'terms': {'field': 'status.keyword', 'size': 8},
-                                'aggs': {'agents': {'cardinality': {'field': 'id.keyword'}}},
+                                'terms': {'field': 'status', 'size': 8},
+                                'aggs': {'agents': {'cardinality': {'field': 'id'}}},
                             }
                         },
                     },
