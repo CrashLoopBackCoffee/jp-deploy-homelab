@@ -1,0 +1,9 @@
+all:
+  children:
+    k0s_nodes:
+      vars:
+        ansible_user: k0sctl
+        wazuh_agent_group: k0s-nodes
+      hosts:
+        k0s0:
+          ansible_host: 10.10.8.1

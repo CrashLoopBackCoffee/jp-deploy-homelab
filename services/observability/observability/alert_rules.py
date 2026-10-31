@@ -8,6 +8,7 @@ import dataclasses
 import typing as t
 
 MIMIR_DATASOURCE_UID = 'mimir'
+LOKI_DATASOURCE_UID = 'loki'
 FOLDER = 'Homelab'
 EXPRESSION_DATASOURCE = {'type': '__expr__', 'uid': '__expr__'}
 
@@ -32,6 +33,67 @@ class AlertRule:
     severity: str = 'warning'
     # State when the query returns no series. Alerting when the thing that must exist is absent.
     no_data_state: str = 'OK'
+
+
+@dataclasses.dataclass(frozen=True)
+class LokiAlertRule:
+    """A Grafana alert rule evaluated by Loki's LogQL datasource."""
+
+    uid: str
+    title: str
+    expr: str
+    summary: str
+    for_: str = '0s'
+    severity: str = 'warning'
+    no_data_state: str = 'OK'
+
+
+LOKI_RULES = [
+    LokiAlertRule(
+        uid='wazuh-critical-finding-active',
+        title='New Active Critical vulnerability finding',
+        expr=(
+            'sum by (agent_id, cve, package) (count_over_time('
+            '{namespace="wazuh",job="wazuh-alerts"} | json '
+            'rule_id="rule.id", agent_id="agent.id", cve="data.vulnerability.cve", '
+            'package="data.vulnerability.package.name", '
+            'status="data.vulnerability.status", '
+            'severity="data.vulnerability.severity" '
+            '| rule_id=~"2350[2-6]" | status="Active" | severity="Critical" [5m])) '
+            '> bool 0'
+        ),
+        summary=(
+            'New Active Critical finding on agent {{ $labels.agent_id }}: '
+            '{{ $labels.cve }} / {{ $labels.package }}'
+        ),
+    ),
+    LokiAlertRule(
+        uid='wazuh-feed-error',
+        title='Wazuh vulnerability feed error',
+        expr=(
+            'sum(count_over_time({namespace="wazuh",job="wazuh-ossec-log"} '
+            '|~ "Error updating feed" [5m])) > bool 0 '
+            'or sum(count_over_time({namespace="wazuh",job="wazuh-cti-freshness"} '
+            '| json | event="cti_freshness_error" [5m])) > bool 0'
+        ),
+        summary='Wazuh scanner feed or CTI freshness probe reported an error',
+    ),
+    LokiAlertRule(
+        uid='wazuh-cti-probe-silent',
+        title='Wazuh CTI freshness probe is silent',
+        expr=(
+            'absent_over_time({namespace="wazuh",job="wazuh-cti-freshness"} '
+            '| json | event="cti_freshness" [30m]) or (sum(count_over_time('
+            '{namespace="wazuh",job="wazuh-cti-freshness"} '
+            '| json | event="cti_freshness" [30m])) * 0)'
+        ),
+        summary=(
+            'No Wazuh CTI freshness heartbeat has reached Loki for 30 minutes; '
+            'this also detects a stopped manager log pipeline'
+        ),
+        no_data_state='Alerting',
+    ),
+]
 
 
 RULES = [
@@ -238,6 +300,58 @@ RULES = [
         for_='10m',
         no_data_state='Alerting',
     ),
+    # Absence of agent-status buckets is normal when no agents are enrolled; scrape failures
+    # are separately reported by the generic target-down rule.
+    AlertRule(
+        uid='wazuh-agent-disconnected',
+        title='Wazuh agent disconnected',
+        expr='wazuh_agent_status_count{status="disconnected"} > bool 0',
+        summary='One or more Wazuh agents have been disconnected from the manager',
+        for_='1h',
+        no_data_state='OK',
+    ),
+    AlertRule(
+        uid='wazuh-indexer-red',
+        title='Wazuh indexer cluster is red',
+        expr='elasticsearch_cluster_health_status{color="red"} == bool 1',
+        summary='Wazuh indexer cluster health is red',
+        for_='10m',
+        no_data_state='OK',
+    ),
+    AlertRule(
+        uid='wazuh-indexer-disk-low',
+        title='Wazuh indexer disk below 20% available',
+        expr=(
+            '(kubelet_volume_stats_available_bytes{namespace="wazuh",'
+            ' persistentvolumeclaim="data-wazuh-indexer-0"}'
+            ' / kubelet_volume_stats_capacity_bytes{namespace="wazuh",'
+            ' persistentvolumeclaim="data-wazuh-indexer-0"}) < bool 0.2'
+        ),
+        summary='Wazuh indexer PVC has less than 20% disk space available',
+        for_='30m',
+        no_data_state='OK',
+    ),
+    # This workload must exist; no kube-state-metrics series is treated as an outage.
+    AlertRule(
+        uid='wazuh-manager-down',
+        title='Wazuh manager is not ready',
+        expr=(
+            'kube_statefulset_status_replicas_ready{namespace="wazuh",'
+            ' statefulset="wazuh-manager"} == bool 0'
+        ),
+        summary='Wazuh manager StatefulSet has no ready replica',
+        for_='10m',
+        no_data_state='Alerting',
+    ),
+    # The exporter reports zero when no recent high-level events exist; lack of events is healthy.
+    AlertRule(
+        uid='wazuh-high-level-event',
+        title='Wazuh high-level alert event',
+        expr='wazuh_high_level_events > bool 0',
+        summary='Wazuh indexed a rule-level 12+ alert in the last 15 minutes',
+        for_='1m',
+        no_data_state='OK',
+    ),
     AlertRule(
         uid='certificate-expiring',
         title='Certificate expires within 14 days',
@@ -303,7 +417,13 @@ RULES = [
 ]
 
 
-def _rule(rule: AlertRule) -> dict[str, t.Any]:
+def _render_rule(
+    rule: AlertRule | LokiAlertRule,
+    *,
+    datasource_uid: str,
+    relative_time_range: dict[str, int],
+    model: dict[str, t.Any],
+) -> dict[str, t.Any]:
     return {
         'uid': rule.uid,
         'title': rule.title,
@@ -311,15 +431,9 @@ def _rule(rule: AlertRule) -> dict[str, t.Any]:
         'data': [
             {
                 'refId': 'A',
-                'relativeTimeRange': {'from': 600, 'to': 0},
-                'datasourceUid': MIMIR_DATASOURCE_UID,
-                'model': {
-                    'refId': 'A',
-                    'expr': rule.expr,
-                    'instant': True,
-                    'intervalMs': 1000,
-                    'maxDataPoints': 43200,
-                },
+                'relativeTimeRange': relative_time_range,
+                'datasourceUid': datasource_uid,
+                'model': model,
             },
             {
                 'refId': 'B',
@@ -348,10 +462,43 @@ def _rule(rule: AlertRule) -> dict[str, t.Any]:
         'noDataState': rule.no_data_state,
         'execErrState': 'Error',
         'for': rule.for_,
-        # Grafana expands $VAR in provisioning files; `$$` yields a literal `$` for templates.
         'annotations': {'summary': rule.summary.replace('$', '$$')},
         'labels': {'severity': rule.severity},
     }
+
+
+def _loki_rule(rule: LokiAlertRule) -> dict[str, t.Any]:
+    """Render an alert rule whose query is evaluated by Loki."""
+    return _render_rule(
+        rule,
+        datasource_uid=LOKI_DATASOURCE_UID,
+        relative_time_range={'from': 1800, 'to': 0},
+        model={
+            'refId': 'A',
+            'expr': rule.expr,
+            'queryType': 'instant',
+            'editorMode': 'code',
+            'direction': 'backward',
+            'intervalMs': 1000,
+            'maxDataPoints': 43200,
+        },
+    )
+
+
+def _rule(rule: AlertRule) -> dict[str, t.Any]:
+    # Keep the Mimir provisioning model byte-for-byte stable.
+    return _render_rule(
+        rule,
+        datasource_uid=MIMIR_DATASOURCE_UID,
+        relative_time_range={'from': 600, 'to': 0},
+        model={
+            'refId': 'A',
+            'expr': rule.expr,
+            'instant': True,
+            'intervalMs': 1000,
+            'maxDataPoints': 43200,
+        },
+    )
 
 
 def provisioning() -> dict[str, t.Any]:
@@ -365,7 +512,9 @@ def provisioning() -> dict[str, t.Any]:
                 'name': 'homelab',
                 'folder': FOLDER,
                 'interval': '1m',
-                'rules': [_rule(rule) for rule in RULES],
+                'rules': (
+                    [_rule(rule) for rule in RULES] + [_loki_rule(rule) for rule in LOKI_RULES]
+                ),
             },
         ],
     }

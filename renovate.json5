@@ -74,6 +74,15 @@
       ],
       allowedVersions: '<10.12',
     },
+    {
+      // ADR-0037 §12 reserves Wazuh 5.x for a separate migration.
+      matchPackageNames: [
+        'wazuh/wazuh-indexer',
+        'wazuh/wazuh-manager',
+        'wazuh/wazuh-dashboard',
+      ],
+      allowedVersions: '<5',
+    },
   ],
   prHourlyLimit: 10,
   rangeStrategy: 'replace',

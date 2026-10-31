@@ -13,6 +13,13 @@ import typing as t
 
 MIMIR_DATASOURCE_UID = 'mimir'
 LOKI_DATASOURCE_UID = 'loki'
+WAZUH_VULNERABILITIES_UID = 'wazuh-live-vulnerabilities'
+WAZUH_INVENTORY_UID = 'wazuh-live-inventory'
+WAZUH_PROCESSES_UID = 'wazuh-live-processes'
+WAZUH_PORTS_UID = 'wazuh-live-ports'
+WAZUH_SYSTEM_UID = 'wazuh-live-system'
+WAZUH_AGENT_STATUS_UID = 'wazuh-live-agent-status'
+WAZUH_ALERTS_UID = 'wazuh-live-alerts'
 EXPRESSION_DATASOURCE = {'type': '__expr__', 'uid': '__expr__'}
 PANEL_WIDTH = 12
 PANEL_HEIGHT = 8
@@ -90,8 +97,25 @@ class Table:
 
 
 def _datasource(kind: str) -> dict[str, str]:
-    uid = LOKI_DATASOURCE_UID if kind == 'loki' else MIMIR_DATASOURCE_UID
-    return {'type': kind, 'uid': uid}
+    datasources = {
+        'loki': ('loki', LOKI_DATASOURCE_UID),
+        'opensearch-vulnerabilities': (
+            'grafana-opensearch-datasource',
+            WAZUH_VULNERABILITIES_UID,
+        ),
+        'opensearch-inventory': ('grafana-opensearch-datasource', WAZUH_INVENTORY_UID),
+        'opensearch-processes': ('grafana-opensearch-datasource', WAZUH_PROCESSES_UID),
+        'opensearch-ports': ('grafana-opensearch-datasource', WAZUH_PORTS_UID),
+        'opensearch-system': ('grafana-opensearch-datasource', WAZUH_SYSTEM_UID),
+        'opensearch-agent-status': (
+            'grafana-opensearch-datasource',
+            WAZUH_AGENT_STATUS_UID,
+        ),
+        'opensearch-alerts': ('grafana-opensearch-datasource', WAZUH_ALERTS_UID),
+        'prometheus': ('prometheus', MIMIR_DATASOURCE_UID),
+    }
+    plugin_type, uid = datasources[kind]
+    return {'type': plugin_type, 'uid': uid}
 
 
 def _panel(panel: Panel, index: int, grid_pos: dict[str, int]) -> dict:
@@ -944,6 +968,28 @@ OPNSENSE_PANELS = [
     ),
 ]
 
+# Trivy Operator (vulnerability reports only; per-CVE metrics are deliberately not enabled).
+_TRIVY = 'job="trivy-operator"'
+TRIVY_PANELS = [
+    Panel(
+        'Vulnerabilities by namespace and severity',
+        f'sum by (namespace, severity) (trivy_image_vulnerabilities{{{_TRIVY}}})',
+        legend='{{namespace}} / {{severity}}',
+        stack=True,
+    ),
+    Panel(
+        'Vulnerabilities by namespace',
+        f'sum by (namespace) (trivy_image_vulnerabilities{{{_TRIVY}}})',
+        legend='{{namespace}}',
+    ),
+    Panel(
+        'Vulnerabilities by severity',
+        f'sum by (severity) (trivy_image_vulnerabilities{{{_TRIVY}}})',
+        legend='{{severity}}',
+        kind='stat',
+    ),
+]
+
 OPNSENSE_LOG_VARIABLES = [
     _query_variable('app', f'label_values({{{_OPN_LOGS}}}, app)', 'loki'),
     _query_variable(
@@ -1369,6 +1415,260 @@ def _adapt_community(raw: str) -> str:
     return json.dumps(dashboard, separators=(',', ':'))
 
 
+def _wazuh_panel(
+    panel_id: int,
+    title: str,
+    query: str,
+    datasource_kind: str,
+    kind: str = 'table',
+    description: str = '',
+    x: int = 0,
+    y: int = 0,
+    width: int = 12,
+    height: int = 9,
+    terms_field: str = '',
+    terms_missing: str = '',
+) -> dict[str, t.Any]:
+    """Build a Wazuh panel using read-only Lucene queries."""
+    datasource = _datasource(datasource_kind)
+    target: dict[str, t.Any] = {
+        'refId': 'A',
+        'queryType': 'lucene',
+        'query': query,
+        'format': 'table',
+        'datasource': datasource,
+    }
+    target.update(
+        {
+            'luceneQueryType': 'Metric' if terms_field else 'RawData',
+            'metrics': (
+                [{'id': '1', 'type': 'count'}] if terms_field else [{'id': '1', 'type': 'raw_data'}]
+            ),
+            'bucketAggs': (
+                [
+                    {
+                        'id': '2',
+                        'type': 'terms',
+                        'field': terms_field,
+                        'settings': {
+                            'size': '20',
+                            'order': 'desc',
+                            'orderBy': '_count',
+                            **({'missing': terms_missing} if terms_missing else {}),
+                        },
+                    }
+                ]
+                if terms_field
+                else []
+            ),
+            'size': 200,
+        }
+    )
+    return {
+        'id': panel_id,
+        'type': kind,
+        'title': title,
+        'description': description,
+        'datasource': datasource,
+        'gridPos': {'x': x, 'y': y, 'w': width, 'h': height},
+        'targets': [target],
+    }
+
+
+def _wazuh_dashboard() -> str:
+    """Build the Wazuh current-state and inventory dashboard."""
+    panels = [
+        {
+            'id': 1,
+            'type': 'text',
+            'title': 'State versus event history',
+            'options': {
+                'mode': 'markdown',
+                'content': '**Current state is authoritative.** Vulnerability transition events are\n\n'
+                'best-effort history and do not represent a complete lifecycle ledger.',
+            },
+            'gridPos': {'x': 0, 'y': 0, 'w': 24, 'h': 4},
+        },
+        _wazuh_panel(
+            2,
+            'Current vulnerability findings — endpoint $agent',
+            'agent.id:$agent',
+            'opensearch-vulnerabilities',
+            description='Current findings, not transition events. Unclassified severity is retained.',
+            x=0,
+            y=4,
+            width=24,
+            height=12,
+        ),
+        _wazuh_panel(
+            3,
+            'Findings by severity (including unclassified)',
+            'agent.id:$agent',
+            'opensearch-vulnerabilities',
+            kind='barchart',
+            x=0,
+            y=16,
+            terms_field='vulnerability.severity',
+            terms_missing='Untriaged',
+        ),
+        _wazuh_panel(
+            4,
+            'Agent status — manager monitoring index',
+            'id:$agent',
+            'opensearch-agent-status',
+            description='Wazuh manager monitoring history is the source for Active/Disconnected status.',
+            x=12,
+            y=16,
+        ),
+        _wazuh_panel(
+            5,
+            'Top installed packages',
+            '*',
+            'opensearch-inventory',
+            description='Current package inventory; names are grouped by document count.',
+            x=0,
+            y=25,
+            width=24,
+            height=10,
+            terms_field='package.name',
+        ),
+        _wazuh_panel(
+            6,
+            'Package count by endpoint',
+            '*',
+            'opensearch-inventory',
+            x=0,
+            y=35,
+            terms_field='agent.id',
+        ),
+        _wazuh_panel(
+            7,
+            'Process count by endpoint',
+            '*',
+            'opensearch-processes',
+            x=12,
+            y=35,
+            terms_field='agent.id',
+        ),
+        _wazuh_panel(
+            8,
+            'Port inventory count by endpoint',
+            '*',
+            'opensearch-ports',
+            x=0,
+            y=44,
+            terms_field='agent.id',
+        ),
+        _wazuh_panel(
+            9,
+            'Operating system',
+            'agent.id:$agent',
+            'opensearch-system',
+            description='Operating system name from the current Wazuh inventory state.',
+            x=12,
+            y=44,
+            terms_field='host.os.name',
+        ),
+        _wazuh_panel(
+            10,
+            'Recent Wazuh alerts (best-effort events)',
+            'agent.id:$agent',
+            'opensearch-alerts',
+            description='Security events are not a complete vulnerability lifecycle ledger; current state is authoritative.',
+            x=0,
+            y=53,
+            width=24,
+            height=10,
+        ),
+        {
+            'id': 11,
+            'type': 'logs',
+            'title': 'Vulnerability transitions (best-effort)',
+            'datasource': _datasource('loki'),
+            'targets': [
+                {'expr': '{namespace="wazuh", job="wazuh-alerts"} | json | rule_id=~"2350[2-6]"'}
+            ],
+            'gridPos': {'x': 0, 'y': 63, 'w': 24, 'h': 10},
+            'description': 'Selected Active/Solved transition alerts. CVE, agent and package remain log fields, not labels.',
+        },
+        {
+            'id': 12,
+            'type': 'logs',
+            'title': 'CTI feed completion and errors',
+            'datasource': _datasource('loki'),
+            'targets': [
+                {
+                    'expr': '{namespace="wazuh", job="wazuh-ossec-log"} |~ "(Feed update process completed|Error updating feed)"'
+                }
+            ],
+            'gridPos': {'x': 0, 'y': 73, 'w': 24, 'h': 8},
+            'description': 'Completion indicates that new content was applied, not a periodic heartbeat; absence is not proof of staleness.',
+        },
+        {
+            'id': 13,
+            'type': 'logs',
+            'title': 'CTI catalog freshness signal (remote offset)',
+            'datasource': _datasource('loki'),
+            'targets': [
+                {
+                    'expr': '{namespace="wazuh", job="wazuh-cti-freshness"} | json | event="cti_freshness"'
+                }
+            ],
+            'gridPos': {'x': 0, 'y': 81, 'w': 24, 'h': 8},
+            'description': 'Read-only CTI catalog consumer offset sampled every 10 minutes. This measures remote catalog metadata, not proof of local manager application.',
+        },
+        {
+            'id': 14,
+            'type': 'timeseries',
+            'title': 'Current vulnerability findings by severity',
+            'datasource': _datasource('prometheus'),
+            'targets': [
+                {
+                    'refId': 'A',
+                    'expr': 'wazuh_vulnerability_findings_by_severity_count',
+                    'legendFormat': '{{severity}}',
+                }
+            ],
+            'gridPos': {'x': 0, 'y': 89, 'w': 24, 'h': 9},
+        },
+    ]
+    # Inventory state has no date field; its configured time field is numeric
+    # wazuh.schema.version. Keep these current-state metrics independent of the
+    # dashboard time picker while allowing the plugin's required range filter.
+    for panel in panels:
+        if 5 <= panel['id'] <= 9:
+            panel['timeFrom'] = '100y'
+    return json.dumps(
+        {
+            'uid': 'homelab-wazuh',
+            'title': 'Wazuh',
+            'tags': ['homelab', 'security', 'wazuh'],
+            'timezone': 'browser',
+            'schemaVersion': 39,
+            'refresh': '5m',
+            'time': {'from': 'now-24h', 'to': 'now'},
+            'templating': {
+                'list': [
+                    {
+                        'name': 'agent',
+                        'label': 'Agent',
+                        'type': 'query',
+                        'datasource': _datasource('opensearch-inventory'),
+                        'query': '{"find":"terms","field":"agent.id"}',
+                        'refresh': 2,
+                        'multi': True,
+                        'includeAll': True,
+                        'allValue': '*',
+                        'current': {'selected': True, 'text': 'All', 'value': '$__all'},
+                    }
+                ]
+            },
+            'panels': panels,
+        },
+        indent=2,
+    )
+
+
 def provisioning_files() -> dict[str, str]:
     """File name to dashboard JSON, ready for a ConfigMap."""
     files = {
@@ -1386,6 +1686,7 @@ def provisioning_files() -> dict[str, str]:
         ),
         'tandoor.json': _dashboard('homelab-tandoor', 'Tandoor', TANDOOR_PANELS),
         'netbox.json': _dashboard('homelab-netbox', 'NetBox', NETBOX_PANELS),
+        'trivy-operator.json': _dashboard('homelab-trivy-operator', 'Trivy Operator', TRIVY_PANELS),
         'opnsense.json': _dashboard('homelab-opnsense', 'OPNsense', OPNSENSE_PANELS),
         'opnsense-logs.json': _dashboard(
             'homelab-opnsense-logs',
@@ -1396,6 +1697,7 @@ def provisioning_files() -> dict[str, str]:
         'docker-containers.json': _dashboard(
             'homelab-docker-containers', 'Docker containers', DOCKER_PANELS, DOCKER_VARIABLES
         ),
+        'wazuh.json': _wazuh_dashboard(),
     }
     for name in (*COMMUNITY_DASHBOARDS, *LEGACY_DASHBOARDS):
         files[name] = _adapt_community((COMMUNITY_DIR / name).read_text())

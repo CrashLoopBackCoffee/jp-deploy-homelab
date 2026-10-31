@@ -1,0 +1,25 @@
+config:
+  wazuh:config:
+    kubeconfig:
+      ref: op://Homelab/Kubeconfig prod/password
+    cloudflare-api-token:
+      ref: op://Homelab/Cloudflare [4jp.de]/password
+    zone: 4jp.de
+    # renovate: datasource=docker packageName=wazuh/wazuh-indexer versioning=loose
+    version: 4.14.9
+    namespace: wazuh
+    dashboard-hostname: wazuh.4jp.de
+    manager-hostname: wazuh-manager.4jp.de
+    agent-address: 10.10.88.3
+    agent-source-ranges:
+      - 10.10.0.0/16
+      - 192.168.178.125/32
+    # renovate: datasource=docker packageName=busybox versioning=loose
+    busybox-version: 1.37.0
+    # renovate: datasource=docker packageName=bitnamilegacy/kubectl versioning=semver
+    kubectl-version: 1.33.4
+    indexer-storage: 50Gi
+    manager-storage: 20Gi
+    indexer-heap: 2g
+    indexer-memory-request: 3Gi
+    indexer-memory-limit: 4Gi

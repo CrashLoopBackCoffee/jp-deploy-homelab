@@ -20,6 +20,8 @@ class MimirConfig(ChartConfig):
     ingester_storage_size_gb: int
     store_gateway_storage_size_gb: int
     compactor_storage_size_gb: int
+    # Mimir's default of 150,000 was reached by pod churn plus the Wazuh and Trivy series (ADR-0041)
+    max_global_series_per_user: int
 
 
 class PushoverConfig(utils.model.LocalBaseModel):
@@ -31,6 +33,7 @@ class GrafanaConfig(ChartConfig):
     # Hostname below the zone, e.g. `g` for g.4jp.de
     host: str
     storage_size_gb: int
+    opensearch_plugin_version: str
     pushover: PushoverConfig
 
 

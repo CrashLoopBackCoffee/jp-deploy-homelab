@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import json
 
@@ -67,6 +68,16 @@ NOTIFICATION_POLICIES = {
             'repeat_interval': '12h',
             'routes': [
                 {
+                    'receiver': 'pushover',
+                    'object_matchers': [
+                        ['alertname', '=', 'New Active Critical vulnerability finding'],
+                    ],
+                    'group_by': ['alertname', 'agent_id'],
+                    'group_wait': '5m',
+                    'group_interval': '5m',
+                    'repeat_interval': '12h',
+                },
+                {
                     'receiver': 'pushover-emergency',
                     'object_matchers': [['severity', '=', 'critical']],
                 },
@@ -82,12 +93,25 @@ def _checksum(files: dict[str, str]) -> str:
 
 def create_grafana(
     component_config: ComponentConfig,
+    k8s_provider: k8s.Provider,
     k8s_opts: p.ResourceOptions,
     depends_on: list[p.Resource],
 ):
     grafana_config = component_config.grafana
     hostname = f'{grafana_config.host}.{component_config.zone}'
-
+    wazuh_stack = p.StackReference('wazuh-stack', 'jaypee-solutions/wazuh/prod')
+    wazuh_credentials = k8s.core.v1.Secret.get(
+        'wazuh-credentials',
+        'wazuh/wazuh-credentials',
+        opts=p.ResourceOptions(provider=k8s_provider),
+    )
+    wazuh_password = wazuh_credentials.data.apply(
+        lambda data: base64.b64decode(data['grafana_reader']).decode()
+    )
+    wazuh_password_checksum = wazuh_password.apply(
+        lambda password: hashlib.sha256(password.encode()).hexdigest()
+    )
+    wazuh_ca_cert = wazuh_stack.get_output('ca_pem')
     admin_password = random.RandomPassword('grafana-admin-password', length=32, special=False)
     secret_key = random.RandomPassword('grafana-secret-key', length=64, special=False)
     secrets = k8s.core.v1.Secret(
@@ -95,6 +119,7 @@ def create_grafana(
         metadata={'name': SECRETS_NAME},
         string_data={
             'GF_SECURITY_SECRET_KEY': secret_key.result,
+            'WAZUH_GRAFANA_READER_PASSWORD': wazuh_password,
             'PUSHOVER_API_TOKEN': grafana_config.pushover.api_token.value,
             'PUSHOVER_USER_KEY': grafana_config.pushover.user_key.value,
         },
@@ -133,11 +158,21 @@ def create_grafana(
                 'analytics': {'reporting_enabled': False, 'check_for_updates': False},
             },
             'testFramework': {'enabled': False},
-            # Grafana reads alerting provisioning only at startup, so changed content rolls the pod.
-            'podAnnotations': {'checksum/provisioning': _checksum(alerting_files)},
+            'plugins': [
+                f'grafana-opensearch-datasource@{grafana_config.opensearch_plugin_version}'
+            ],
+            'podAnnotations': {
+                'checksum/provisioning': _checksum(alerting_files),
+                'checksum/wazuh-credentials': wazuh_password_checksum,
+            },
             'datasources': {
                 'datasources.yaml': {
                     'apiVersion': 1,
+                    'deleteDatasources': [
+                        {'name': 'Wazuh vulnerabilities', 'orgId': 1},
+                        {'name': 'Wazuh inventory', 'orgId': 1},
+                        {'name': 'Wazuh alerts', 'orgId': 1},
+                    ],
                     'datasources': [
                         {
                             'name': 'Mimir',
@@ -155,6 +190,81 @@ def create_grafana(
                             'access': 'proxy',
                             'url': LOKI_GATEWAY_URL,
                         },
+                        *[
+                            {
+                                'name': name,
+                                'uid': uid,
+                                'type': 'grafana-opensearch-datasource',
+                                'url': 'https://wazuh-indexer.wazuh.svc:9200',
+                                'basicAuth': True,
+                                'basicAuthUser': 'grafana_reader',
+                                'jsonData': {
+                                    'flavor': 'opensearch',
+                                    'version': '2.19.6',
+                                    'database': index,
+                                    'pplEnabled': False,
+                                    'tlsAuthWithCACert': True,
+                                    'tlsSkipVerify': False,
+                                    **({'timeField': time_field} if time_field else {}),
+                                    **({'interval': interval} if interval else {}),
+                                },
+                                'secureJsonData': {
+                                    'basicAuthPassword': '$WAZUH_GRAFANA_READER_PASSWORD',
+                                    'tlsCACert': wazuh_ca_cert,
+                                },
+                            }
+                            for name, uid, index, time_field, interval in (
+                                (
+                                    'Wazuh live vulnerabilities',
+                                    dashboards.WAZUH_VULNERABILITIES_UID,
+                                    'wazuh-states-vulnerabilities-wazuh-manager-0',
+                                    'vulnerability.detected_at',
+                                    '',
+                                ),
+                                (
+                                    'Wazuh live packages',
+                                    dashboards.WAZUH_INVENTORY_UID,
+                                    'wazuh-states-inventory-packages-wazuh-manager-0',
+                                    'wazuh.schema.version',
+                                    '',
+                                ),
+                                (
+                                    'Wazuh live processes',
+                                    dashboards.WAZUH_PROCESSES_UID,
+                                    'wazuh-states-inventory-processes-wazuh-manager-0',
+                                    'wazuh.schema.version',
+                                    '',
+                                ),
+                                (
+                                    'Wazuh live ports',
+                                    dashboards.WAZUH_PORTS_UID,
+                                    'wazuh-states-inventory-ports-wazuh-manager-0',
+                                    'wazuh.schema.version',
+                                    '',
+                                ),
+                                (
+                                    'Wazuh live system',
+                                    dashboards.WAZUH_SYSTEM_UID,
+                                    'wazuh-states-inventory-system-wazuh-manager-0',
+                                    'wazuh.schema.version',
+                                    '',
+                                ),
+                                (
+                                    'Wazuh live agent status',
+                                    dashboards.WAZUH_AGENT_STATUS_UID,
+                                    '[wazuh-monitoring-]GGGG.WW[w]',
+                                    'timestamp',
+                                    'Weekly',
+                                ),
+                                (
+                                    'Wazuh live alerts',
+                                    dashboards.WAZUH_ALERTS_UID,
+                                    '[wazuh-alerts-4.x-]YYYY.MM.DD',
+                                    '@timestamp',
+                                    'Daily',
+                                ),
+                            )
+                        ],
                     ],
                 },
             },

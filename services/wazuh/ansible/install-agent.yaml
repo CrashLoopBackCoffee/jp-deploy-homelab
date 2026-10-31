@@ -1,0 +1,75 @@
+- name: Install and enroll Wazuh agent on Debian-family hosts
+  hosts: all
+  become: true
+  vars:
+    wazuh_agent_version: '4.14.9-1'
+    wazuh_manager: wazuh-manager.4jp.de
+    wazuh_enrollment_password: "{{ lookup('env', 'WAZUH_ENROLLMENT_PASSWORD') }}"
+  tasks:
+    - name: Require the enrollment secret from the controller environment
+      ansible.builtin.assert:
+        that:
+          - wazuh_enrollment_password | length > 0
+        fail_msg: Set WAZUH_ENROLLMENT_PASSWORD in the controller environment before running this playbook.
+      no_log: true
+
+    - name: Require a Debian-family target
+      ansible.builtin.assert:
+        that:
+          - ansible_facts['os_family'] == 'Debian'
+        fail_msg: This playbook supports Debian-family targets only.
+
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name: [ca-certificates, curl, gnupg]
+        state: present
+        update_cache: true
+
+    - name: Resolve the MetalLB manager endpoint on hosts using LAN DNS
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: '10.10.88.3 wazuh-manager.4jp.de'
+        regexp: '^\s*\S+\s+wazuh-manager\.4jp\.de(?:\s|$)'
+        state: present
+
+    - name: Create apt keyring directory
+      ansible.builtin.file:
+        path: /usr/share/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Install Wazuh repository signing key
+      ansible.builtin.get_url:
+        url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
+        dest: /usr/share/keyrings/wazuh.asc
+        mode: '0644'
+
+    - name: Configure Wazuh apt repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/wazuh.asc] https://packages.wazuh.com/4.x/apt/ stable main"
+        filename: wazuh
+        state: present
+        update_cache: true
+
+    - name: Install exactly the Wazuh manager-compatible agent version
+      ansible.builtin.apt:
+        name: "wazuh-agent={{ wazuh_agent_version }}"
+        state: present
+        allow_downgrade: true
+      environment:
+        WAZUH_MANAGER: "{{ wazuh_manager }}"
+        WAZUH_AGENT_GROUP: "{{ wazuh_agent_group }}"
+        WAZUH_AGENT_NAME: "{{ inventory_hostname }}"
+        WAZUH_REGISTRATION_PASSWORD: "{{ wazuh_enrollment_password }}"
+      no_log: true
+
+    - name: Hold Wazuh agent package at the pinned version
+      ansible.builtin.dpkg_selections:
+        name: wazuh-agent
+        selection: hold
+
+    - name: Enable and start Wazuh agent
+      ansible.builtin.service:
+        name: wazuh-agent
+        state: started
+        enabled: true

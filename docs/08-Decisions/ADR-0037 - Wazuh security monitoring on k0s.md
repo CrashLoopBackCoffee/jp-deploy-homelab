@@ -1,10 +1,10 @@
 ---
 tags: [homelab, adr, security, wazuh, observability]
 type: adr
-status: proposed
+status: accepted
 date: 2026-10-26
 created: 2026-10-26
-updated: 2026-10-26
+updated: 2026-10-29
 adr: 37
 ---
 
@@ -12,7 +12,7 @@ adr: 37
 
 ## Status
 
-Proposed on 2026-10-26; becomes accepted after Phase 2 verification.
+Accepted on 2026-10-29 after the full Phase 2 live acceptance gate passed. Implementation refinements from the proposal: Wazuh 4.14.9's Filebeat client required `compatibility.override_main_response_version: true`; Pulumi TLS leaf keys are PKCS#8; the generated indexer admin credential was rotated after diagnostic exposure; recommended sizing was retained after the Phase 1 capacity gate passed; the agent endpoint is MetalLB `10.10.88.3`; security configuration, users, roles, templates, ISM policies and single-node replica settings are applied by the hashed Pulumi security Job; NetworkPolicies enforce ingress-only isolation while egress remains open.
 
 ## Context
 
@@ -38,18 +38,20 @@ Proposed on 2026-10-26; becomes accepted after Phase 2 verification.
 14. **Operational purpose:** prioritize host software inventory and vulnerability reporting; detection only, no automated remediation or containment. The homelab operator owns manual triage. **[User decision]**
 15. **Rollout and supported hosts:** enroll k0s0 as a stop/go pilot, then only explicitly inventoried/approved Debian-family hosts. Include Proxmox with partial CVE coverage documented. Include OPNsense event forwarding in v1 as a non-blocking, manual, tier-3 community integration; it provides no reliable FreeBSD CVE coverage. **[User decision]**
 16. **Inventory and scope:** collect the planned OS/package, process, hardware and network inventory. Trivy covers k0s workload images; Dockerhost image scanning and QNAP agent/CVE coverage remain out of scope. **[User decision]**
-17. **Finding model:** distinguish current vulnerability findings (current state) from vulnerability transition events (timestamped `Active`/`Solved` alerts) and CTI feed freshness (last successful feed completion observed). State is authoritative; event alerts are not a complete lifecycle ledger. **[User decision; Verified (upstream)]** https://documentation.wazuh.com/4.14/user-manual/capabilities/vulnerability-detection/how-it-works.html
+17. **Finding model:** distinguish current vulnerability findings (current state) from vulnerability transition events (timestamped `Active`/`Solved` alerts) and CTI feed observations (remote catalog metadata, probe errors and periodic heartbeat). State is authoritative; event alerts are not a complete lifecycle ledger, and remote metadata/heartbeat do not prove local feed application. **[User decision; Verified (upstream)]** https://documentation.wazuh.com/4.14/user-manual/capabilities/vulnerability-detection/how-it-works.html
 18. **Finding notifications:** notify on newly Active Critical findings, keyed by agent ID, CVE and package identity; group by agent over five minutes. Use Loki alert rules defined separately from the Mimir-only rule model. Keep resolved events as dashboard context. Parse source timestamps, falling back to arrival time if parsing fails. Loki delivery is best-effort; Wazuh alert indices remain the durable record. **[User decision]**
-19. **CTI health:** a read-only sidecar tails `/var/ossec/logs/ossec.log` through the existing manager logs volume and sends scanner feed completion/error lines to Loki. Warn on explicit errors or when no completion has been observed for two hours. Silence is an indirect stale signal, not proof of feed failure; validate live. API polling is rejected because Wazuh’s `manager:read` RBAC action covers a broader group of manager-read endpoints than `/manager/logs`. **[User decision; Verified (upstream)]** https://github.com/wazuh/wazuh/blob/v4.14.9/src/wazuh_modules/vulnerability_scanner/src/databaseFeedManager/databaseFeedManager.hpp ; https://documentation.wazuh.com/4.14/user-manual/api/rbac/reference.html
+19. **CTI health:** Live 4.14.9 evidence showed `Feed update process completed.` only when new content was applied: with a 60-minute interval there was one occurrence in roughly eight hours (00:03:55 UTC, 2026-10-29). The two-hour no-completion alert is invalid and is replaced by explicit scanner/CTI probe error alerts plus an alert when the periodic CTI heartbeat is absent from Loki for 30 minutes; the latter also detects a dead manager log pipeline, not local feed staleness. A read-only `cti-freshness` sidecar polls the public Wazuh catalog endpoint `https://cti.wazuh.com/api/v1/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0` every 10 minutes and logs `{"timestamp":"<UTC RFC3339Nano>","event":"cti_freshness","context":"vd_1.0.0","consumer":"vd_4.8.0","remote_offset":N,"remote_updated_at":"<UTC>"}` or a `cti_freshness_error` event with HTTP status. This shows public remote catalog offset/request health, not proof that local manager state applied it; local offset comparison remains a follow-up. It uses no manager API credential. **[Verified (live; ticket #97)]** https://github.com/wazuh/wazuh/blob/v4.14.9/src/wazuh_modules/vulnerability_scanner/src/databaseFeedManager/databaseFeedManager.hpp
 20. **Network boundary:** initially allow agent traffic from `10.10.0.0/16` and the dockerhost `/32`, and leave pod egress open; tighten after observed flows and the approved host list. **[User decision]**
 21. **Retention and recovery:** retain Wazuh alert indices for 60 days, do not store archive streams, and accept local QuObjects backups initially with restore tests; off-site backup is not a go-live gate. **[User decision]**
 22. **Dashboard identity:** Authentik SAML is optional post-core work; retain local basic authentication as break-glass. **[User decision; Verified (upstream)]** https://documentation.wazuh.com/current/user-manual/user-administration/single-sign-on/authentik.html
 23. **Alert notification:** warning-severity Grafana rules use normal Pushover, not emergency-priority paging. Wazuh detection-rule levels remain a separate scale. **[User decision]**
 24. **Access risk:** accept the manager’s indexer-administrator trust and document the compromise blast radius. **[User decision]**
+25. **Certificate rotation:** A daily baseline-PSA CronJob hashes served leaf Secrets and updates workload pod-template annotations on change, so consumers restart without an initial annotation-driven restart storm; RBAC is namespace-scoped and limited to required reads and workload patches.
+26. **Security configuration after indexer restart:** An indexer-pod sidecar waits for HTTPS readiness, runs the existing idempotent securityadmin configuration once per pod start using read-only config/credential/certificate mounts, then sleeps. This repairs the security index after an empty-PVC rebuild without relying on Pulumi input changes.
 
 ## Consequences
 
-**[Inference]** Wazuh availability is bounded by the single k0s node; planned requests total about 1.13 CPU and 5.2Gi memory with 70Gi storage, subject to the live capacity gate. CTI staleness is detected indirectly from completion logs; event notifications may be missed during ingestion/pod outages, while Wazuh alert indices remain authoritative. The manager’s indexer-admin trust, enrollment MITM exposure, broad initial network policy and Pulumi-stored CA/secrets are accepted risks. Local QuObjects backups require restore tests; off-site backup remains a follow-up, not a go-live gate. Wazuh 5.x requires a separate migration.
+**[Inference]** Wazuh availability is bounded by the single k0s node; planned requests total about 1.13 CPU and 5.2Gi memory with 70Gi storage, subject to the live capacity gate. CTI probe silence is detected after 30 minutes, and explicit scanner/probe errors are alerted; neither remote metadata nor heartbeat proves that feed content was applied locally. Event notifications may be missed during ingestion/pod outages, while Wazuh alert indices remain authoritative. The manager’s indexer-admin trust, enrollment MITM exposure, broad initial network policy and Pulumi-stored CA/secrets are accepted risks. Local QuObjects backups require restore tests; off-site backup remains a follow-up, not a go-live gate. Wazuh 5.x requires a separate migration.
 
 ## Alternatives considered
 
@@ -84,6 +86,10 @@ Proposed on 2026-10-26; becomes accepted after Phase 2 verification.
 ### Exporters
 
 **[Verified (upstream)]** `json_exporter` supports POST bodies and JSONPath extraction; maintained Elasticsearch exporter is available. https://github.com/prometheus-community/json_exporter ; https://github.com/prometheus-community/elasticsearch_exporter. **[Inference]** Reject stale pyToshka Wazuh exporter; use these maintained components and Alloy's embedded exporter where suitable.
+
+## Addendum (2026-10-29)
+
+- Loki keeps selected manager events only: `alerts-tail` vulnerability transition rules 23502–23506 plus alerts at level 12+, `ossec-log-tail` vulnerability scanner/feed lines and ERROR/WARNING/CRITICAL lines, while CTI heartbeat output is unchanged. Ordinary pod-log collection excludes only these three sidecars, so Wazuh platform, exporter, and Job logs remain available in Loki. No additional event-derived labels are introduced; status and severity remain the only data-derived alert labels.
 
 ## Related notes
 

@@ -21,6 +21,7 @@ config:
       secret-access-key:
         ref: op://Homelab/QuObjects Mimir Metrics/password
       ingester-storage-size-gb: 10
+      max-global-series-per-user: 250000
       store-gateway-storage-size-gb: 5
       compactor-storage-size-gb: 10
     alloy:
@@ -59,6 +60,8 @@ config:
       version: 13.5.1
       host: g
       storage-size-gb: 2
+      # renovate: datasource=github-releases packageName=grafana/grafana-opensearch-datasource versioning=semver
+      opensearch-plugin-version: 2.34.5
       pushover:
         # username holds the Pushover user key, password the application API token
         user-key:
