@@ -214,11 +214,13 @@ for index in '.opendistro-ism-managed-index-history-*' '.opendistro-job-schedule
     -H 'Content-Type: application/json' -X PUT -d '{{"index.number_of_replicas":0}}' \\
     "https://wazuh-indexer:9200/$index/_settings"
 done
+# A composable template matching wazuh-* would shadow every legacy Wazuh template (their mappings
+# would never apply and fields such as manager.name become analysed text). Keep the single-node
+# settings in a legacy template that merges with the Wazuh ones.
+curl --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
+  -X DELETE 'https://wazuh-indexer:9200/_index_template/wazuh-single-node' > /dev/null
 curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{{"index_patterns":["wazuh-*"],"priority":1,"template":{{"settings":{{"index.number_of_replicas":0}}}}}}' \\
-  'https://wazuh-indexer:9200/_index_template/wazuh-single-node'
-curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
-  -H 'Content-Type: application/json' -X PUT -d '{{"index_patterns":["wazuh-*"],"order":1000,"settings":{{"index.number_of_replicas":0}}}}' \\
+  -H 'Content-Type: application/json' -X PUT -d '{{"index_patterns":["wazuh-*"],"order":1000,"settings":{{"index.number_of_replicas":0,"index.number_of_shards":1}}}}' \\
   'https://wazuh-indexer:9200/_template/wazuh-single-node'
 curl --fail --silent --show-error --cacert /ca/ca.crt --cert /certs/tls.crt --key /certs/tls.key \\
   -H 'Content-Type: application/json' -X PUT -d '{{"index_patterns":["security-auditlog-*"],"order":1000,"settings":{{"index.number_of_replicas":0}}}}' \\
