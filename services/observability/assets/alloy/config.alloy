@@ -326,7 +326,7 @@ prometheus.relabel "wazuh_findings" {
 
 	rule {
 		source_labels = ["__name__"]
-		regex         = "^(up|wazuh_agent_status_count|wazuh_high_level_events|wazuh_vulnerability_findings_by_(severity|agent)_count)$"
+		regex         = "^(up|wazuh_agent_status_count|wazuh_high_level_events|wazuh_vulnerability_findings_by_(severity|agent)_count|wazuh_vulnerability_fixable_findings_(critical|high))$"
 		action        = "keep"
 	}
 }
@@ -355,6 +355,20 @@ prometheus.scrape "wazuh_vulnerabilities" {
 
 	forward_to      = [prometheus.relabel.wazuh_findings.receiver]
 	job_name        = "wazuh-vulnerabilities"
+	scrape_interval = "60s"
+	scrape_timeout  = "15s"
+}
+
+prometheus.scrape "wazuh_vulnerabilities_fixable" {
+	targets = [{
+		"__address__"      = "wazuh-findings-exporter.wazuh.svc:7979",
+		"__metrics_path__" = "/probe",
+		"__param_module"   = "wazuh_vulnerabilities_fixable",
+		"__param_target"   = "https://wazuh-indexer.wazuh.svc:9200/wazuh-states-vulnerabilities-*/_search",
+	}]
+
+	forward_to      = [prometheus.relabel.wazuh_findings.receiver]
+	job_name        = "wazuh-vulnerabilities-fixable"
 	scrape_interval = "60s"
 	scrape_timeout  = "15s"
 }

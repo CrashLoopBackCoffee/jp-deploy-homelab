@@ -1,6 +1,8 @@
 # Update Log
 
 ## 2026-10-31
+* **Change**: Rebooted k0s0 into kernel 6.8.0-147 (user approved; about 6 minutes of downtime for all workloads, everything recovered, Wazuh agents Active). Applied the fixable-findings exporter module, Alloy scrape and the two rules.
+* **Decision**: Wazuh vulnerability notifications cover fixable findings only (condition other than `Package default status`); new Mimir rule `wazuh-fixable-critical-vulnerability` (24 h) from exporter module `wazuh_vulnerabilities_fixable`, Loki rule narrowed the same way (ADR-0037 addendum 2026-10-31). Both hosts had 285 Critical findings: 184 on the old 146 kernel (fixed in 147) and 101 on 147 with no fix yet (Ubuntu: Medium, fix in 6.8.0-148 in progress).
 * **Change**: Added AX51 to Wazuh as agent 003 through its own WireGuard instance `ax51-wazuh` (UDP 51820, `10.60.0.0/30`, one peer) with one narrow firewall rule to `10.10.88.3` TCP 1514-1515; manager allowlist gained `10.60.0.2/32` (Service and NetworkPolicy now use the same config list). 530 packages, 4,033 findings.
 * **Finding**: The Wazuh manager volume was 100% full (feed DB 13 GiB plus 5.2 GiB updater temp): alerts, `ossec.log` and the authd keystore stopped writing. Expanded the PVC to 40 Gi online and recreated the StatefulSet to match; details in `.okf/wazuh.md`.
 * **Finding**: The OPNsense API token needed WireGuard and firewall rights (granted by the user); `firewall/filter/savepoint` is not available, so rule changes apply without the automatic rollback.

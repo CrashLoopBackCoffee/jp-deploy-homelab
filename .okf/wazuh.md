@@ -241,6 +241,15 @@ No-version rehearsal: took on-demand Longhorn Snapshot and Backup resources for 
 - **After the restart** the feed database shrank to 5.3 GiB (RocksDB compaction on a restart), so the 20 Gi sizing in the plan was not enough only because of that growth and the stuck temp directory. Watch `queue/vd_updater/tmp` (5.5 GiB again after the restart) and consider a Wazuh-specific disk alert.
 - **Pending:** the feed error `array index 3 is out of range` right after the restart (alert `Wazuh vulnerability feed error` firing); see the log below for whether the retry cleared it.
 
+## Fixable-findings alert and k0s0 reboot (2026-10-31)
+
+- **Why:** unfixable findings cannot be acted on (user decision). Both hosts showed 285 Critical findings: 184 on the old `linux-image-6.8.0-146-generic` (fixed in 147, condition `Package less than 0:6.8.0-147`) and 101 on `-147-` with condition `Package default status` (no fix yet; CVE-2026-74475 is CVSS 10.0 but Ubuntu priority Medium, fix "work in progress in 6.8.0-148").
+- **Definition:** fixable = `vulnerability.scanner.condition` is not `Package default status` (alerts: `data.vulnerability.package.condition`). Glossary: **Fixable finding**.
+- **Exporter:** findings exporter module `wazuh_vulnerabilities_fixable` (Critical and High counts per agent) scraped as job `wazuh-vulnerabilities-fixable`; metrics `wazuh_vulnerability_fixable_findings_critical` and `_high` (label `agent_id`, `agent_name`); about 4 series per agent (Wazuh jobs total 65 series).
+- **Rules:** Mimir `wazuh-fixable-critical-vulnerability` (warning, open for 24 h, no data is OK); Loki `wazuh-critical-finding-active` narrowed to fixable transition events. ADR-0037 addendum 2026-10-31.
+- **k0s0 reboot (2026-10-31 16:31 UTC, user approved, single node):** into `6.8.0-147-generic`; k0s Ready, all workloads back in about 6 minutes (TeslaLogger 3/3, Wazuh 4/4, indexer green, agents 001 and 003 Active). The Wazuh dashboard and exporters needed one restart cycle while the indexer started. `/var/run/reboot-required` is gone. Afterwards k0s0 has only the 147 kernel (103 Critical, all unfixable at that time) and no fixable Critical findings. AX51's 146 kernel was removed by the user; its index rows cleared after an agent restart (see log).
+- **Process note:** an earlier answer in this session called the old kernel the only source of Critical findings; that was based on a feed that was still being rebuilt after the manager disk fix.
+
 ## Open follow-ups
 
 - Prove Active/Solved transition events in Loki when a real vulnerability transition occurs; none was observed during acceptance.

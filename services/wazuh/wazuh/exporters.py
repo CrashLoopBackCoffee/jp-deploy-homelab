@@ -69,6 +69,82 @@ _FINDINGS_CONFIG = {
                 },
             ],
         },
+        # Only findings with a known fixed package version: the condition `Package default status`
+        # means the vulnerability data names no fix, so nobody can act on it.
+        'wazuh_vulnerabilities_fixable': {
+            'headers': {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            'body': {
+                'content': json.dumps(
+                    {
+                        'size': 0,
+                        'query': {
+                            'bool': {
+                                'filter': [
+                                    {'terms': {'vulnerability.severity': ['Critical', 'High']}}
+                                ],
+                                'must_not': [
+                                    {
+                                        'term': {
+                                            'vulnerability.scanner.condition': 'Package default status'
+                                        }
+                                    }
+                                ],
+                            }
+                        },
+                        'aggs': {
+                            'agent': {
+                                'composite': {
+                                    'size': 100,
+                                    'sources': [
+                                        {'agent_id': {'terms': {'field': 'agent.id'}}},
+                                        {'agent_name': {'terms': {'field': 'agent.name'}}},
+                                    ],
+                                },
+                                'aggs': {
+                                    'critical': {
+                                        'filter': {'term': {'vulnerability.severity': 'Critical'}}
+                                    },
+                                    'high': {
+                                        'filter': {'term': {'vulnerability.severity': 'High'}}
+                                    },
+                                },
+                            }
+                        },
+                    },
+                    separators=(',', ':'),
+                )
+            },
+            'http_client_config': {
+                'basic_auth': {
+                    'username': 'metrics_reader',
+                    'password_file': '/credentials/password',
+                },
+                'tls_config': {
+                    'ca_file': '/ca/ca.crt',
+                    'cert_file': '/certs/tls.crt',
+                    'key_file': '/certs/tls.key',
+                },
+            },
+            'metrics': [
+                {
+                    'name': 'wazuh_vulnerability_fixable_findings',
+                    'type': 'object',
+                    'help': 'Current Wazuh Critical and High findings with a known fix, by agent.',
+                    'path': '{.aggregations.agent.buckets[*]}',
+                    'labels': {
+                        'agent_id': '{.key.agent_id}',
+                        'agent_name': '{.key.agent_name}',
+                    },
+                    'values': {
+                        'critical': '{.critical.doc_count}',
+                        'high': '{.high.doc_count}',
+                    },
+                },
+            ],
+        },
         'wazuh_agent_status': {
             'headers': {
                 'Content-Type': 'application/json',

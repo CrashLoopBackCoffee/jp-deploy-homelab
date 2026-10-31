@@ -91,6 +91,14 @@ Accepted on 2026-10-29 after the full Phase 2 live acceptance gate passed. Imple
 
 - Loki keeps selected manager events only: `alerts-tail` vulnerability transition rules 23502–23506 plus alerts at level 12+, `ossec-log-tail` vulnerability scanner/feed lines and ERROR/WARNING/CRITICAL lines, while CTI heartbeat output is unchanged. Ordinary pod-log collection excludes only these three sidecars, so Wazuh platform, exporter, and Job logs remain available in Loki. No additional event-derived labels are introduced; status and severity remain the only data-derived alert labels.
 
+## Addendum (2026-10-31): notify on fixable findings only
+
+- **Decision 18 is narrowed.** Only **fixable findings** are notified: a Critical finding whose condition names a fixed package version. Findings with the condition `Package default status` carry no known fix (for example the 101 Critical CVEs on the current Ubuntu 24.04 kernel, which Ubuntu rates Medium and has not fixed yet) and do not alert; they stay visible on the dashboard. Reason: unfixable alerts cannot be acted on and teach the operator to ignore the channel (user decision 2026-10-31).
+- **Two rules, one meaning.** The Loki rule `wazuh-critical-finding-active` now also requires `condition != "Package default status"` on the transition event. A new state-based Mimir rule `wazuh-fixable-critical-vulnerability` fires when the current-state index has at least one fixable Critical finding for 24 hours, from the findings exporter module `wazuh_vulnerabilities_fixable` (Critical and High counts per agent). The state is authoritative; the event rule is the early notice.
+- **Definition.** Fixable means the condition is anything but `Package default status` (`Package less than X`, `less than or equal to X`, `equal to X`). Both `less than` forms bound the affected versions, so a newer version exists. Whether that version is already in the host's apt sources is not checked.
+- **High findings** are exported but not alerted: after the kernel update the fixable High count is the next candidate if the operator wants it.
+
+
 ## Related notes
 
 [[Wazuh Security Monitoring]], [[Wazuh Implementation Plan]], [[GLOSSARY]], [[ADR-0019 - LGTM observability stack on k0s]], [[ADR-0014 - Longhorn on a dedicated ext4 data disk]]
