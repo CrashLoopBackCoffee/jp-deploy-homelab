@@ -26,6 +26,7 @@ Grafana admin password: `kubectl -n teslalogger get secret grafana-admin -o json
 - Expected log noise: `Error getting Docker container image`, `Watchtower update error` (no `docker.sock`, no Watchtower).
 - Grafana 13.2.4 in the upstream image refuses the Angular plugin `natel-discrete-panel`; `pr0ps-trackmap-panel` and `teslalogger-timeline-panel` load.
 - The mariadb-operator's retention cannot parse the `%3A` in QuObjects object keys, so old dumps are not deleted (ADR-0039). The first smoke dump (1.1 MB, with the `mysql` schema) could not be deleted either.
+- An upstream release newer than the pinned tag makes the in-app updater (`"update":"all"`) restart the process inside the container in a loop (pod restartCount stays 0; 7 restarts on 30–31.10 for 1.63.24.1 vs pinned 1.63.24.0). `Tools.CreateBackupForDocker()` needs 24 h uptime, so the `DAY-mysqldump*.gz` stopped (last 2026-10-29 20:08). Fix: bump `teslalogger.version` to the newest tag.
 
 # Runbook: import and cutover
 
@@ -55,4 +56,4 @@ Counts equal the fresh dump, state files equal by `sha256sum`, start log `Docker
 
 # Still to verify
 
-Newer `max(Datum)` after the car drives; Longhorn backups of the MariaDB PVC (`kubectl -n teslalogger get pvc -l app.kubernetes.io/instance=database`) and `teslalogger` after 02:00 UTC; the 21:00 UTC scheduled dump; a `DAY-mysqldump*.gz` in `/etc/teslalogger/backup` within a day; keep `~/teslalogger-migration` and the stopped legacy until then.
+Verified 2026-10-31: newer `max(Datum)` after the car drove, Longhorn backups of the MariaDB PVC and `teslalogger`, the 21:00 UTC scheduled dump. Still open: a new `DAY-mysqldump*.gz` in `/etc/teslalogger/backup` and `Start backup for Docker` in Loki about 24–25 h after the 1.63.24.1 start (2026-10-31 evening) and no `New Version Detected`; keep `~/teslalogger-migration` and the stopped legacy until then.
