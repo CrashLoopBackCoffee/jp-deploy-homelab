@@ -12,7 +12,7 @@ class ComponentConfig(utils.model.LocalBaseModel):
     agent_address: str
     agent_source_ranges: list[str]
     indexer_storage: str = '50Gi'
-    manager_storage: str = '20Gi'
+    manager_storage: str = '40Gi'
     indexer_heap: str = '2g'
     indexer_memory_request: str = '3Gi'
     indexer_memory_limit: str = '4Gi'
