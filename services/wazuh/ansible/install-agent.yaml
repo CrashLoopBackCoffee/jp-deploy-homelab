@@ -43,6 +43,9 @@
         url: https://packages.wazuh.com/key/GPG-KEY-WAZUH
         dest: /usr/share/keyrings/wazuh.asc
         mode: '0644'
+      # AX51's root ~/.netrc is group/world readable, which makes urllib refuse every download
+      environment:
+        NETRC: /dev/null
 
     - name: Configure Wazuh apt repository
       ansible.builtin.apt_repository:

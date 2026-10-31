@@ -1,5 +1,10 @@
 # Update Log
 
+## 2026-10-31
+* **Change**: Added AX51 to Wazuh as agent 003 through its own WireGuard instance `ax51-wazuh` (UDP 51820, `10.60.0.0/30`, one peer) with one narrow firewall rule to `10.10.88.3` TCP 1514-1515; manager allowlist gained `10.60.0.2/32` (Service and NetworkPolicy now use the same config list). 530 packages, 4,033 findings.
+* **Finding**: The Wazuh manager volume was 100% full (feed DB 13 GiB plus 5.2 GiB updater temp): alerts, `ossec.log` and the authd keystore stopped writing. Expanded the PVC to 40 Gi online and recreated the StatefulSet to match; details in `.okf/wazuh.md`.
+* **Finding**: The OPNsense API token needed WireGuard and firewall rights (granted by the user); `firewall/filter/savepoint` is not available, so rule changes apply without the automatic rollback.
+
 ## 2026-10-29
 * **Decision**: ADR-0041 raises Mimir `max_global_series_per_user` from 150,000 to 250,000 (observability stack config `max-global-series-per-user`): the ingester sat at the limit after the day's pod churn plus Wazuh/Trivy series, about 39,500 samples/h (173k/24h) were discarded as `per_user_series_limit`.
 * **Wazuh Loki selection and sidecar Service cleanup (2026-10-29):** Alloy now retains manager alert rules 23502–23506 or level 12+, vulnerability/scanner/feed and ERROR/WARNING/CRITICAL ossec lines, and unchanged CTI heartbeat output. Generic pod logs exclude only those three sidecars; Wazuh platform and Job logs remain collected. Removed unused `wazuh-manager-internal`; manager is 4/4 Ready, agent 001 Active. Early Loki measurements were 233 lines/24h baseline (0.162/min) and 432/24h before the corrected pipeline was active; only an incomplete post-rollout interval was available, so the after-rate and discard-counter deltas remain to be measured. See `.okf/observability-stack.md`.

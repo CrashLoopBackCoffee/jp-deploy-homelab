@@ -37,5 +37,5 @@ create_manager(
 create_dashboard(
     config, provider, namespace.metadata.name, ca_secret, credentials, cloudflare_provider
 )
-create_network_policies(provider, namespace.metadata.name)
+create_network_policies(provider, namespace.metadata.name, config.agent_source_ranges)
 create_certificate_rotation(config, provider, namespace.metadata.name)

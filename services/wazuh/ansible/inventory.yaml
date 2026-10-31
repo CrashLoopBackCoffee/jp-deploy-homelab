@@ -7,3 +7,11 @@ all:
       hosts:
         k0s0:
           ansible_host: 10.10.8.1
+    docker_hosts:
+      vars:
+        ansible_user: root
+        wazuh_agent_group: docker-hosts
+      hosts:
+        ax51:
+          # SSH alias from ~/.ssh/config.d; the host reaches the manager through the `ax51-wazuh` tunnel
+          ansible_host: AX51

@@ -20,7 +20,9 @@ def _observability_pod(app_name: str) -> dict:
     }
 
 
-def create_network_policies(provider: k8s.Provider, namespace: p.Input[str]) -> None:
+def create_network_policies(
+    provider: k8s.Provider, namespace: p.Input[str], agent_source_ranges: list[str]
+) -> None:
     """Restrict Wazuh ingress to its required in-cluster and agent traffic."""
     opts = p.ResourceOptions(provider=provider)
     k8s.networking.v1.NetworkPolicy(
@@ -63,10 +65,7 @@ def create_network_policies(provider: k8s.Provider, namespace: p.Input[str]) -> 
             'policy_types': ['Ingress'],
             'ingress': [
                 {
-                    'from_': [
-                        {'ip_block': {'cidr': '10.10.0.0/16'}},
-                        {'ip_block': {'cidr': '192.168.178.125/32'}},
-                    ],
+                    'from_': [{'ip_block': {'cidr': cidr}} for cidr in agent_source_ranges],
                     'ports': [
                         {'port': 1514, 'protocol': 'TCP'},
                         {'port': 1515, 'protocol': 'TCP'},

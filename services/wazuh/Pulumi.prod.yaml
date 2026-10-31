@@ -14,12 +14,14 @@ config:
     agent-source-ranges:
       - 10.10.0.0/16
       - 192.168.178.125/32
+      # AX51 through its own WireGuard tunnel `ax51-wazuh` (10.60.0.2)
+      - 10.60.0.2/32
     # renovate: datasource=docker packageName=busybox versioning=loose
     busybox-version: 1.37.0
     # renovate: datasource=docker packageName=bitnamilegacy/kubectl versioning=semver
     kubectl-version: 1.33.4
     indexer-storage: 50Gi
-    manager-storage: 20Gi
+    manager-storage: 40Gi
     indexer-heap: 2g
     indexer-memory-request: 3Gi
     indexer-memory-limit: 4Gi

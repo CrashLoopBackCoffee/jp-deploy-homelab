@@ -51,3 +51,4 @@ updated: 2026-10-26
 | [[ADR-0039 - MariaDB operator on k0s]] | accepted | mariadb-operator in the kubernetes stack, `utils.mariadb` helper, daily logical dumps to QuObjects, NetworkPolicy |
 | [[ADR-0040 - Migrate TeslaLogger to k0s]] | accepted | Upstream NET8 images in one Pod, MariaDB 10.11 via the operator, replicas gate for the import |
 | [[ADR-0041 - Mimir series limit raised to 250000]] | accepted | max_global_series_per_user 250,000 after the 150,000 default was hit on 2026-10-29 |
+| [[ADR-0042 - AX51 reaches Wazuh through its own WireGuard instance]] | accepted | Dedicated WireGuard instance, one peer and one narrow rule for the AX51 Wazuh agent |
