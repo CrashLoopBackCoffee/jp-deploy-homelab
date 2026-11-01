@@ -17,6 +17,7 @@ dependencies = [
 
     # Workspaces
     "backup",
+    "influxdb",
     "iot",
     "kubernetes",
     "n8n",
@@ -41,6 +42,7 @@ dev = [
 
 [tool.uv.sources]
 backup = { workspace = true }
+influxdb = { workspace = true }
 iot = { workspace = true }
 kubernetes = { workspace = true }
 n8n = { workspace = true }
@@ -148,6 +150,10 @@ model = "observability.config:PulumiConfigRoot"
 [tool.config-models.paperless]
 root = "services/paperless"
 model = "paperless.config:PulumiConfigRoot"
+
+[tool.config-models.influxdb]
+root = "services/influxdb"
+model = "influxdb.config:PulumiConfigRoot"
 
 [tool.config-models.tandoor]
 root = "services/tandoor"

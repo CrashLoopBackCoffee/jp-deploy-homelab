@@ -1,0 +1,12 @@
+config:
+  influxdb:config:
+    kubeconfig:
+      ref: op://Homelab/Kubeconfig prod/password
+    zone: 4jp.de
+    cloudflare-api-token:
+      ref: op://Homelab/Cloudflare [4jp.de]/password
+    influxdb:
+      # renovate: datasource=docker packageName=influxdb versioning=semver
+      version: 1.11.8
+      host: influx
+      storage-size: 40Gi

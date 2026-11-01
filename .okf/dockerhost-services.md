@@ -22,10 +22,10 @@ So the rule "no application database migrates before the HBS 3 off-site copy is 
 | Service | What it is | State |
 | --- | --- | --- |
 | Monitoring stack (Prometheus, Alertmanager, Grafana, Loki, Promtail, cAdvisor, blackbox, fritz-exporter) | Legacy monitoring, Ansible role `monitoring` | Being retired, stage 1 phases 1 to 3 done ([[legacy-monitoring-migration]], ADR-0023) |
-| `jpspeedtest` (systemd) | Speed test every 30 minutes into InfluxDB | Replaced by the in-cluster exporter (ADR-0027) |
+| `jpspeedtest` (systemd) | Speed test every 30 minutes into InfluxDB | Replaced by the in-cluster exporter (ADR-0027); **removed from `dockerhost` on 2026-11-01** (unit, `/opt/monitoring/speedtest`, Ansible tasks; sources archived in `~/dockerhost-legacy-speedtest`) |
 | Tandoor | Recipes; `postgres:17-alpine`, `ghcr.io/tandoorrecipes/recipes:latest` (with nginx inside), `adminer` | **Moved** to k0s on 2026-10-18 (ADR-0028, [[tandoor]]); **removed from `dockerhost` on 2026-10-28** (stage 2) |
 | NetBox 4.2 | Inventory at `netbox.4jp.de`; community `netbox-docker` layout in `/opt/netbox` (`netbox-netbox-1`, `netbox-netbox-housekeeping-1`, `netbox-postgres-1` with PostgreSQL 17.11, `netbox-redis-cache-1`; no worker; image `v4.2-3.2.0`) | **Moved** to k0s on 2026-10-20 as NetBox 4.7.3 (ADR-0030, [[netbox]]); **removed from `dockerhost` on 2026-10-28** (stage 2) |
-| InfluxDB 1.8.6 | Databases `vzlogger`, `home_assistant`, `node`, `default`, `_internal` (power meters, coffee, shutters, shellies) | Not decided. Feeds the `Power` dashboards, which stay legacy until the LAN work |
+| InfluxDB 1.8.6 | Databases `vzlogger`, `home_assistant`, `node`, `default`, `_internal` (power meters, coffee, shutters, shellies) | **Moved** to k0s on 2026-11-01 (ADR-0043, [[influxdb]]); **removed from `dockerhost` on 2026-11-01** (container, image, `/opt/influxdb`, unit, Ansible role). Final portable backups of `vzlogger`, `home_assistant`, `node` and `default` (5.4 GB, 624 files, checksums equal) are in `~/dockerhost-legacy-influxdb-archive` on the workstation; no copy on the QNAP yet |
 | mosquitto, `mqtt2influxdb` | MQTT broker and its bridge into InfluxDB | Not decided |
 | `tesla-logger` | With its own Grafana 10.0.1 and MariaDB 10.4.7 | **Moved** to k0s on 2026-10-28 (ADR-0040, [[teslalogger]]); **removed from `dockerhost` on 2026-10-31** (stage 2) |
 | Portainer | Docker UI | Not decided; it manages the host that is being emptied |

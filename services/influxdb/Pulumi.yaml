@@ -1,0 +1,9 @@
+name: influxdb
+pulumi:disable-default-providers:
+  - kubernetes
+runtime:
+  name: python
+  options:
+    toolchain: uv
+    virtualenv: ../../.venv
+description: InfluxDB 1.x for power meter and Home Assistant history

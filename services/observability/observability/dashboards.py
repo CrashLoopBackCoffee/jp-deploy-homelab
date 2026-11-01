@@ -13,6 +13,8 @@ import typing as t
 
 MIMIR_DATASOURCE_UID = 'mimir'
 LOKI_DATASOURCE_UID = 'loki'
+INFLUXDB_VZLOGGER_UID = 'influxdb-vzlogger'
+INFLUXDB_HOME_ASSISTANT_UID = 'influxdb-home-assistant'
 WAZUH_VULNERABILITIES_UID = 'wazuh-live-vulnerabilities'
 WAZUH_INVENTORY_UID = 'wazuh-live-inventory'
 WAZUH_PROCESSES_UID = 'wazuh-live-processes'
@@ -45,8 +47,11 @@ LEGACY_DASHBOARDS = (
     'status.json',  # "Status"
     'pretix.json',  # "Pretix"
     'wordpress-core-updates.json',  # "WordPress Core Updates"
+    'power.json',  # "Power", InfluxDB `vzlogger` (ADR-0043)
 )
 _LEGACY_PROMETHEUS_DATASOURCES = {'Prometheus', 'PBFA97CFB590B2093'}
+# The legacy datasource `InfluxDB` reads the database `vzlogger`.
+_LEGACY_INFLUXDB_DATASOURCES = {'InfluxDB', 'P951FEA4DE68E13C5'}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -99,6 +104,7 @@ class Table:
 def _datasource(kind: str) -> dict[str, str]:
     datasources = {
         'loki': ('loki', LOKI_DATASOURCE_UID),
+        'influxdb-vzlogger': ('influxdb', INFLUXDB_VZLOGGER_UID),
         'opensearch-vulnerabilities': (
             'grafana-opensearch-datasource',
             WAZUH_VULNERABILITIES_UID,
@@ -1420,6 +1426,8 @@ def _adapt_community(raw: str) -> str:
         uid = value.get('uid') if isinstance(value, dict) else value
         if uid in _LEGACY_PROMETHEUS_DATASOURCES:
             return _datasource('prometheus')
+        if uid in _LEGACY_INFLUXDB_DATASOURCES:
+            return _datasource('influxdb-vzlogger')
         match = placeholder.match(uid) if isinstance(uid, str) else None
         if not match or match.group(1) not in datasource_names:
             return value

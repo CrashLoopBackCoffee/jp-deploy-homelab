@@ -13,6 +13,8 @@ from observability.loki import LOKI_GATEWAY_URL
 from observability.mimir import MIMIR_GATEWAY_URL
 
 GRAFANA_PORT = 80
+# Service of the `influxdb` stack (ADR-0043)
+INFLUXDB_URL = 'http://influxdb.influxdb.svc.cluster.local:8086'
 SECRETS_NAME = 'grafana-secrets'
 ALERTING_MOUNT_PATH = '/etc/grafana/provisioning/alerting'
 DASHBOARD_PROVIDER = 'homelab'
@@ -190,6 +192,24 @@ def create_grafana(
                             'access': 'proxy',
                             'url': LOKI_GATEWAY_URL,
                         },
+                        *[
+                            {
+                                'name': name,
+                                'uid': uid,
+                                'type': 'influxdb',
+                                'access': 'proxy',
+                                'url': INFLUXDB_URL,
+                                'jsonData': {'dbName': database, 'httpMode': 'GET'},
+                            }
+                            for name, uid, database in (
+                                ('InfluxDB vzlogger', dashboards.INFLUXDB_VZLOGGER_UID, 'vzlogger'),
+                                (
+                                    'InfluxDB home_assistant',
+                                    dashboards.INFLUXDB_HOME_ASSISTANT_UID,
+                                    'home_assistant',
+                                ),
+                            )
+                        ],
                         *[
                             {
                                 'name': name,
