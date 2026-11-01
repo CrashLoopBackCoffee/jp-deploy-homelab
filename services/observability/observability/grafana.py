@@ -17,8 +17,7 @@ GRAFANA_PORT = 80
 INFLUXDB_URL = 'http://influxdb.influxdb.svc.cluster.local:8086'
 SECRETS_NAME = 'grafana-secrets'
 ALERTING_MOUNT_PATH = '/etc/grafana/provisioning/alerting'
-DASHBOARD_PROVIDER = 'homelab'
-DASHBOARD_PATH = f'/var/lib/grafana/dashboards/{DASHBOARD_PROVIDER}'
+DASHBOARDS_PATH = '/var/lib/grafana/dashboards'
 
 # Grafana expands $VAR in provisioning files, so the Pushover secrets stay out of the ConfigMap.
 _PUSHOVER_CREDENTIALS = {'userKey': '$PUSHOVER_USER_KEY', 'apiToken': '$PUSHOVER_API_TOKEN'}
@@ -137,11 +136,18 @@ def create_grafana(
         data=alerting_files,
         opts=k8s_opts,
     )
-    dashboard_files = k8s.core.v1.ConfigMap(
-        'grafana-dashboards',
-        data=dashboards.provisioning_files(),
-        opts=k8s_opts,
-    )
+    # One ConfigMap and one file provider per folder; the provider name is also the directory.
+    dashboard_files = {
+        dashboards.folder_slug(title): (
+            title,
+            k8s.core.v1.ConfigMap(
+                f'grafana-dashboards-{dashboards.folder_slug(title)}',
+                data=files,
+                opts=k8s_opts,
+            ),
+        )
+        for title, files in dashboards.provisioning_folders().items()
+    }
 
     release = k8s.helm.v3.Release(
         'grafana',
@@ -302,19 +308,24 @@ def create_grafana(
                 'dashboardproviders.yaml': {
                     'apiVersion': 1,
                     'providers': [
-                        {
-                            'name': DASHBOARD_PROVIDER,
-                            'orgId': 1,
-                            'folder': alert_rules.FOLDER,
-                            'type': 'file',
-                            'disableDeletion': False,
-                            'editable': False,
-                            'options': {'path': DASHBOARD_PATH},
-                        },
+                        *[
+                            {
+                                'name': slug,
+                                'orgId': 1,
+                                'folder': title,
+                                'type': 'file',
+                                'disableDeletion': False,
+                                'editable': False,
+                                'options': {'path': f'{DASHBOARDS_PATH}/{slug}'},
+                            }
+                            for slug, (title, _) in dashboard_files.items()
+                        ],
                     ],
                 },
             },
-            'dashboardsConfigMaps': {DASHBOARD_PROVIDER: dashboard_files.metadata.name},
+            'dashboardsConfigMaps': {
+                slug: config_map.metadata.name for slug, (_, config_map) in dashboard_files.items()
+            },
         },
         opts=p.ResourceOptions.merge(k8s_opts, p.ResourceOptions(depends_on=depends_on)),
     )
