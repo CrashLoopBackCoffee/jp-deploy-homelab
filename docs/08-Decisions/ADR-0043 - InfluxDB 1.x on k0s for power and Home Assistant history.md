@@ -17,7 +17,7 @@ adr: 43
 
 ## Status
 
-Accepted on 2026-11-01. The stack is applied, the data is restored and both writers (`mqtt2influxdb`, Home Assistant) write to k0s; the legacy instance is still running until stage 2 (`.okf/influxdb.md`).
+Accepted on 2026-11-01. The stack is applied, the data is restored and both writers (`mqtt2influxdb`, Home Assistant) write to k0s; the legacy instance, `jpspeedtest` and `Power small` were removed on 2026-11-01 after an archive of the four databases on the workstation (`.okf/influxdb.md`).
 
 ## Context
 

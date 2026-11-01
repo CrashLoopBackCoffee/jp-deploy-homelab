@@ -37,10 +37,15 @@ Gap fill (2026-11-01): the points the legacy instance received after the first b
 - `influxd backup -portable -start` does not give an incremental window: the restored `_gap` databases ended at the first backup's last point. Use `influx_inspect export -start/-end` on the legacy data and WAL directories (`-datadir /var/lib/influxdb/data/influx -waldir /var/lib/influxdb/wal`) and `influx -import` for a time window.
 - Do not use `pkill -f` patterns that appear in the same shell command line.
 
+# Stage 2 (done 2026-11-01)
+
+Removed from `dockerhost` after the user's approval: `influxdb_influxdb_1`, image `influxdb:1.8.6`, `/opt/influxdb` (9 GB), `influxdb.service`, the Ansible role and playbook `influxdb` (uncommitted in `~/Documents/dockerhost`), and `jpspeedtest` (unit, `/opt/monitoring/speedtest`, the speedtest tasks and templates; the in-cluster exporter had 23 points in 12 h). The legacy dashboard `Power small` is deleted in the Ansible role and on the host; it is not carried over. Archive: `~/dockerhost-legacy-influxdb-archive/final/{vzlogger,home_assistant,node,default}` (portable backups, `README.txt` with the restore command, per-file `sha256` equal to the source). The QNAP SMB share `altens` is a synced family share, so the archive was not put there; a copy needs a dedicated QNAP location (SSH to the QNAP needs a host-key check and a biometric approval).
+
+Left on `dockerhost`: mosquitto and `mqtt2influxdb` (writing to k0s), and in the legacy Grafana the datasources `InfluxDB` and `InfluxDBHomeAssistant`, the dashboards `Power` (also on the new Grafana) and `Solax` (InfluxDB part), which now show no data.
+
 # Remaining
 
-1. Stage 2 on `dockerhost` (user approval): archive the legacy databases to the QNAP, stop `influxdb_influxdb_1`, remove `/opt/influxdb` (9 GB), the unit, the Ansible role and playbook, and the Traefik labels; `jpspeedtest` still writes `speedtest` to the legacy instance until it is retired (the in-cluster exporter replaces it, ADR-0027).
-2. Later: mosquitto and `mqtt2influxdb` to k0s; decide on Solax's InfluxDB panels and `Power small`; decide on authentication.
+Later: mosquitto and `mqtt2influxdb` to k0s; decide on Solax's InfluxDB panels and on authentication.
 
 # Still to verify
 
