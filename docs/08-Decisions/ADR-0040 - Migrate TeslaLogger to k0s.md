@@ -36,7 +36,7 @@ TeslaLogger (bassmaster187/TeslaLogger) ran on `dockerhost` from `/opt/tesla-log
 - **`replicas` is a config gate.** TeslaLogger's listener opens only after its DB connect and schema update and must not start on an empty database, so the stack is created with `replicas: 0`, the data is imported, then the gate is removed.
 - **Not carried over:** Grafana's database, `bin/backup` (dumps of the same DB), MQTT (disabled). Carried: `settings.json`, `encryption.txt`, `geofence-private.csv`, `nosharedata.txt`.
 - **Alerts:** `teslalogger-down` (warning; kube-state-metrics, no metrics endpoint exists) and the generic `mariadb-backup-stale`.
-- **Cutover by DNS** with the records managed by the stack afterwards ([[ADR-0029 - Service names as Cloudflare A records]]). The legacy containers are stopped, not deleted; removal is stage-2 work that needs the user's approval.
+- **Cutover by DNS** with the records managed by the stack afterwards ([[ADR-0029 - Service names as Cloudflare A records]]). The legacy containers were stopped, not deleted, until the user approved stage-2 removal, which was done on 2026-10-31 after the archive of the final dump, configuration and 191 historical dumps was verified.
 
 ## Consequences
 
