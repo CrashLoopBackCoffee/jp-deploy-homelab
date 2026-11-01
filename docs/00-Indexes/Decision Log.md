@@ -52,3 +52,4 @@ updated: 2026-10-26
 | [[ADR-0040 - Migrate TeslaLogger to k0s]] | accepted | Upstream NET8 images in one Pod, MariaDB 10.11 via the operator, replicas gate for the import |
 | [[ADR-0041 - Mimir series limit raised to 250000]] | accepted | max_global_series_per_user 250,000 after the 150,000 default was hit on 2026-10-29 |
 | [[ADR-0042 - AX51 reaches Wazuh through its own WireGuard instance]] | accepted | Dedicated WireGuard instance, one peer and one narrow rule for the AX51 Wazuh agent |
+| [[ADR-0043 - InfluxDB 1.x on k0s for power and Home Assistant history]] | accepted | InfluxDB 1.11 on k0s behind Traefik, portable backup and restore of `vzlogger` and `home_assistant`, DNS cutover, Power dashboard in the new Grafana |

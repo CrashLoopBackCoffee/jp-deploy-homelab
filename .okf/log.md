@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-01
+* **Change**: InfluxDB 1.11 on k0s (`services/influxdb`, ADR-0043): databases `vzlogger` and `home_assistant` restored from a portable backup (counts identical), `Power` dashboard and two datasources in the new Grafana, `influx.4jp.de` moved to `10.10.88.1`, `mqtt2influxdb` on `dockerhost` repointed (meter and BKW data arrive on k0s). Home Assistant still writes to the legacy instance until the user repoints it; gap fill and legacy removal follow.
+
 ## 2026-10-31
 * **Finding**: TeslaLogger restarted itself 7 times on 30–31.10 because upstream published 1.63.24.1 while k0s pinned 1.63.24.0; the in-app updater restarts the process, so the 24 h-uptime `DAY-mysqldump` stopped (last 2026-10-29 20:08). Bumped `teslalogger.version` to 1.63.24.1 (all three images share the tag); see `.okf/teslalogger.md`.
 * **Finding**: Wazuh dashboard home error on `manager.name` was caused by the composable index template `wazuh-single-node` shadowing the legacy Wazuh templates since ticket #88 (alert, monitoring and statistics indices had dynamic text mappings). Deleted it, moved the single-node settings into a legacy template (1 shard, 0 replicas), reindexed the five affected indices (no data lost), and switched the agent-status exporter query from `.keyword` fields to the keyword fields.
