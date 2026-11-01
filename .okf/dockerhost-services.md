@@ -27,11 +27,11 @@ So the rule "no application database migrates before the HBS 3 off-site copy is 
 | NetBox 4.2 | Inventory at `netbox.4jp.de`; community `netbox-docker` layout in `/opt/netbox` (`netbox-netbox-1`, `netbox-netbox-housekeeping-1`, `netbox-postgres-1` with PostgreSQL 17.11, `netbox-redis-cache-1`; no worker; image `v4.2-3.2.0`) | **Moved** to k0s on 2026-10-20 as NetBox 4.7.3 (ADR-0030, [[netbox]]); **removed from `dockerhost` on 2026-10-28** (stage 2) |
 | InfluxDB 1.8.6 | Databases `vzlogger`, `home_assistant`, `node`, `default`, `_internal` (power meters, coffee, shutters, shellies) | Not decided. Feeds the `Power` dashboards, which stay legacy until the LAN work |
 | mosquitto, `mqtt2influxdb` | MQTT broker and its bridge into InfluxDB | Not decided |
-| `tesla-logger` | With its own Grafana 10.0.1 and MariaDB 10.4.7 | **Moved** to k0s on 2026-10-28 (ADR-0040, [[teslalogger]]); the legacy containers are stopped, not deleted, the unit is disabled, stage-2 removal pending approval |
+| `tesla-logger` | With its own Grafana 10.0.1 and MariaDB 10.4.7 | **Moved** to k0s on 2026-10-28 (ADR-0040, [[teslalogger]]); **removed from `dockerhost` on 2026-10-31** (stage 2) |
 | Portainer | Docker UI | Not decided; it manages the host that is being emptied |
 | Traefik v3.2 | Reverse proxy with Cloudflare DNS-01 for `*.4jp.de` | Goes when the last routed service has moved |
 | Watchtower | Keeps `latest` images current, also scraped by the legacy Prometheus | Goes with the host |
-| Home Assistant | Role exists, **no container runs** | Dead; removal approved in principle for stage 2 |
+| Home Assistant | Role existed, **no container ran** | **Removed from `dockerhost` on 2026-10-31** (`/opt/home-assistant`, 78 GB of which 77 GB were 2025 backups, the disabled unit, the Ansible role and playbook); config archived as `~/dockerhost-legacy-home-assistant-config.tar.gz` (without `config/backups`); the live Home Assistant runs on Proxmox |
 
 # Risks while services are still there
 
