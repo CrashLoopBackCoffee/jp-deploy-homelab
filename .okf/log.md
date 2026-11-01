@@ -1,7 +1,7 @@
 # Update Log
 
 ## 2026-11-01
-* **Change**: InfluxDB 1.11 on k0s (`services/influxdb`, ADR-0043): databases `vzlogger` and `home_assistant` restored from a portable backup (counts identical), `Power` dashboard and two datasources in the new Grafana, `influx.4jp.de` moved to `10.10.88.1`, `mqtt2influxdb` on `dockerhost` repointed (meter and BKW data arrive on k0s). Home Assistant still writes to the legacy instance until the user repoints it; gap fill and legacy removal follow.
+* **Change**: InfluxDB 1.11 on k0s (`services/influxdb`, ADR-0043): databases `vzlogger` and `home_assistant` restored from a portable backup (counts identical), `Power` dashboard and two datasources in the new Grafana, `influx.4jp.de` moved to `10.10.88.1`, `mqtt2influxdb` on `dockerhost` repointed (meter and BKW data arrive on k0s). The user repointed Home Assistant at 08:50 UTC; the gap (07:55 to 08:50 UTC) was exported from the legacy instance and imported (counts identical). **Finding**: the 20 Gi volume filled during the restores (about three minutes of Home Assistant and BKW points lost, 08:57 to 09:00 UTC); expanded to 40 Gi online and restarted influxd. Legacy removal needs approval.
 
 ## 2026-10-31
 * **Finding**: TeslaLogger restarted itself 7 times on 30–31.10 because upstream published 1.63.24.1 while k0s pinned 1.63.24.0; the in-app updater restarts the process, so the 24 h-uptime `DAY-mysqldump` stopped (last 2026-10-29 20:08). Bumped `teslalogger.version` to 1.63.24.1 (all three images share the tag); see `.okf/teslalogger.md`.

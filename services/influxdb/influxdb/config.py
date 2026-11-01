@@ -6,7 +6,7 @@ class InfluxDbConfig(utils.model.LocalBaseModel):
     # Hostname below the zone; LAN writers (Home Assistant, mqtt2influxdb) and Grafana use it
     host: str = 'influx'
     # Holds the TSM files, WAL and meta; the two migrated databases take about 9 GB on disk
-    storage_size: str = '20Gi'
+    storage_size: str = '40Gi'
 
 
 class ComponentConfig(utils.model.LocalBaseModel):

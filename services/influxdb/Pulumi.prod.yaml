@@ -9,4 +9,4 @@ config:
       # renovate: datasource=docker packageName=influxdb versioning=semver
       version: 1.11.8
       host: influx
-      storage-size: 20Gi
+      storage-size: 40Gi

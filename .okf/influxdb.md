@@ -1,7 +1,7 @@
 ---
 type: Service
-title: InfluxDB 1.x on k0s (Pulumi, applied; cut over 2026-11-01 except Home Assistant)
-description: InfluxDB 1.11 on k0s for the power meter and Home Assistant history, how the data was moved, what still writes to the legacy instance, and the remaining cutover steps (ADR-0043).
+title: InfluxDB 1.x on k0s (Pulumi, applied; cut over 2026-11-01)
+description: InfluxDB 1.11 on k0s for the power meter and Home Assistant history, how the data was moved and the gap closed, and the remaining steps (ADR-0043).
 timestamp: 2026-11-01T09:20:00Z
 tags: [homelab, kubernetes, influxdb, grafana, power, migration]
 resource: https://app.pulumi.com/jaypee-solutions/influxdb/prod
@@ -9,7 +9,7 @@ resource: https://app.pulumi.com/jaypee-solutions/influxdb/prod
 
 # State
 
-Stack `jaypee-solutions/influxdb/prod` (source `services/influxdb`), 12 resources: namespace `influxdb`, Deployment `influxdb` (`influxdb:1.11.8`, `Recreate`, uid 999), PVC `influxdb` (20 Gi Longhorn), Service `influxdb:8086`, IngressRoute `influx.4jp.de` (cluster wildcard certificate) and the Cloudflare A record `influx.4jp.de` (imported on 2026-11-01, now `10.10.88.1`). Authentication is off, as on the legacy instance. Renovate is capped below 2.
+Stack `jaypee-solutions/influxdb/prod` (source `services/influxdb`), 12 resources: namespace `influxdb`, Deployment `influxdb` (`influxdb:1.11.8`, `Recreate`, uid 999), PVC `influxdb` (40 Gi Longhorn, expanded from 20 Gi online on 2026-11-01), Service `influxdb:8086`, IngressRoute `influx.4jp.de` (cluster wildcard certificate) and the Cloudflare A record `influx.4jp.de` (imported on 2026-11-01, now `10.10.88.1`). Authentication is off, as on the legacy instance. Renovate is capped below 2.
 
 Data: databases `vzlogger` (2.4 GB, since 2018) and `home_assistant` (6.2 GB) restored from `influxd backup -portable` taken on the legacy instance at 2026-11-01T07:55:26Z. Counts of `current_power`, `meter1`, `meter2`, `bkw_current_power`, `rolladen_position`, `speedtest`, `W`, `V`, `A`, `Hz` and `%` up to 07:55:00Z and both series cardinalities (237 and 1191) are identical on both sides. `node`, `default` and `_internal` were not carried over.
 
@@ -19,25 +19,29 @@ New Grafana (`g.4jp.de`): datasources `InfluxDB vzlogger` and `InfluxDB home_ass
 
 ```
 Tasmota meter / Shelly BKW / Shelly roller -> mosquitto dockerhost:1883 -> mqtt2influxdb (dockerhost) -> https://influx.4jp.de (k0s)
-Home Assistant (Proxmox, 192.168.178.122) -> InfluxDB integration -> still the legacy instance until the user repoints it
+Home Assistant (Proxmox, 192.168.178.122) -> InfluxDB integration -> https://influx.4jp.de (k0s)
 ```
 
-`mqtt2influxdb` on `dockerhost` was switched on 2026-11-01 08:06 UTC (`host: influx.4jp.de`, `port: 443`, `ssl: true`, `verify_ssl: true`; backup of the old file at `~/config.yml.pre-k0s-influx` on the host). The meter publishes every 5 minutes; the first point after the switch (08:10:30Z) arrived on k0s.
+`mqtt2influxdb` on `dockerhost` was switched on 2026-11-01 08:06 UTC (`host: influx.4jp.de`, `port: 443`, `ssl: true`, `verify_ssl: true`; backup of the old file at `~/config.yml.pre-k0s-influx` on the host). Home Assistant was repointed by the user at 08:50:20Z; the legacy instance has received nothing since. The meter publishes every 5 minutes.
+
+Gap fill (2026-11-01): the points the legacy instance received after the first backup (07:55:26Z to 08:50:30Z) were exported there with `influx_inspect export` (line protocol, TSM and WAL) and loaded with `influx -import`; counts for `W`, `V`, `A`, `Hz`, `%`, `GB` (to 08:50:21Z) and the five `vzlogger` measurements (to 08:06:00Z) are identical on both sides, series cardinality 1191.
+
+**Lost:** about three minutes of Home Assistant and BKW points (roughly 08:57 to 09:00Z) while the volume was full (below); they exist on neither instance.
 
 # Facts that shaped the design
 
 - The legacy writers are only Home Assistant (direct) and `mqtt2influxdb`; a tcpdump on `enp2s0` found no other LAN host, and Docker's NAT hides local sources (`172.18.0.1`).
 - `mqtt2influxdb` supports `ssl` and `verify_ssl`; the python client sets the `Host` header from `host`, so the DNS name has to resolve to Traefik before it can be used (`10.10.88.1` as host does not route).
 - Authentication was off before; the HTTP interface is now reachable by every LAN client through Traefik. Enabling it needs credentials in Home Assistant, `mqtt2influxdb` and the two Grafana datasources.
+- **The volume filled up during the migration:** the first backup copy (5 GB) stayed on the volume while the restore was done, and the second round of restores filled the remaining space; influxd then logged `no space left on device` and kept the stuck `_internal` WAL error until the Pod was restarted. Expand first (Longhorn expanded 20 to 40 Gi online in about a minute), delete restore directories right after use.
+- `influxd backup -portable -start` does not give an incremental window: the restored `_gap` databases ended at the first backup's last point. Use `influx_inspect export -start/-end` on the legacy data and WAL directories (`-datadir /var/lib/influxdb/data/influx -waldir /var/lib/influxdb/wal`) and `influx -import` for a time window.
 - Do not use `pkill -f` patterns that appear in the same shell command line.
 
-# Remaining cutover
+# Remaining
 
-1. **User:** point Home Assistant's InfluxDB integration at `influx.4jp.de`, port 443, SSL on (verify on; the certificate is the Let's Encrypt wildcard). Until then Home Assistant keeps writing to the legacy instance on `dockerhost:8086`.
-2. Close the gap: `influxd backup -portable -database <db> -start 2026-11-01T07:55:26Z` on the legacy container, restore into `<db>_gap` (`-db <db> -newdb <db>_gap`) on k0s, `SELECT * INTO <db>.autogen.:MEASUREMENT FROM <db>_gap.autogen./.*/ GROUP BY *`, drop `<db>_gap`, compare counts after the last legacy point.
-3. Stop the legacy `influxdb_influxdb_1` (stage 2, user approval): remove `/opt/influxdb` (9 GB), the unit, role and playbook after an archive of the databases to the QNAP.
-4. Later: mosquitto and `mqtt2influxdb` to k0s; decide on Solax's InfluxDB panels and `Power small`.
+1. Stage 2 on `dockerhost` (user approval): archive the legacy databases to the QNAP, stop `influxdb_influxdb_1`, remove `/opt/influxdb` (9 GB), the unit, the Ansible role and playbook, and the Traefik labels; `jpspeedtest` still writes `speedtest` to the legacy instance until it is retired (the in-cluster exporter replaces it, ADR-0027).
+2. Later: mosquitto and `mqtt2influxdb` to k0s; decide on Solax's InfluxDB panels and `Power small`; decide on authentication.
 
 # Still to verify
 
-Home Assistant's writes on k0s after the user's change, the gap fill, and a Longhorn backup of the `influxdb` volume after 02:00 UTC.
+A Longhorn backup of the `influxdb` volume after 02:00 UTC, and the `Power` dashboard on a day with Home Assistant and meter data fully on k0s.
