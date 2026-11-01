@@ -1712,6 +1712,60 @@ def _wazuh_dashboard() -> str:
     )
 
 
+# Grafana folder title -> dashboard files. Every provisioned file belongs to exactly one folder.
+FOLDERS = {
+    'Platform': (
+        'overview.json',
+        'workloads.json',
+        'node-exporter-full.json',
+        'docker-containers.json',
+    ),
+    'Storage & Backups': (
+        'backups.json',
+        'longhorn.json',
+        'cloudnativepg.json',
+        'qnap-backup.json',
+    ),
+    'Network': (
+        'opnsense.json',
+        'opnsense-logs.json',
+        'traefik.json',
+        'internet-speed.json',
+        'blackbox-exporter.json',
+        'status.json',
+    ),
+    'Security': ('wazuh.json', 'trivy-operator.json'),
+    'Observability': ('self-health.json', 'logs.json'),
+    'Applications': (
+        'tandoor.json',
+        'netbox.json',
+        'pretix.json',
+        'wordpress-core-updates.json',
+    ),
+    'Home & Energy': ('power.json',),
+}
+
+
+def folder_slug(title: str) -> str:
+    """Provider name, ConfigMap suffix and directory name of a folder."""
+    return re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
+
+
+def provisioning_folders() -> dict[str, dict[str, str]]:
+    """Folder title to file name to dashboard JSON."""
+    files = provisioning_files()
+    assigned = [name for names in FOLDERS.values() for name in names]
+    unassigned = set(files) - set(assigned)
+    unknown = set(assigned) - set(files)
+    duplicated = {name for name in assigned if assigned.count(name) > 1}
+    if unassigned or unknown or duplicated:
+        raise ValueError(
+            f'Dashboard folders out of sync: unassigned {sorted(unassigned)}, '
+            f'unknown {sorted(unknown)}, duplicated {sorted(duplicated)}'
+        )
+    return {title: {name: files[name] for name in names} for title, names in FOLDERS.items()}
+
+
 def provisioning_files() -> dict[str, str]:
     """File name to dashboard JSON, ready for a ConfigMap."""
     files = {
