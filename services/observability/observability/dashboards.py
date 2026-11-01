@@ -287,6 +287,7 @@ def _dashboard(
     title: str,
     panels: t.Sequence[Panel | Table],
     variables: list[dict] | None = None,
+    time_from: str = 'now-6h',
 ) -> str:
     return json.dumps(
         {
@@ -296,7 +297,7 @@ def _dashboard(
             'timezone': 'browser',
             'schemaVersion': 39,
             'refresh': '1m',
-            'time': {'from': 'now-6h', 'to': 'now'},
+            'time': {'from': time_from, 'to': 'now'},
             'templating': {'list': variables or []},
             'panels': _layout(panels),
         },
@@ -379,6 +380,40 @@ BACKUP_PANELS = [
         's',
         legend='{{pvc_namespace}}/{{pvc}}',
     ),
+]
+
+_QNAP_LOGS = 'job="qnap-syslog"'
+_HBS_FINISHED_JOBS = f'{{{_QNAP_LOGS}}} |= "Hybrid Backup Sync" |= "Finished" |= "Sync job"'
+QNAP_BACKUP_PANELS = [
+    Panel(
+        'Finished sync jobs',
+        f'sum(count_over_time({_HBS_FINISHED_JOBS} [$__range]))',
+        kind='stat',
+        datasource='loki',
+        description='Hybrid Backup Sync jobs reported finished on the QNAP in the selected range.',
+    ),
+    Panel(
+        'Failed log lines',
+        f'sum(count_over_time({{{_QNAP_LOGS}}} |= "Failed" [$__range])) or vector(0)',
+        kind='stat',
+        datasource='loki',
+        description='QNAP log lines containing "Failed" in the selected range.',
+    ),
+    Panel(
+        'Finished sync jobs by job',
+        f'sum by (syncjob) (count_over_time({_HBS_FINISHED_JOBS}'
+        ' | regexp `Sync job: "(?P<syncjob>[^"]+)"` [$__interval]))',
+        legend='{{syncjob}}',
+        datasource='loki',
+        stack=True,
+    ),
+    Panel(
+        'QNAP log lines',
+        f'sum(count_over_time({{{_QNAP_LOGS}}} [$__interval]))',
+        datasource='loki',
+    ),
+    Panel('Failed', f'{{{_QNAP_LOGS}}} |= "Failed"', kind='logs', datasource='loki'),
+    Panel('QNAP log', f'{{{_QNAP_LOGS}}}', kind='logs', datasource='loki'),
 ]
 
 _WORKLOAD_SELECTOR = 'namespace=~"$namespace", container!="", pod!=""'
@@ -1674,6 +1709,9 @@ def provisioning_files() -> dict[str, str]:
     files = {
         'overview.json': _dashboard('homelab-overview', 'Cluster overview', OVERVIEW_PANELS),
         'backups.json': _dashboard('homelab-backups', 'Backups and storage', BACKUP_PANELS),
+        'qnap-backup.json': _dashboard(
+            'homelab-qnap-backup', 'QNAP backup', QNAP_BACKUP_PANELS, time_from='now-24h'
+        ),
         'workloads.json': _dashboard(
             'homelab-workloads', 'Kubernetes workloads', WORKLOAD_PANELS, WORKLOAD_VARIABLES
         ),
