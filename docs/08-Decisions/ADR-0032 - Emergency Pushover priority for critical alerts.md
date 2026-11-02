@@ -4,7 +4,7 @@ type: adr
 status: accepted
 date: 2026-10-24
 created: 2026-10-24
-updated: 2026-10-24
+updated: 2026-11-02
 adr: 32
 ---
 
@@ -35,9 +35,11 @@ The critical rule UIDs are:
 - `mimir-samples-discarded`
 - `tandoor-down`
 - `netbox-down`
+- `mariadb-backup-stale`
 - `certificate-expiring`
 - `probe-failing`
 - `probe-failing-slow`
+- `qnap-hbs-jobs-missing`
 
 ## Consequences
 

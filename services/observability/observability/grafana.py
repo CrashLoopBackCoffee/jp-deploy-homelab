@@ -129,7 +129,9 @@ def create_grafana(
     alerting_files = {
         'contact-points.yaml': json.dumps(CONTACT_POINTS, indent=2),
         'policies.yaml': json.dumps(NOTIFICATION_POLICIES, indent=2),
-        'rules.yaml': json.dumps(alert_rules.provisioning(), indent=2),
+        'rules.yaml': json.dumps(
+            alert_rules.provisioning(grafana_config.qnap_hbs_nightly_jobs), indent=2
+        ),
     }
     alerting = k8s.core.v1.ConfigMap(
         'grafana-alerting-provisioning',

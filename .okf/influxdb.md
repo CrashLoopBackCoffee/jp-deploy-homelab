@@ -2,7 +2,7 @@
 type: Service
 title: InfluxDB 1.x on k0s (Pulumi, applied; cut over 2026-11-01)
 description: InfluxDB 1.11 on k0s for the power meter and Home Assistant history, how the data was moved and the gap closed, and the remaining steps (ADR-0043).
-timestamp: 2026-11-01T09:20:00Z
+timestamp: 2026-11-02T00:00:00Z
 tags: [homelab, kubernetes, influxdb, grafana, power, migration]
 resource: https://app.pulumi.com/jaypee-solutions/influxdb/prod
 ---
@@ -49,4 +49,4 @@ Later: mosquitto and `mqtt2influxdb` to k0s; decide on Solax's InfluxDB panels a
 
 # Still to verify
 
-A Longhorn backup of the `influxdb` volume after 02:00 UTC, and the `Power` dashboard on a day with Home Assistant and meter data fully on k0s.
+Longhorn backup `backup-05c89632c9984c1d` of PVC `influxdb/influxdb` (`pvc-8f8ee2a7-47ed-451a-b078-15920924b1dc`) is `Completed` at 2026-11-02T02:24:31Z, 27.2 GB (27,244,101,632 B), the first backup of this volume. Still open: the `Power` dashboard on a day with Home Assistant and meter data fully on k0s.

@@ -2,7 +2,7 @@
 type: Service
 title: Observability stack (Pulumi, prod)
 description: LGTM monitoring on k0s - what runs, how it is reached, alert routing to Pushover, verification evidence, and the metric and provisioning pitfalls found while building it.
-timestamp: 2026-10-29T00:00:00Z
+timestamp: 2026-11-02T00:00:00Z
 tags: [homelab, kubernetes, observability, grafana, loki, mimir, alloy, alerting, pushover]
 resource: https://app.pulumi.com/jaypee-solutions/observability/prod
 ---
@@ -15,7 +15,7 @@ Grafana is at `https://g.4jp.de` (Traefik IngressRoute, wildcard certificate, dn
 
 # Alerting
 
-Alert rules, the normal Pushover contact point, the emergency contact point, the notification policy and dashboards are provisioned from code (`alert_rules.py`, `grafana.py`, `dashboards.py`); nothing is click-operated. The normal contact point stays at priority 0. A child policy routes `severity=critical` to `pushover-emergency` (priority 2, retry 60 seconds, expire 3600 seconds, resolved priority 0); warning is the default, and the 12-hour repeat interval is unchanged. The 14 critical rule UIDs are `node-not-ready`, `longhorn-volume-unhealthy`, `longhorn-backup-target-unavailable`, `longhorn-volume-backup-stale`, `cnpg-instance-down`, `cnpg-wal-archiving-failing`, `cnpg-backup-stale`, `paperless-backup-stale`, `mimir-samples-discarded`, `tandoor-down`, `netbox-down`, `certificate-expiring`, `probe-failing`, and `probe-failing-slow`. See ADR-0032. Severity is the rule-level tuning mechanism.
+Alert rules, the normal Pushover contact point, the emergency contact point, the notification policy and dashboards are provisioned from code (`alert_rules.py`, `grafana.py`, `dashboards.py`); nothing is click-operated. The normal contact point stays at priority 0. A child policy routes `severity=critical` to `pushover-emergency` (priority 2, retry 60 seconds, expire 3600 seconds, resolved priority 0); warning is the default, and the 12-hour repeat interval is unchanged. The 16 critical rule UIDs are `node-not-ready`, `longhorn-volume-unhealthy`, `longhorn-backup-target-unavailable`, `longhorn-volume-backup-stale`, `cnpg-instance-down`, `cnpg-wal-archiving-failing`, `cnpg-backup-stale`, `paperless-backup-stale`, `mimir-samples-discarded`, `tandoor-down`, `netbox-down`, `mariadb-backup-stale`, `certificate-expiring`, `probe-failing`, `probe-failing-slow` and `qnap-hbs-jobs-missing`. See ADR-0032. Severity is the rule-level tuning mechanism.
 
 Rules added 2026-10-19 (22 in total; each expression was run against live data first): `mimir-samples-discarded` (`increase(cortex_discarded_samples_total[10m]) > 0` per reason, 10 minutes, critical; replayed against 2026-10-18 it reads 1 at 17:00 and 18:20 UTC and 0 at 19:00, so it would have paged within the first quarter of an hour of the label-limit loss), `tandoor-down` (`up{job="tandoor"} == 0`, alerts also without data, because `Scrape target down` cannot fire when the pod and its `up` series are gone) and `tandoor-server-errors` (5xx above 0.05 per second for 10 minutes). Tandoor's backups need no own rule: `cnpg-backup-stale` covers every cluster and `longhorn-volume-backup-stale` every volume.
 
@@ -26,7 +26,7 @@ Alerting cannot report its own failure: if Grafana, Alloy or Mimir is down, noth
 
 # Dashboards
 
-**QNAP backup (2026-10-31, uid `homelab-qnap-backup`, default range 24 h)** replaces the legacy `Backup` dashboard (`cOzVrcH7k`, `host="BackupNAS"`, which had been silent for 30 days): Loki panels on `{job="qnap-syslog"}` for finished Hybrid Backup Sync jobs (`[Hybrid Backup Sync] Finished incoming Sync job: "01_alten" from client: ...`, four nightly jobs), jobs by name, log volume, lines containing `Failed`, and the full QNAP log. The legacy alert rule on fewer than 11 finished jobs per day is not replaced yet.
+**QNAP backup (2026-10-31, uid `homelab-qnap-backup`, default range 24 h)** replaces the legacy `Backup` dashboard (`cOzVrcH7k`, `host="BackupNAS"`, which had been silent for 30 days): Loki panels on `{job="qnap-syslog"}` for finished Hybrid Backup Sync jobs (`[Hybrid Backup Sync] Finished incoming Sync job: "01_alten" from client: ...`, four nightly jobs), jobs by name, log volume, lines containing `Failed`, and the full QNAP log. The legacy alert rule is replaced by the Loki rule `qnap-hbs-jobs-missing` (critical, 26 h window, fewer than N distinct finished jobs or no finished line at all; N is the stack setting `grafana.qnap-hbs-nightly-jobs`, 4 today; ADR-0044).
 
 **Dashboard folders (2026-11-01):** every provisioned dashboard lives in a topic folder, defined by `FOLDERS` in `dashboards.py` (one ConfigMap and one file provider per folder; `provisioning_folders()` fails when a file is unassigned or listed twice): Platform, Storage & Backups, Network, Security, Observability, Applications and Home & Energy. The folder `Homelab` now only holds the alert rules. Dashboard UIDs did not change.
 

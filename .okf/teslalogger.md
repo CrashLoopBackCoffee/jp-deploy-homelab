@@ -2,7 +2,7 @@
 type: Service
 title: TeslaLogger (Pulumi, applied; cut over 2026-10-28)
 description: TeslaLogger migration from dockerhost to k0s with a mariadb-operator database, what the stack creates, image and app facts that shaped the design, the import and cutover runbook, and rehearsal evidence (ADR-0039, ADR-0040).
-timestamp: 2026-10-28T19:00:00Z
+timestamp: 2026-11-02T00:00:00Z
 tags: [homelab, kubernetes, teslalogger, mariadb, mariadb-operator, longhorn, migration]
 resource: https://app.pulumi.com/jaypee-solutions/teslalogger/prod
 ---
@@ -27,6 +27,7 @@ Grafana admin password: `kubectl -n teslalogger get secret grafana-admin -o json
 - Grafana 13.2.4 in the upstream image refuses the Angular plugin `natel-discrete-panel`; `pr0ps-trackmap-panel` and `teslalogger-timeline-panel` load.
 - The mariadb-operator's retention cannot parse the `%3A` in QuObjects object keys, so old dumps are not deleted (ADR-0039). The first smoke dump (1.1 MB, with the `mysql` schema) could not be deleted either.
 - An upstream release newer than the pinned tag makes the in-app updater (`"update":"all"`) restart the process inside the container in a loop (pod restartCount stays 0; 7 restarts on 30–31.10 for 1.63.24.1 vs pinned 1.63.24.0). `Tools.CreateBackupForDocker()` needs 24 h uptime, so the `DAY-mysqldump*.gz` stopped (last 2026-10-29 20:08). Fix: bump `teslalogger.version` to the newest tag.
+- The `grafana` sidecar peaks around 500-540 MB at startup (plugin copy, regenerated dashboards): at a 512Mi limit it was OOMKilled 11 times between pod start and 2026-10-31T20:31Z. The limit is 1Gi since 2026-11-02 (request stays 128Mi).
 
 # Runbook: import and cutover
 
@@ -56,4 +57,10 @@ Counts equal the fresh dump, state files equal by `sha256sum`, start log `Docker
 
 # Still to verify
 
-Verified 2026-10-31: newer `max(Datum)` after the car drove, Longhorn backups of the MariaDB PVC and `teslalogger`, the 21:00 UTC scheduled dump. Still open: a new `DAY-mysqldump*.gz` in `/etc/teslalogger/backup` and `Start backup for Docker` in Loki about 24–25 h after the 1.63.24.1 start (2026-10-31 evening) and no `New Version Detected`; keep `~/teslalogger-migration` and the stopped legacy until then.
+Verified 2026-11-02 (read-only):
+
+- Container `teslalogger` started 2026-10-31T18:26:54Z with 0 restarts. Loki `{namespace="teslalogger",container="teslalogger"}` has `01.11.2026 19:28:23 : Start backup for Docker`. The last `*** New Version Detected ***` was 31.10.2026 15:23:21, before the version bump; none since. `TeslaLogger is up to date (current version: 1.63.24.1, latest version online: 1.63.24.1, update policy: all)` at 01.11 07:59, 14:05 and 02.11 05:39.
+- `/etc/teslalogger/backup` holds `MON-mysqldump20261101192823.gz` (7,587,689 B). On the 1st of the month TeslaLogger writes `MON-` instead of `DAY-`; the previous file is `DAY-mysqldump20261029200803.gz`.
+- Earlier (2026-10-31): newer `max(Datum)` after the car drove, Longhorn backups of the MariaDB PVC and `teslalogger`, the 21:00 UTC scheduled dump.
+
+Still open: a `DAY-mysqldump*.gz` appears about 24 h after the latest process start. The apply of the Grafana limit restarts the process, so the timer resets; keep `~/teslalogger-migration` and the stopped legacy until then.
