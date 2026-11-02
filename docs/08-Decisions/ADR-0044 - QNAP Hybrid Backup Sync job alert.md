@@ -43,7 +43,9 @@ Loki rule `qnap-hbs-jobs-missing` in `services/observability/observability/alert
 
 ## Verification
 
-Backtest on Loki, 2026-10-26T04:00Z to 2026-11-02T05:00Z, 15-minute step: the count branch fires only from 2026-10-30 03:30Z to 2026-10-31 02:30Z (the real miss), the absent branch fires 2026-10-30 04:15-05:00Z, no false positives otherwise. With a non-existent `job`, the expression returns `{job="..."} 1`. Post-apply evidence is added after the rule is live.
+Backtest on Loki, 2026-10-26T04:00Z to 2026-11-02T05:00Z, 15-minute step: the count branch fires only from 2026-10-30 03:30Z to 2026-10-31 02:30Z (the real miss), the absent branch fires 2026-10-30 04:15-05:00Z, no false positives otherwise. With a non-existent `job`, the expression returns `{job="..."} 1`.
+
+The rule expression from code returned `1` at 2026-10-30T12:00Z and `0` on 2026-11-02 (four jobs ran overnight). Applied from `main` on 2026-11-02 (PR #117): the provisioning API returns the rule with `severity=critical` and `noDataState=Alerting`; Grafana reports `health=ok`, `state=inactive` and 39 rules in total.
 
 ## Related notes
 
