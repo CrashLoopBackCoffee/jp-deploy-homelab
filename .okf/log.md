@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-02
+* **Finding**: Grafana `Power` (uid `tBUT3NfGk`) showed no data in the user's browser; InfluxDB `vzlogger` was current (last points 04:50Z), every panel query returned data through the Grafana API and a rendered view showed all panels. The Grafana log had no InfluxDB query from the user (the frontend was stale after the pod roll on 2026-11-01); a hard reload fixed it. Lesson in [operational-lessons](operational-lessons.md).
+
 ## 2026-11-01
 * **Change**: Stage 2 of InfluxDB and the speedtest on `dockerhost` (user approved): `jpspeedtest` (unit, files, Ansible tasks), the legacy InfluxDB 1.8.6 (container, image, `/opt/influxdb` 9 GB, unit, Ansible role and playbook) and the legacy dashboard `Power small` are removed; 13 containers remain, root disk 118 GB used. Archive of `vzlogger`, `home_assistant`, `node` and `default` (portable backups, 5.4 GB, checksums equal) on the workstation only. Legacy Grafana `Power` and `Solax` (InfluxDB part) now show no data.
 * **Change**: InfluxDB 1.11 on k0s (`services/influxdb`, ADR-0043): databases `vzlogger` and `home_assistant` restored from a portable backup (counts identical), `Power` dashboard and two datasources in the new Grafana, `influx.4jp.de` moved to `10.10.88.1`, `mqtt2influxdb` on `dockerhost` repointed (meter and BKW data arrive on k0s). The user repointed Home Assistant at 08:50 UTC; the gap (07:55 to 08:50 UTC) was exported from the legacy instance and imported (counts identical). **Finding**: the 20 Gi volume filled during the restores (about three minutes of Home Assistant and BKW points lost, 08:57 to 09:00 UTC); expanded to 40 Gi online and restarted influxd. Legacy removal needs approval.
