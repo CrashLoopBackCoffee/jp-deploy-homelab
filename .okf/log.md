@@ -1,6 +1,8 @@
 # Update Log
 
 ## 2026-11-02
+* **Finding**: Read-only verification on 2026-11-02: TeslaLogger backup (`MON-mysqldump20261101192823.gz`) and up-to-date check (1.63.24.1, no `New Version Detected`) OK, InfluxDB Longhorn backup `backup-05c89632c9984c1d` Completed (27.2 GB), PR #115 already merged and the observability preview clean (36 unchanged). The TeslaLogger `grafana` sidecar was OOMKilled 11 times at the 512Mi limit (startup peak 500-540 MB). 2026-10-30 had a real HBS miss (only `01_alten` finished).
+* **Change**: Loki rule `qnap-hbs-jobs-missing` (critical, 26 h, fewer than N distinct finished HBS jobs or none; N is the stack setting `grafana.qnap-hbs-nightly-jobs`, 4) and TeslaLogger `grafana` sidecar memory limit 512Mi to 1Gi; ADR-0044. `mariadb-backup-stale` added to the critical list in ADR-0032 (16 critical rules).
 * **Finding**: Grafana `Power` (uid `tBUT3NfGk`) showed no data in the user's browser; InfluxDB `vzlogger` was current (last points 04:50Z), every panel query returned data through the Grafana API and a rendered view showed all panels. The Grafana log had no InfluxDB query from the user (the frontend was stale after the pod roll on 2026-11-01); a hard reload fixed it. Lesson in [operational-lessons](operational-lessons.md).
 
 ## 2026-11-01

@@ -60,6 +60,8 @@ config:
       version: 13.5.1
       host: g
       storage-size-gb: 2
+      # Add or remove an HBS job on the QNAP, then adjust this number (ADR-0044).
+      qnap-hbs-nightly-jobs: 4
       # renovate: datasource=github-releases packageName=grafana/grafana-opensearch-datasource versioning=semver
       opensearch-plugin-version: 2.34.5
       pushover:

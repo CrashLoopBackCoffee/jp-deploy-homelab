@@ -19,6 +19,12 @@ _NODE_FILESYSTEM = (
     'fstype=~"ext4|xfs|btrfs", mountpoint!~"/var/lib/(k0s|kubelet)/.*", mountpoint!~"/run/.*"'
 )
 
+# Each finished Hybrid Backup Sync job logs one line; the job name is extracted for distinct counting.
+_HBS_FINISHED = (
+    '{job="qnap-syslog"} |= "[Hybrid Backup Sync] Finished incoming Sync job" '
+    '| regexp `Sync job: "(?P<hbs_job>[^"]+)"`'
+)
+
 # Grafana never deletes a provisioned rule just because its file entry disappeared.
 REMOVED_RULE_UIDS = ('longhorn-backup-failed',)
 
@@ -97,6 +103,28 @@ LOKI_RULES = [
         no_data_state='Alerting',
     ),
 ]
+
+
+def qnap_hbs_rule(nightly_jobs: int) -> LokiAlertRule:
+    """Alert on missing QNAP Hybrid Backup Sync jobs; `nightly_jobs` is the expected job count.
+
+    The QNAP runs its HBS jobs between about 01:20 and 02:45 UTC (ADR-0044). 26 hours tolerate
+    run-time drift; distinct job names catch a missing job even when another one ran twice. The
+    absent branch fires when no finished job reached Loki at all.
+    """
+    return LokiAlertRule(
+        uid='qnap-hbs-jobs-missing',
+        title='QNAP Hybrid Backup Sync jobs missing',
+        expr=(
+            f'absent_over_time({_HBS_FINISHED} [26h]) or (count(sum by (hbs_job) '
+            f'(count_over_time({_HBS_FINISHED} [26h]))) < bool {nightly_jobs})'
+        ),
+        summary=(
+            f'Fewer than {nightly_jobs} QNAP Hybrid Backup Sync jobs finished in the last 26 hours'
+        ),
+        severity='critical',
+        no_data_state='Alerting',
+    )
 
 
 RULES = [
@@ -517,8 +545,9 @@ def _rule(rule: AlertRule) -> dict[str, t.Any]:
     )
 
 
-def provisioning() -> dict[str, t.Any]:
+def provisioning(hbs_nightly_jobs: int) -> dict[str, t.Any]:
     """Alert rule provisioning document (apiVersion 1 file format)."""
+    loki_rules = [*LOKI_RULES, qnap_hbs_rule(hbs_nightly_jobs)]
     return {
         'apiVersion': 1,
         'deleteRules': [{'orgId': 1, 'uid': uid} for uid in REMOVED_RULE_UIDS],
@@ -528,9 +557,8 @@ def provisioning() -> dict[str, t.Any]:
                 'name': 'homelab',
                 'folder': FOLDER,
                 'interval': '1m',
-                'rules': (
-                    [_rule(rule) for rule in RULES] + [_loki_rule(rule) for rule in LOKI_RULES]
-                ),
+                'rules': [_rule(rule) for rule in RULES]
+                + [_loki_rule(rule) for rule in loki_rules],
             },
         ],
     }

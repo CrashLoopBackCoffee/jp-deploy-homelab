@@ -34,6 +34,8 @@ class GrafanaConfig(ChartConfig):
     host: str
     storage_size_gb: int
     opensearch_plugin_version: str
+    # Number of nightly QNAP Hybrid Backup Sync jobs; the alert fires when fewer finish (ADR-0044)
+    qnap_hbs_nightly_jobs: int
     pushover: PushoverConfig
 
 
