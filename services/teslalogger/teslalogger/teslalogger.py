@@ -210,9 +210,10 @@ class TeslaLogger(p.ComponentResource):
                                 'readiness_probe': {
                                     'http_get': {'path': '/api/health', 'port': GRAFANA_PORT},
                                 },
+                                # Startup (plugin copy and regenerated dashboards) peaks around 540 MB; 512Mi OOM-looped.
                                 'resources': {
                                     'requests': {'cpu': '20m', 'memory': '128Mi'},
-                                    'limits': {'memory': '512Mi'},
+                                    'limits': {'memory': '1Gi'},
                                 },
                             },
                         ],
