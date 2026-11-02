@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-02
+* **Finding**: Grafana `Power` (uid `tBUT3NfGk`) showed no data in the user's browser; InfluxDB `vzlogger` was current (last points 04:50Z), every panel query returned data through the Grafana API and a rendered view showed all panels. The Grafana log had no InfluxDB query from the user (the frontend was stale after the pod roll on 2026-11-01); a hard reload fixed it. Lesson in [operational-lessons](operational-lessons.md).
+
 ## 2026-11-01
 * **Change**: Grafana dashboards are sorted into seven topic folders (Platform, Storage & Backups, Network, Security, Observability, Applications, Home & Energy); UIDs unchanged, `Homelab` keeps the alert rules. **Finding**: the QNAP backup dashboard had vanished from the live Grafana because the InfluxDB branch was applied before PR #113 was merged (the stack is applied from the checked-out branch); it is back after the apply from `main`. Apply the observability stack only from `main` after merging.
 * **Change**: Stage 2 of InfluxDB and the speedtest on `dockerhost` (user approved): `jpspeedtest` (unit, files, Ansible tasks), the legacy InfluxDB 1.8.6 (container, image, `/opt/influxdb` 9 GB, unit, Ansible role and playbook) and the legacy dashboard `Power small` are removed; 13 containers remain, root disk 118 GB used. Archive of `vzlogger`, `home_assistant`, `node` and `default` (portable backups, 5.4 GB, checksums equal) on the workstation only. Legacy Grafana `Power` and `Solax` (InfluxDB part) now show no data.
