@@ -47,7 +47,7 @@ Left on `dockerhost`: mosquitto and `mqtt2influxdb` (stopped 2026-11-03, not rem
 
 # Remaining
 
-Decide on Solax's InfluxDB panels and on authentication. Stage 2 for mosquitto and `mqtt2influxdb` (remove containers, images, `/opt/mosquitto`, `/opt/mqtt2influxdb`) needs the user's approval.
+Decide on authentication. `Solax` and `Warmwasser` run in the new Grafana on `home_assistant` (2026-11-03); the old `sensor.<entity>` measurements stop on 2026-03-26 when the new Home Assistant moved to the measurement-per-unit schema, so panels query both (`FROM "W","sensor.solax_house_load" WHERE "entity_id" = 'solax_house_load'`; both schemas carry the tag `entity_id`). Stage 2 for mosquitto and `mqtt2influxdb` (remove containers, images, `/opt/mosquitto`, `/opt/mqtt2influxdb`) needs the user's approval.
 
 # Still to verify
 
