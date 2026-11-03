@@ -25,6 +25,7 @@ dependencies = [
     "paperless",
     "tandoor",
     "teslalogger",
+    "thanos",
     "wazuh",
 ]
 
@@ -49,6 +50,7 @@ observability = { workspace = true }
 paperless = { workspace = true }
 tandoor = { workspace = true }
 teslalogger = { workspace = true }
+thanos = { workspace = true }
 wazuh = { workspace = true }
 utils = { workspace = true }
 
@@ -156,6 +158,10 @@ model = "tandoor.config:PulumiConfigRoot"
 [tool.config-models.teslalogger]
 root = "services/teslalogger"
 model = "teslalogger.config:PulumiConfigRoot"
+
+[tool.config-models.thanos]
+root = "services/thanos"
+model = "thanos.config:PulumiConfigRoot"
 
 [tool.config-models.wazuh]
 root = "services/wazuh"
