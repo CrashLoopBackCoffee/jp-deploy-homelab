@@ -11,7 +11,6 @@ members = [
     "backup",
     "homelab",
     "influxdb",
-    "iot",
     "kubernetes",
     "n8n",
     "netbox",
@@ -268,7 +267,6 @@ source = { virtual = "." }
 dependencies = [
     { name = "backup" },
     { name = "influxdb" },
-    { name = "iot" },
     { name = "kubernetes" },
     { name = "n8n" },
     { name = "netbox" },
@@ -302,7 +300,6 @@ dev = [
 requires-dist = [
     { name = "backup", editable = "services/backup" },
     { name = "influxdb", editable = "services/influxdb" },
-    { name = "iot", editable = "services/iot" },
     { name = "kubernetes", editable = "services/kubernetes" },
     { name = "n8n", editable = "services/n8n" },
     { name = "netbox", editable = "services/netbox" },
@@ -354,17 +351,6 @@ wheels = [
 name = "influxdb"
 version = "0.1.0"
 source = { editable = "services/influxdb" }
-dependencies = [
-    { name = "utils" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "utils", editable = "utils" }]
-
-[[package]]
-name = "iot"
-version = "0.1.0"
-source = { editable = "services/iot" }
 dependencies = [
     { name = "utils" },
 ]
