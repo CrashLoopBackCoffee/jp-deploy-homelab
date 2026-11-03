@@ -6,7 +6,7 @@ tags:
   - opnsense
   - cloudflare
 type: adr
-status: proposed
+status: accepted
 date: 2026-11-03
 created: 2026-11-03
 updated: 2026-11-03
@@ -17,7 +17,7 @@ adr: 48
 
 ## Status
 
-Proposed on 2026-11-03. **Step 8 executed on 2026-11-03:** the PeRS DHCP option 6 → `10.10.53.1` is live (uuid `02f8c182-1dab-4488-a44d-d4a738c141f6`, dnsmasq reconfigured and running) and the probe line `tcp 10.10.53.1:53` is in the `Monitoring Targets` note (active after the next `observability` apply). Steps 1 to 7 are not done; nothing else changed on OPNsense. Supersedes the "records live in dnsmasq" part of [[ADR-0012 - Local DNS records through dnsmasq on OPNsense]] and refines [[ADR-0029 - Service names as Cloudflare A records]] once accepted.
+Accepted on 2026-11-03. **Executed on 2026-11-03:** steps 1 (forward swap), 2 (Private Domains `4jp.de`), 3 (overrides, see below), 7 (conditional upstreams in both AdGuards, applied by the user) and 8 (PeRS DHCP option). Open: the cleanup of the superseded dnsmasq apex records and Pulumi `Host` resources, and decision 4 (CNAME aliases), which does not work as written (see Executed). Supersedes the "records live in dnsmasq" part of [[ADR-0012 - Local DNS records through dnsmasq on OPNsense]] and refines [[ADR-0029 - Service names as Cloudflare A records]].
 
 ## Context
 
@@ -75,10 +75,17 @@ Findings (2026-11-03, OPNsense Unbound 1.26.1 on `:53`, dnsmasq on `:53053`):
 
 ## Open
 
-- Which names get a CNAME and which keep the A record (step 4).
+- Cleanup (separate PR): drop the dnsmasq apex records that Pulumi creates (`syslog` in `observability`, `home-assistant` from PR #122, and the `g`, `paperless` and `k8s-ingress-prod` hosts in their stacks) now that the `4jp.de` forward is gone, and move internal-only names (`syslog`) to an Unbound host override managed through the Unbound API (decision 3).
 - Whether `id.4jp.de` and `home.4jp.de`/`wg.4jp.de` are used from the LAN and need an explicit decision.
 - The `192.168.178.171` AdGuard's upstreams and rewrites; `10.10.53.1` uses `1.1.1.1`/`9.9.9.9` and has the rewrite `adguard.4jp.de` → `127.0.1.1` (user, 2026-11-03). Their credentials are not in the Homelab vault.
 - `10.10.53.1` lies inside the CoRE DHCP pool (`10.10.0.10` to `10.10.53.250`); a reservation or an excluded range avoids a future lease clash.
+
+## Executed (2026-11-03)
+
+- **Unbound, through the API:** Private Domains `4jp.de`; host overrides `usw` 10.1.0.24, `sodola` 10.1.0.12, `syslog` 10.10.88.2 and `home` 93.240.83.68 (all `4jp.de`, description `ADR-0048 internal-only`); seven forwards `core.`, `home.`, `lan.`, `pers.`, `prox.`, `gast.`, `back.4jp.de` → `127.0.0.1:53053`; the forward `4jp.de` (uuid `32f3ddc3-a6f9-41f3-88f0-cd83cde95bbf`) deleted; the reverse forward `10.10.in-addr.arpa` kept; Unbound reconfigured. Rollback: re-add the `4jp.de` forward (`127.0.0.1:53053`, forward first off) and reconfigure.
+- **Verified from OPNsense, both AdGuards and a pod:** `influx`, `home-assistant`, `netbox`, `tandoor`, `id`, `pve`, `wg`, `home`, `g`, `paperless`, `qnap`, `usw`, `syslog` and `home-assistant.home.4jp.de` resolve; PTR of `10.10.53.1` answers `adguard.`; `doubleclick.net` stays `0.0.0.0` on AdGuard; the Home Assistant and AdGuard probes stay up and no probe fails. A throwaway Cloudflare A record resolved through every path.
+- **Before the swap** AdGuard's new conditional upstream already sent `4jp.de` to OPNsense, so `influx` and `id` failed for PeRS and the legacy LAN until the forward was replaced (minutes).
+- **CNAME aliases to `<host>.<vlan>.4jp.de` do not work.** A throwaway Cloudflare CNAME `zz-dns-test-c.4jp.de` → `home-assistant.home.4jp.de` returned NXDOMAIN on Unbound, on `1.1.1.1` and on AdGuard: Cloudflare is authoritative for `4jp.de`, follows the in-zone CNAME itself and answers NXDOMAIN, so the resolver never asks the internal forward. Decision 4 therefore does not apply while the target lies in the Cloudflare-hosted zone. Alternatives: a CNAME to a name outside that zone, an A record (status quo), or an Unbound host override with no public record. Test records were deleted.
 
 ## Related notes
 
