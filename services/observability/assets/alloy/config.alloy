@@ -1018,3 +1018,55 @@ prometheus.scrape "opnsense_node" {
 	scrape_interval = "30s"
 	scrape_timeout  = "10s"
 }
+
+// ---------------------------------------------------------------------------
+// Home Assistant archive (ADR-0047)
+// ---------------------------------------------------------------------------
+
+// The curated entities of Home Assistant's prometheus integration, every 15 s, to the Thanos archive
+// only (not to Mimir). The allowlist lives in deploy-home-assistant (config/prometheus_entities.yaml).
+local.file "ha_token" {
+	filename       = "TARGETS_PATH/ha-token"
+	detector       = "poll"
+	poll_frequency = "1m"
+	is_secret      = true
+}
+
+prometheus.remote_write "thanos" {
+	endpoint {
+		url = "THANOS_RECEIVE_URL"
+	}
+}
+
+prometheus.relabel "home_assistant_archive" {
+	forward_to = [prometheus.remote_write.thanos.receiver]
+
+	// The value series and the availability of each entity; the exporter's state-change counters,
+	// last-updated times, area info and process metrics are not worth archiving.
+	rule {
+		source_labels = ["__name__"]
+		regex         = "homeassistant_(sensor_.+|binary_sensor_state|entity_available)|up"
+		action        = "keep"
+	}
+
+	// A rename of an entity must not fork its series; the `entity` label is the identity.
+	rule {
+		regex  = "friendly_name"
+		action = "labeldrop"
+	}
+}
+
+prometheus.scrape "home_assistant_archive" {
+	targets         = [{"__address__" = "HOME_ASSISTANT_HOST:443"}]
+	forward_to      = [prometheus.relabel.home_assistant_archive.receiver]
+	job_name        = "home-assistant"
+	scheme          = "https"
+	metrics_path    = "/api/prometheus"
+	scrape_interval = "15s"
+	scrape_timeout  = "10s"
+
+	authorization {
+		type             = "Bearer"
+		credentials_file = "TARGETS_PATH/ha-token"
+	}
+}

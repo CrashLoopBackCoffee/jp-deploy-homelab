@@ -64,6 +64,7 @@ def create_targets_secret(component_config: ComponentConfig, k8s_opts: p.Resourc
         'pretix-username': alloy.pretix.username.value,
         'pretix-password': alloy.pretix.password.value,
         'tandoor-cookie': alloy.tandoor_session.value.apply(lambda session: f'sessionid={session}'),
+        'ha-token': alloy.home_assistant_token.value,
     }
     for group in SCRAPE_GROUPS:
         string_data[f'{group}-targets.json'] = groups.apply(

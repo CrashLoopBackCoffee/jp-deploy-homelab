@@ -55,6 +55,9 @@ config:
       # Tandoor 2.7.1 serves /metrics only to a signed-in user (ADR-0035).
       tandoor-session:
         ref: op://Homelab/Tandoor Metrics Scrape/password
+      # Long-lived token `alloy-archive` for HA's /api/prometheus (ADR-0047).
+      home-assistant-token:
+        ref: op://Homelab/HA Prometheus Scrape/password
     grafana:
       # renovate: datasource=helm registryUrl=https://grafana-community.github.io/helm-charts packageName=grafana versioning=helm
       version: 13.5.1

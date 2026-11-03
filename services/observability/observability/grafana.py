@@ -6,7 +6,7 @@ import pulumi as p
 import pulumi_kubernetes as k8s
 import pulumi_random as random
 
-from observability import alert_rules, dashboards
+from observability import alert_rules, dashboards, thanos_archive
 from observability.config import ComponentConfig
 from observability.loki import LOKI_GATEWAY_URL
 from observability.mimir import MIMIR_GATEWAY_URL
@@ -198,6 +198,14 @@ def create_grafana(
                             'type': 'loki',
                             'access': 'proxy',
                             'url': LOKI_GATEWAY_URL,
+                        },
+                        {
+                            'name': 'Thanos archive',
+                            'uid': thanos_archive.THANOS_DATASOURCE_UID,
+                            'type': 'prometheus',
+                            'access': 'proxy',
+                            'url': thanos_archive.QUERY_URL,
+                            'jsonData': {'httpMethod': 'POST', 'timeInterval': '15s'},
                         },
                         *[
                             {
