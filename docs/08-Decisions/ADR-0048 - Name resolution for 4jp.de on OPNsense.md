@@ -17,7 +17,7 @@ adr: 48
 
 ## Status
 
-Proposed on 2026-11-03. Inventory done, nothing changed on OPNsense yet. Supersedes the "records live in dnsmasq" part of [[ADR-0012 - Local DNS records through dnsmasq on OPNsense]] and refines [[ADR-0029 - Service names as Cloudflare A records]] once accepted.
+Proposed on 2026-11-03. **Step 8 executed on 2026-11-03:** the PeRS DHCP option 6 → `10.10.53.1` is live (uuid `02f8c182-1dab-4488-a44d-d4a738c141f6`, dnsmasq reconfigured and running) and the probe line `tcp 10.10.53.1:53` is in the `Monitoring Targets` note (active after the next `observability` apply). Steps 1 to 7 are not done; nothing else changed on OPNsense. Supersedes the "records live in dnsmasq" part of [[ADR-0012 - Local DNS records through dnsmasq on OPNsense]] and refines [[ADR-0029 - Service names as Cloudflare A records]] once accepted.
 
 ## Context
 
