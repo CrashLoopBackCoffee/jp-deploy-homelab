@@ -31,7 +31,6 @@ Never use OpenTofu or Terraform. Pulumi is the exclusive IaC tool for cattle.
 ```
 services/
 ├── backup/           # Restic and Rclone backup management
-├── iot/              # MQTT services on Kubernetes
 ├── k0s/              # k0sctl bootstrap configuration and Ansible node storage preparation
 ├── kubernetes/       # Kubernetes add-ons and workloads on k0s
 ├── n8n/              # n8n service
@@ -42,6 +41,7 @@ services/
 
 - **`docs/`**: Contains example code and documentation for common patterns (e.g., `cnpg_postgres.py`)
 - **`utils/`**: Shared utility modules for common functionality across services
+- **`dockerhost`** (legacy Docker host) is configured from `/Users/alten/Documents/dockerhost/ansible`. `~/GitHub/stefan_raspberry` is not part of this homelab; never use it for homelab work.
 - **`scripts/`**: Helper scripts for development and maintenance
 - **`renovate.json5`**: Automated dependency update configuration
 

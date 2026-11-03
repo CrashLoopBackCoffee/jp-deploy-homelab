@@ -10,3 +10,10 @@ config:
       version: 1.11.8
       host: influx
       storage-size: 40Gi
+    mqtt-bridge:
+      # renovate: datasource=docker packageName=telegraf versioning=semver
+      version: 1.40.3
+      username:
+        ref: op://Homelab/MQTT telegraf/username
+      password:
+        ref: op://Homelab/MQTT telegraf/password

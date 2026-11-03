@@ -3,6 +3,7 @@ import pulumi_kubernetes as k8s
 
 from influxdb.config import ComponentConfig
 from influxdb.influxdb import NAMESPACE, InfluxDb
+from influxdb.mqtt_bridge import MqttBridge
 
 config = p.Config()
 component_config = ComponentConfig.model_validate(config.get_object('config'))
@@ -16,3 +17,4 @@ namespace = k8s.core.v1.Namespace(
 )
 
 InfluxDb(component_config, namespace.metadata.name, k8s_provider)
+MqttBridge(component_config, namespace.metadata.name, k8s_provider)
