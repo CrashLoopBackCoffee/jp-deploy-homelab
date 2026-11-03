@@ -1,0 +1,17 @@
+config:
+  thanos:config:
+    kubeconfig:
+      ref: op://Homelab/Kubeconfig prod/password
+    thanos:
+      # renovate: datasource=docker packageName=ghcr.io/stevehipwell/helm-charts/thanos versioning=semver
+      version: 1.24.2
+      objstore:
+        endpoint: qnap.4jp.de:8443
+        bucket: ha-archive
+        access-key-id:
+          ref: op://Homelab/QuObjects Home-Assistant/username
+        secret-access-key:
+          ref: op://Homelab/QuObjects Home-Assistant/password
+      receive-storage-size-gb: 10
+      compactor-storage-size-gb: 20
+      store-gateway-storage-size-gb: 5
