@@ -16,6 +16,7 @@ okf_version: "0.1"
 * [Tandoor](tandoor.md) - migration of Tandoor Recipes from dockerhost: CloudNativePG database, Longhorn media volume, prerequisites, import and cutover runbook, and the 2.7.1 metrics-auth incident and decision (ADR-0028, ADR-0034).
 * [TeslaLogger](teslalogger.md) - migration of TeslaLogger from dockerhost to k0s with mariadb-operator: design facts, rehearsal evidence, import runbook and cutover (ADR-0039, ADR-0040).
 * [InfluxDB](influxdb.md) - InfluxDB 1.11 on k0s for the power meter and Home Assistant history: data move, writers, cutover state and remaining steps (ADR-0043).
+* [Home Assistant sensor archive](ha-archive.md) - Thanos archive of curated Home Assistant sensors on k0s: data path, labels and queries, the InfluxDB backfill procedure with its verification, and pitfalls (ADR-0047).
 * [Services on dockerhost](dockerhost-services.md) - what runs on the unbacked-up host dockerhost, why moving a service to k0s already improves its protection, and the migration status per service.
 * [Operational lessons](operational-lessons.md) - pitfalls from the first rollout with the rule for each, plus suggested standing agent instructions.
 * [Wazuh security monitoring (planned)](wazuh.md) - architecture, upstream 4.14.9 facts and pitfalls, LGTM integration contracts and phased plan (ADR-0037).
