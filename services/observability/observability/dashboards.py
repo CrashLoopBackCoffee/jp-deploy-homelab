@@ -48,6 +48,12 @@ LEGACY_DASHBOARDS = (
     'pretix.json',  # "Pretix"
     'wordpress-core-updates.json',  # "WordPress Core Updates"
     'power.json',  # "Power", InfluxDB `vzlogger` (ADR-0043)
+    # "Solax" and "Warmwasser" were rewritten for the Home Assistant data (ADR-0046, ADR-0047): they
+    # read the database `home_assistant` (measurement per unit, tag `entity_id`) stitched with the old
+    # measurements `sensor.<entity>` (until 2026-03-26). The `mypv_*` history of the legacy jexporter
+    # is not in Mimir (backfill pending), so Warmwasser starts with the Home Assistant sensors.
+    'solax.json',
+    'warmwasser.json',
 )
 _LEGACY_PROMETHEUS_DATASOURCES = {'Prometheus', 'PBFA97CFB590B2093'}
 # The legacy datasource `InfluxDB` reads the database `vzlogger`.
@@ -1742,7 +1748,7 @@ FOLDERS = {
         'pretix.json',
         'wordpress-core-updates.json',
     ),
-    'Home & Energy': ('power.json',),
+    'Home & Energy': ('power.json', 'solax.json', 'warmwasser.json'),
 }
 
 
