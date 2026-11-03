@@ -33,12 +33,12 @@ Findings on 2026-11-03:
 
 ## Decision
 
-- **Home automation alerts live in HA.** `alert:` entries (native repeat and acknowledge) notify through Pushover:
-  - `zweiradgarage_unlocked`: a template `binary_sensor` with device class `lock` (on = unlocked) on the enabled input; 10 min delay; Pushover **emergency** priority 2 (retry 60 s, expire 3600 s), repeating until acknowledged or relocked, as legacy and ADR-0032.
-  - `warm_water_outage`: `sensor.mypv_water_temperature < 35` for 10 min, same priority.
-  - Warning (priority 0) when the Shelly i4 or the MyPV sensors are `unavailable` for 15 min, closing the silent-failure gap.
-- **LGTM only watches HA's availability:** a probe of `http://10.30.0.10:8123` in the `Monitoring Targets` note, covered by the critical `probe-failing` rule (emergency Pushover). HA metrics do not go into Mimir; their history goes to the archive of ADR-0047.
-- **Dashboard:** `Warmwasser` is rebuilt in Grafana on the archive datasource of ADR-0047. The missing `mypv_surplus` becomes a new HA `rest` sensor and joins the archive allowlist. The history before the cutover stays in Mimir (backfilled `mypv_*`, 400 days retention). The `Solax` panel on `mypv_power_act` is decided with that dashboard's InfluxDB part.
+- **Home automation alerts live in HA** as automations through Pushover (`alert:` would send its "done" message with the same emergency priority, which nags again):
+  - `Alert bike storage unlocked`: a template `binary_sensor.bike_storage_unlocked` (device class `lock`, on = unlocked) over the enabled Shelly input 0 (`on` = locked, verified by toggling the lock on 2026-11-03); 10 min delay; Pushover **emergency** priority 2 (retry 60 s, expire 3600 s), as legacy and ADR-0032. A priority-0 "locked again" note follows after an alert-length unlock.
+  - `Alert warm water outage`: template `binary_sensor.warm_water_low` (`sensor.mypv_water_temperature < 35`), 10 min delay, same priority. A state trigger on a template sensor survives an unknown entity at start-up, which a `numeric_state` trigger did not.
+  - Warning (priority 0) when the Shelly i4 input or the MyPV temperature is `unavailable` for 15 min, closing the silent-failure gap.
+- **LGTM only watches HA's availability:** the probe `http https://home-assistant.4jp.de/manifest.json` in the `Monitoring Targets` note (HA serves HTTPS on 443 only, 8123 is closed), covered by the critical `probe-failing` rule (emergency Pushover). Pods cannot resolve the public name because OPNsense's Unbound drops the private answer `10.30.0.10`, so `observability` creates a dnsmasq host record. HA metrics do not go into Mimir; their history goes to the archive of ADR-0047.
+- **Dashboard:** `Warmwasser` is rebuilt in Grafana on the archive datasource of ADR-0047 (temperature, `power_act`). `mypv_surplus` is dropped: the AC•THOR reports `surplus: null`, so jexporter always exported 0. The history before the cutover stays in Mimir (backfilled `mypv_*`, 400 days retention). The `Solax` panel on `mypv_power_act` is decided with that dashboard's InfluxDB part.
 - **jexporter is retired** after a parallel run: remove the two rules and the `jexporter` job from the legacy Prometheus, then stop the service on `wireguard` (the host stays). Other `jexporter` series (SwitchBot, coffee) already moved to HA (ADR-0023).
 
 ## Rejected
@@ -50,8 +50,8 @@ Findings on 2026-11-03:
 ## Migration
 
 1. Verify the lock semantics with the user (`state: true` = locked).
-2. `deploy-home-assistant`: enable the Shelly input, add the template sensor, `surplus` sensor, the alerts and the offline warnings; `just deploy`.
-3. This repo: add the HA probe to the `Monitoring Targets` note; preview and apply `observability`.
+2. `deploy-home-assistant` (done 2026-11-03, commits 8828a1f, db74767): enabled the Shelly input, template sensors, alert automations, offline warnings.
+3. This repo (PR #122): HA record and probe target; apply `observability` after the merge.
 4. Parallel run with the legacy alerts; test unlock for 10 min (both Pushover messages) and an offline i4.
 5. After the user accepts: remove the legacy rules and job, stop jexporter; rebuild `Warmwasser`; update ADR-0023 and the OKF notes.
 
