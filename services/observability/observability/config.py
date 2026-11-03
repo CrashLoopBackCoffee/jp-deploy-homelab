@@ -80,6 +80,8 @@ class AlloyConfig(ChartConfig):
     pretix: ScrapeCredentials
     # Django `sessionid` of the space-less Tandoor user `tandoor-metrics` (ADR-0035)
     tandoor_session: utils.model.OnePasswordRef
+    # Long-lived Home Assistant token for the archive scrape (ADR-0047)
+    home_assistant_token: utils.model.OnePasswordRef
 
 
 class ComponentConfig(utils.model.LocalBaseModel):

@@ -8,6 +8,7 @@ from observability.config import ComponentConfig
 from observability.loki import LOKI_GATEWAY_URL
 from observability.mimir import MIMIR_GATEWAY_URL
 from observability.targets import MOUNT_PATH, SECRET_NAME
+from observability.thanos_archive import HOME_ASSISTANT_HOST, RECEIVE_REMOTE_WRITE_URL
 
 ALLOY_CONFIG = pathlib.Path(__file__).parent.parent / 'assets' / 'alloy' / 'config.alloy'
 
@@ -42,6 +43,8 @@ def create_alloy(
     config = config.replace(
         'OPNSENSE_NODE_EXPORTER_TARGET', component_config.opnsense.node_exporter_target
     )
+    config = config.replace('THANOS_RECEIVE_URL', RECEIVE_REMOTE_WRITE_URL)
+    config = config.replace('HOME_ASSISTANT_HOST', HOME_ASSISTANT_HOST)
     config = config.replace('TARGETS_PATH', MOUNT_PATH)
 
     return k8s.helm.v3.Release(
