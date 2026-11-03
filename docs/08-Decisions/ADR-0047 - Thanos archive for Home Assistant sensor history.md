@@ -17,7 +17,7 @@ adr: 47
 
 ## Status
 
-Accepted on 2026-11-03. Not built; the one-day spike below comes first.
+Accepted on 2026-11-03. Spike done on 2026-11-03 (results below); the stack is not built yet.
 
 ## Context
 
@@ -45,10 +45,23 @@ Of the 1330 entities, 204 have a `state_class`; by device class: power 56, energ
 
 ## Migration
 
-1. **One-day spike, nothing applied:** enable HA's `prometheus` integration with the allowlist; scrape it through a port-forward; check metric and label names, the series count against the allowlist, the behaviour of `unavailable` sensors and the scrape duration. Check the `stevehipwell/thanos` Helm chart (application version 0.42.x) supports Receive, and create the bucket and access key in QuObjects.
+1. **Spike (done 2026-11-03):** HA's `prometheus` integration is enabled with the allowlist (`config/prometheus_entities.yaml`, 144 entities; `deploy-home-assistant` commit 9f5fa97, deployed with a restart of about one minute). Results in "Spike results". Still open from this step: the bucket and access key in QuObjects (QNAP).
 2. `services/thanos` stack: Receive (one replica, PVC), Store Gateway, Compactor (PVC), Query, bucket secret; Alloy scrape job and `remote_write` in `observability` or its own Alloy; Grafana datasource.
 3. Backfill script and a verification against the InfluxDB counts.
 4. Switch off the HA InfluxDB integration; update the OKF notes.
+
+Next: bucket and key in QuObjects; a dedicated long-lived HA token for the scrape (created through the websocket `auth/long_lived_access_token`, stored in 1Password); then step 2.
+
+## Spike results (2026-11-03)
+
+- **Scrape:** `GET https://home-assistant.4jp.de/api/prometheus` with a Bearer token: HTTP 200, 46 ms, 123 KB, 856 series in total. From a Pod the path works (DNS to `10.30.0.10` through OPNsense, TLS verifies, 401 without the token).
+- **Series by family:** value series 130 (`homeassistant_sensor_power_w` 56, `_energy_kwh` 44, `_temperature_celsius` 15, `_humidity_percent` 8, `_illuminance_lx` 2, `_power_kw` 1, `_unit_w` 2, `_unit_celsius` 1, `homeassistant_binary_sensor_state` 1); per entity `homeassistant_entity_available` 144, `_state_change_total` 144, `_state_change_created` 144, `_last_updated_time_seconds` 144, `_entity_info` 121; `area_info` 13; Python and process metrics.
+- **Labels:** `domain`, `entity` (for example `sensor.solax_house_load`), `friendly_name` (drop it, as planned). The metric name depends on the unit or device class, and entities without a device class get `homeassistant_sensor_unit_<unit>` (`mypv_*`), so dashboards select by `entity` with a name regex (`{__name__=~"homeassistant_(sensor|binary_sensor).*", entity="…"}`), not by metric name.
+- **`unavailable`:** 14 of the 144 entities are unavailable now. They have `homeassistant_entity_available 0` and **no value series**, so the series ends and Prometheus marks it stale. A sensor that is available but stopped updating keeps exporting its last value; `homeassistant_last_updated_time_seconds` is the only hint.
+- **Series to keep in the archive:** the 130 value series plus `homeassistant_entity_available` (144, constant, compresses to almost nothing). Drop `state_change_total`, `state_change_created`, `last_updated_time_seconds` (about 2–3 bytes per sample, little value), `area_info`, `python_*` and `process_*` in an Alloy relabel; `entity_info` (area per entity) is optional. That is 274 series, about 0.9 GB a year at 15 s.
+- **Not exported:** no electricity-price sensor (only `sensor.tibber_price_level`, an enum); PM2.5 and part of the Vindstyrka and plug sensors are unavailable at the moment.
+- **Thanos chart:** `stevehipwell/thanos` 1.24.2 (Thanos 0.42.4) has `receive` (disabled by default, local retention 48 h, ships blocks), `compact`, `storeGateway`, `query`, `queryFrontend`, `rule`; Receive and a bucket config (`objstoreConfig`) are supported.
+- **HA restart:** the deploy restarted HA once; Zigbee2MQTT, the meter and the Telegraf bridge came back without errors, and the 10-minute `probe-failing` rule did not fire.
 
 ## Consequences
 
