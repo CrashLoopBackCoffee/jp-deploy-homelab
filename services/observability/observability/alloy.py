@@ -2,7 +2,7 @@ import pathlib
 
 import pulumi as p
 import pulumi_kubernetes as k8s
-import utils.opnsense.dnsmasq.host
+import utils.opnsense.unbound.host
 
 from observability.config import ComponentConfig
 from observability.loki import LOKI_GATEWAY_URL
@@ -123,20 +123,10 @@ def create_syslog_service(
             k8s_opts, p.ResourceOptions(depends_on=[alloy], delete_before_replace=True)
         ),
     )
-    utils.opnsense.dnsmasq.host.Host(
-        'syslog',
+    utils.opnsense.unbound.host.Host(
+        'syslog-unbound',
         host=syslog.host,
         domain=component_config.zone,
         ipaddress=syslog.address,
-    )
-
-
-def create_home_assistant_record(component_config: ComponentConfig) -> None:
-    """Local name for Home Assistant so Alloy's blackbox probe resolves it from k0s (ADR-0046)."""
-    alloy = component_config.alloy
-    utils.opnsense.dnsmasq.host.Host(
-        'home-assistant',
-        host=alloy.home_assistant_host,
-        domain=component_config.zone,
-        ipaddress=alloy.home_assistant_address,
+        description='ADR-0048 internal-only',
     )

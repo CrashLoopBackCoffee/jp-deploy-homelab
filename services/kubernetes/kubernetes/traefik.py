@@ -1,6 +1,5 @@
 import pulumi as p
 import pulumi_kubernetes as k8s
-import utils.opnsense.dnsmasq.host
 
 from kubernetes.config import ComponentConfig
 
@@ -25,7 +24,7 @@ def create_traefik(
     )
     k8s_opts = p.ResourceOptions(provider=namespaced_k8s_provider)
 
-    chart = k8s.helm.v4.Chart(
+    k8s.helm.v4.Chart(
         'traefik',
         chart='traefik',
         namespace=namespace.metadata.name,
@@ -41,20 +40,6 @@ def create_traefik(
             ]
         },
         opts=k8s_opts,
-    )
-
-    # Discover the Traefik service IP
-    traefik_service = chart.resources.apply(
-        lambda resources: [r for r in resources if isinstance(r, k8s.core.v1.Service)][0]  # type: ignore
-    )
-    traefik_ip = traefik_service.status.apply(lambda x: x['load_balancer']['ingress'][0]['ip'])
-
-    # Create local DNS record to be used as CNAME target
-    utils.opnsense.dnsmasq.host.Host(
-        'traefik',
-        host=f'k8s-ingress-{p.get_stack()}',
-        domain=component_config.cloudflare.zone,
-        ipaddress=traefik_ip,
     )
 
     wildcard_domain = f'*.{component_config.cloudflare.zone}'

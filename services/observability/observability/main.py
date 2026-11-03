@@ -1,12 +1,7 @@
 import pulumi as p
 import pulumi_kubernetes as k8s
 
-from observability.alloy import (
-    create_alloy,
-    create_home_assistant_record,
-    create_node_proxy_access,
-    create_syslog_service,
-)
+from observability.alloy import create_alloy, create_node_proxy_access, create_syslog_service
 from observability.config import ComponentConfig
 from observability.exporters import create_kube_state_metrics, create_node_exporter
 from observability.grafana import create_grafana
@@ -44,6 +39,5 @@ def main():
     alloy = create_alloy(component_config, k8s_opts, depends_on=[loki, mimir, targets])
     create_node_proxy_access(k8s_opts, alloy)
     create_syslog_service(component_config, k8s_opts, alloy)
-    create_home_assistant_record(component_config)
     create_longhorn_metrics_access(k8s_provider)
     create_grafana(component_config, k8s_provider, k8s_opts, depends_on=[loki, mimir])
