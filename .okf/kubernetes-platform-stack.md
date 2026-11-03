@@ -32,7 +32,7 @@ Stack `jaypee-solutions/kubernetes/prod`, source `services/kubernetes`, 134 reso
 
 # Local DNS
 
-Local records are dnsmasq host records created through the OPNsense API at `https://router.4jp.de` (`docs/08-Decisions/ADR-0012 - Local DNS records through dnsmasq on OPNsense.md`). The API user needs the privilege "Services: Dnsmasq DNS/DHCP: Settings"; the `OPNsense` item keeps the key in `username` and the secret in `password`. The helper is `utils.opnsense.dnsmasq.host.Host`, used by the kubernetes, paperless, n8n, iot, and monitoring stacks.
+Local records are dnsmasq host records created through the OPNsense API at `https://router.4jp.de` (`docs/08-Decisions/ADR-0012 - Local DNS records through dnsmasq on OPNsense.md`). The API user needs the privilege "Services: Dnsmasq DNS/DHCP: Settings"; the `OPNsense` item keeps the key in `username` and the secret in `password`. The helper is `utils.opnsense.dnsmasq.host.Host`, used by the kubernetes, paperless, n8n, and monitoring stacks.
 
 # Backup destination decision
 
@@ -44,6 +44,6 @@ QTS 5.2 exposes certificate replacement at **Control Panel → System → Securi
 
 # Not done yet
 
-- Other stacks (paperless, n8n, monitoring, backup, iot) still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints) and have not been previewed.
+- Other stacks (paperless, n8n, monitoring, backup) still carry donor values (`tobiash.net`, `op://Pulumi/...`, Synology endpoints) and have not been previewed. The donor `iot` stack was removed on 2026-11-03 (ADR-0045).
 - The `postgres-pilot` Cluster is live; a scheduled backup ran, a base-backup-plus-WAL restore and a time-targeted PITR restore both passed, and their temporary restore resources were removed (ADR-0017, ADR-0018). **A Longhorn restore from a scheduled backup passed on 2026-10-17:** the `media-paperless-0` volume (30 GiB, real document) was restored from the 02:05 UTC backup into a disposable Longhorn `Volume` (`spec.fromBackup` with the backup's `s3://longhorn-backups@us-east-1/?backup=<name>&volume=<pvc volume>` URL, 1 replica), mounted read-only through a hand-made PV (`csi.driver.longhorn.io`, `volumeHandle` = volume name) and PVC, and its four files had the same combined SHA-256 as the live volume; the restore took about three minutes. The namespace, pod, PV and Longhorn volume were deleted with approval and the backup volume list was unchanged. A restored volume joins the `default` recurring-job group (02:00 UTC) unless deleted first. The encrypted off-site HBS copy is not yet verified. Public exposure through Caddy on OPNsense is future work (ADR-0016, ADR-0017).
 - Related: [k0s0 node](./k0s0-node.md), [cluster plan](./k0s-cluster-plan.md), [operational lessons](./operational-lessons.md).
