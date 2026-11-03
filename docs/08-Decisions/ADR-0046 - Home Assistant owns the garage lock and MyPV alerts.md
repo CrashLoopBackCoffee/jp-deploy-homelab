@@ -37,13 +37,13 @@ Findings on 2026-11-03:
   - `zweiradgarage_unlocked`: a template `binary_sensor` with device class `lock` (on = unlocked) on the enabled input; 10 min delay; Pushover **emergency** priority 2 (retry 60 s, expire 3600 s), repeating until acknowledged or relocked, as legacy and ADR-0032.
   - `warm_water_outage`: `sensor.mypv_water_temperature < 35` for 10 min, same priority.
   - Warning (priority 0) when the Shelly i4 or the MyPV sensors are `unavailable` for 15 min, closing the silent-failure gap.
-- **LGTM only watches HA's availability:** a probe of `http://10.30.0.10:8123` in the `Monitoring Targets` note, covered by the critical `probe-failing` rule (emergency Pushover). No HA metrics go into Mimir (no Prometheus integration).
-- **Dashboard:** `Warmwasser` is rebuilt in Grafana on the `InfluxDB home_assistant` datasource. The missing `mypv_surplus` becomes a new HA `rest` sensor. The history before the cutover stays in Mimir (backfilled `mypv_*`, 400 days retention). The `Solax` panel on `mypv_power_act` is decided with that dashboard's InfluxDB part.
+- **LGTM only watches HA's availability:** a probe of `http://10.30.0.10:8123` in the `Monitoring Targets` note, covered by the critical `probe-failing` rule (emergency Pushover). HA metrics do not go into Mimir; their history goes to the archive of ADR-0047.
+- **Dashboard:** `Warmwasser` is rebuilt in Grafana on the archive datasource of ADR-0047. The missing `mypv_surplus` becomes a new HA `rest` sensor and joins the archive allowlist. The history before the cutover stays in Mimir (backfilled `mypv_*`, 400 days retention). The `Solax` panel on `mypv_power_act` is decided with that dashboard's InfluxDB part.
 - **jexporter is retired** after a parallel run: remove the two rules and the `jexporter` job from the legacy Prometheus, then stop the service on `wireguard` (the host stays). Other `jexporter` series (SwitchBot, coffee) already moved to HA (ADR-0023).
 
 ## Rejected
 
-- HA → Prometheus integration → Grafana rules: thousands of series against the Mimir budget (ADR-0026), and alert ownership split between two systems.
+- Grafana alert rules on HA metrics: alert ownership split between two systems. The archive is for history, not alerting.
 - Porting jexporter to k0s: LAN-only devices, a second poller beside HA, same silent-failure mode.
 - Alerts in HA without an LGTM probe: an HA or VM outage would silence the lock alert.
 
@@ -66,3 +66,4 @@ Findings on 2026-11-03:
 - [[ADR-0023 - Retire the legacy dockerhost monitoring stack]]
 - [[ADR-0032 - Emergency Pushover priority for critical alerts]]
 - [[ADR-0045 - Home Assistant Mosquitto as the single MQTT broker]]
+- [[ADR-0047 - Thanos archive for Home Assistant sensor history]]
