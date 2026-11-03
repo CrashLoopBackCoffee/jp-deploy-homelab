@@ -71,8 +71,6 @@ Paperless now checks repository configuration, initializes only on Restic's miss
 - [JP NFS CSI chart configuration](../services/kubernetes/kubernetes/csi_nfs.py)
 - ADR-0004: `docs/08-Decisions/ADR-0004 - Bare-metal k0s and external infrastructure scope.md`
 - JP hardware inventory: `docs/01-Foundation/Hardware Inventory.md`
-- [JP IoT stack configuration](../services/iot/Pulumi.prod.yaml)
-- [JP IoT configuration model](../services/iot/iot/config.py)
 - [JP Postgres helper](../utils/src/utils/postgres.py)
 - [JP Paperless backup orchestration](../services/paperless/paperless/backup.py)
 - [TH Paperless backup orchestration](../../th-deploy-homelab/services/paperless/paperless/backup.py)

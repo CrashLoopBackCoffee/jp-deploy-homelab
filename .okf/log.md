@@ -1,5 +1,12 @@
 # Update Log
 
+## 2026-11-03
+* **Decision**: Home Assistant's Mosquitto add-on is the single MQTT broker; Telegraf on k0s replaces `mqtt2influxdb`; `services/iot` removed (ADR-0045, PR #119; HA repo ADR 0010). Logins `devices` (all devices) and `telegraf` live in the add-on options (set through the websocket `supervisor/api`) and in 1Password (`MQTT devices`, `MQTT telegraf`).
+* **Change**: Applied `influxdb` from `main` (+5: Secret, ConfigMap, Deployment `mqtt-bridge`, provider, component). Devices repointed to `192.168.178.122:1883`: Tasmota meter, Shelly Gen1 `coffee`, `licht-dach`, `rolladen-dach`, `shellyplug-s-8825B6`, Gen2 `bkw`, `shellyplusi4-083af2013554`, `zweiradgarage`, and the battery Plus H&T `HTone` (192.168.178.39, repointed while awake). Stopped `dockerhost` mosquitto and `mqtt2influxdb` at 09:30Z; removal pending approval.
+* **Finding**: Pre-flight on the `dockerhost` broker log (90 days) showed only the devices, `mqtt2influxdb` and a read-only inventory client; no `jexporter` or other subscriber. A Pod on k0s reaches `10.30.0.10:1883` without a firewall rule.
+* **Finding**: `ssh dockerhost` failed with "Too many authentication failures" because the 1Password agent offers many keys; `-o IdentitiesOnly=yes -o IdentityFile=~/.ssh/hetzner.pub` (agent key matched by its public file) works. The service-account token cannot create items in `Homelab`; `env -u OP_SERVICE_ACCOUNT_TOKEN op ...` (desktop auth) can, and the service account reads them afterwards.
+* **Finding**: `HTone` is a Gen2 Plus H&T (not Gen1): it answers HTTP on `/rpc/` for about a minute after a button press.
+
 ## 2026-11-02
 * **Finding**: Read-only verification on 2026-11-02: TeslaLogger backup (`MON-mysqldump20261101192823.gz`) and up-to-date check (1.63.24.1, no `New Version Detected`) OK, InfluxDB Longhorn backup `backup-05c89632c9984c1d` Completed (27.2 GB), PR #115 already merged and the observability preview clean (36 unchanged). The TeslaLogger `grafana` sidecar was OOMKilled 11 times at the 512Mi limit (startup peak 500-540 MB). 2026-10-30 had a real HBS miss (only `01_alten` finished).
 * **Change**: Loki rule `qnap-hbs-jobs-missing` (critical, 26 h, fewer than N distinct finished HBS jobs or none; N is the stack setting `grafana.qnap-hbs-nightly-jobs`, 4) and TeslaLogger `grafana` sidecar memory limit 512Mi to 1Gi; ADR-0044. `mariadb-backup-stale` added to the critical list in ADR-0032 (16 critical rules).

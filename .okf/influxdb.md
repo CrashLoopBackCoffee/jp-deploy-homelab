@@ -18,11 +18,13 @@ New Grafana (`g.4jp.de`): datasources `InfluxDB vzlogger` and `InfluxDB home_ass
 # Data path
 
 ```
-Tasmota meter / Shelly BKW / Shelly roller -> mosquitto dockerhost:1883 -> mqtt2influxdb (dockerhost) -> https://influx.4jp.de (k0s)
+Tasmota meter / Shelly BKW / Shelly roller -> HA Mosquitto add-on (192.168.178.122:1883, login `devices`) -> Telegraf `mqtt-bridge` (k0s, 10.30.0.10:1883, login `telegraf`) -> http://influxdb.influxdb.svc:8086 (`vzlogger`)
 Home Assistant (Proxmox, 192.168.178.122) -> InfluxDB integration -> https://influx.4jp.de (k0s)
 ```
 
 `mqtt2influxdb` on `dockerhost` was switched on 2026-11-01 08:06 UTC (`host: influx.4jp.de`, `port: 443`, `ssl: true`, `verify_ssl: true`; backup of the old file at `~/config.yml.pre-k0s-influx` on the host). Home Assistant was repointed by the user at 08:50:20Z; the legacy instance has received nothing since. The meter publishes every 5 minutes.
+
+Since 2026-11-03 (ADR-0045) the MQTT leg is Home Assistant's Mosquitto add-on plus Telegraf (`services/influxdb/influxdb/mqtt_bridge.py`, Deployment `mqtt-bridge`, `telegraf:1.40.3`, three `mqtt_consumer` inputs) instead of `dockerhost` mosquitto and `mqtt2influxdb`. Mapping kept: `current_power` (int, `MT691.Power_curr`), `meter1`/`meter2` (float, `MT691.Total_in`/`Total_out`) from `tele/tasmota_629634/SENSOR`; `bkw_current_power` (float, `apower`) from `bkw/status/switch:0`; `rolladen_position` (int) from `shellies/rolladen-dach/roller/0/pos`; one field `value`, no tags, a Starlark processor truncates timestamps to seconds. Old `rolladen_position` points also carried a string field `type="int"` (mqtt2influxdb wrote its `type: int` setting as a field); the new points do not. Config `json_v2` with several `[[json_v2]]` blocks on one input worked for the meter (all three measurements arrive).
 
 Gap fill (2026-11-01): the points the legacy instance received after the first backup (07:55:26Z to 08:50:30Z) were exported there with `influx_inspect export` (line protocol, TSM and WAL) and loaded with `influx -import`; counts for `W`, `V`, `A`, `Hz`, `%`, `GB` (to 08:50:21Z) and the five `vzlogger` measurements (to 08:06:00Z) are identical on both sides, series cardinality 1191.
 
@@ -41,11 +43,11 @@ Gap fill (2026-11-01): the points the legacy instance received after the first b
 
 Removed from `dockerhost` after the user's approval: `influxdb_influxdb_1`, image `influxdb:1.8.6`, `/opt/influxdb` (9 GB), `influxdb.service`, the Ansible role and playbook `influxdb` (uncommitted in `~/Documents/dockerhost`), and `jpspeedtest` (unit, `/opt/monitoring/speedtest`, the speedtest tasks and templates; the in-cluster exporter had 23 points in 12 h). The legacy dashboard `Power small` is deleted in the Ansible role and on the host; it is not carried over. Archive: `~/dockerhost-legacy-influxdb-archive/final/{vzlogger,home_assistant,node,default}` (portable backups, `README.txt` with the restore command, per-file `sha256` equal to the source). The QNAP SMB share `altens` is a synced family share, so the archive was not put there; a copy needs a dedicated QNAP location (SSH to the QNAP needs a host-key check and a biometric approval).
 
-Left on `dockerhost`: mosquitto and `mqtt2influxdb` (writing to k0s), and in the legacy Grafana the datasources `InfluxDB` and `InfluxDBHomeAssistant`, the dashboards `Power` (also on the new Grafana) and `Solax` (InfluxDB part), which now show no data.
+Left on `dockerhost`: mosquitto and `mqtt2influxdb` (stopped 2026-11-03, not removed), and in the legacy Grafana the datasources `InfluxDB` and `InfluxDBHomeAssistant`, the dashboards `Power` (also on the new Grafana) and `Solax` (InfluxDB part), which now show no data.
 
 # Remaining
 
-Later: mosquitto and `mqtt2influxdb` to k0s; decide on Solax's InfluxDB panels and on authentication.
+Decide on Solax's InfluxDB panels and on authentication. Stage 2 for mosquitto and `mqtt2influxdb` (remove containers, images, `/opt/mosquitto`, `/opt/mqtt2influxdb`) needs the user's approval.
 
 # Still to verify
 
