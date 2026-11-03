@@ -44,11 +44,18 @@ Findings (2026-11-03, OPNsense Unbound 1.26.1 on `:53`, dnsmasq on `:53053`):
 4. **Optional, per name: CNAME instead of a private A record.** `service.4jp.de` becomes a Cloudflare CNAME to an internal canonical name such as `home-assistant.home.4jp.de` or `k8s-ingress-prod.core.4jp.de`, so no private address is public. Only for names whose consumers all use OPNsense DNS; names used by other resolvers (workstation, `dockerhost`, Home Assistant for `influx.4jp.de`) keep the A record. Not adopted globally: 14 private-address records are already public (ADR-0029) and the CNAME form breaks clients that do not use OPNsense DNS.
 5. **Resolve two collisions** before the forward change: `home.4jp.de` (public WAN address vs HoME VLAN domain; an Unbound host override keeps the public address, or the VLAN domain is renamed) and the stale `router.4jp.de` (Cloudflare `10.1.0.1`, Unbound override per interface).
 6. **Staging:** (a) create the Unbound overrides for the infra names and verify; (b) swap the forward and add the Private Domain in one step; (c) test with a throwaway Cloudflare record (A and CNAME) from a pod and the workstation, with the old forward ready for an instant rollback; (d) remove the superseded dnsmasq apex records; (e) switch the Pulumi helper for internal-only names back to the Unbound API.
-7. **AdGuard asks OPNsense for local names.** Two variants, both only after the Unbound fixes (steps 1 to 6) are verified:
-   - **Conditional upstreams (preferred):** `[/4jp.de/]10.10.0.1` and the private reverse zones; all other queries keep `1.1.1.1`/`9.9.9.9` and the filtering. An OPNsense outage then only affects `4jp.de` names.
+7. **AdGuard asks OPNsense for local names (conditional upstreams, chosen by the user on 2026-11-03).** Only after the Unbound fixes (steps 1 to 6) are verified. The variants considered:
+   - **Conditional upstreams (chosen):** `[/4jp.de/]10.10.0.1` and the private reverse zones; all other queries keep `1.1.1.1`/`9.9.9.9` and the filtering. An OPNsense outage then only affects `4jp.de` names.
    - **Whole upstream (the user's proposal):** upstream `10.10.0.1` for everything, with the public resolvers as AdGuard's fallback servers (used only when OPNsense does not answer). One path for all names and OPNsense's DNSBL on top, but rebinding protection then applies to every name, and an OPNsense outage is a DNS outage for those clients. Do not keep `1.1.1.1` as a parallel upstream: the fastest answer would win and internal-only names would flap between NXDOMAIN and the real answer.
    Unbound becomes the single authority for local names (VLAN subdomains, infra overrides, CNAME targets, PTR). Reachability of `10.10.0.1:53` from `192.168.178.171` was verified from the legacy LAN. **Changing the AdGuard upstream before the Unbound fix breaks names:** measured 2026-11-03, `influx`, `home-assistant`, `netbox`, `tandoor`, `id`, `pve`, `home` and `wg` resolve through AdGuard today and return NXDOMAIN on OPNsense.
-8. **PeRS uses AdGuard `10.10.53.1` by DHCP** (dnsmasq DHCP option 6 for the PeRS range), if that is the intent; optionally a port 53 redirect to stop clients bypassing it. Not changed here.
+8. **PeRS uses AdGuard `10.10.53.1` through DHCP** (independent of steps 1 to 7, can go first):
+   - **Setting:** a dnsmasq DHCP option on the PeRS interface: type `set`, interface `opt6`, option `6` (DNS server), value `10.10.53.1`, no `force`, description `PeRS DNS: AdGuard (ADR-0048)`; then reconfigure dnsmasq (`/api/dnsmasq/settings/add_option`, `/api/dnsmasq/service/reconfigure`). The token's dnsmasq privilege covers it. One server only, so every query is filtered; no secondary (a second server such as the router would let clients bypass the filter).
+   - **Preconditions:** PeRS has `pass in any` from `opt6` (rule 221), so `10.10.53.1:53` is reachable; to confirm from a PeRS device before the change: `dig @10.10.53.1 adguard.4jp.de` returns `127.0.1.1` (a rewrite only AdGuard answers, so it also proves the path later) and AdGuard's allowed-clients setting does not exclude `10.20.0.0/16`.
+   - **Effect on names:** PeRS moves from OPNsense to AdGuard. Cloudflare-only names (`influx`, `home-assistant`, `netbox`, `tandoor`, `id`, `pve`, `home`, `wg`) start to resolve; they return NXDOMAIN on OPNsense today. Names that only dnsmasq holds (`usw`, `sodola`, `syslog`, `<host>.<vlan>.4jp.de`, short names, PTR) stop resolving for PeRS until step 7.
+   - **Rollout:** clients take the new server at their next renewal (half the lease) or reconnect; the range uses the default lease time. Check per device: DNS server `10.10.53.1`, the `adguard.4jp.de` fingerprint, and the device in AdGuard's query log.
+   - **Rollback:** delete the option and reconfigure dnsmasq; clients return to the router on renewal.
+   - **Availability:** AdGuard is one LXC (`adguard`, vmid 153); its outage is a DNS outage for PeRS. Add a probe `tcp 10.10.53.1:53` in the `Monitoring Targets` note (the existing critical `probe-failing` rule).
+   - **Bypass, optional later:** clients with hardcoded or encrypted DNS (DoH, Android Private DNS, iCloud Private Relay) ignore DHCP. A port 53 redirect on `opt6` for destinations other than `10.10.53.1` stops plain-DNS bypass only; not part of this step.
 
 ## Rejected
 
@@ -70,8 +77,8 @@ Findings (2026-11-03, OPNsense Unbound 1.26.1 on `:53`, dnsmasq on `:53053`):
 
 - Which names get a CNAME and which keep the A record (step 4).
 - Whether `id.4jp.de` and `home.4jp.de`/`wg.4jp.de` are used from the LAN and need an explicit decision.
-- The two AdGuard instances' upstreams and DNS rewrites (`adguard.4jp.de` → `127.0.1.1` on `10.10.53.1`); their credentials are not in the Homelab vault.
-- Whether PeRS clients actually use `10.10.53.1` today (DHCP option, static setting or redirect).
+- The `192.168.178.171` AdGuard's upstreams and rewrites; `10.10.53.1` uses `1.1.1.1`/`9.9.9.9` and has the rewrite `adguard.4jp.de` → `127.0.1.1` (user, 2026-11-03). Their credentials are not in the Homelab vault.
+- `10.10.53.1` lies inside the CoRE DHCP pool (`10.10.0.10` to `10.10.53.250`); a reservation or an excluded range avoids a future lease clash.
 
 ## Related notes
 
