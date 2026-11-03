@@ -129,3 +129,14 @@ def create_syslog_service(
         domain=component_config.zone,
         ipaddress=syslog.address,
     )
+
+
+def create_home_assistant_record(component_config: ComponentConfig) -> None:
+    """Local name for Home Assistant so Alloy's blackbox probe resolves it from k0s (ADR-0046)."""
+    alloy = component_config.alloy
+    utils.opnsense.dnsmasq.host.Host(
+        'home-assistant',
+        host=alloy.home_assistant_host,
+        domain=component_config.zone,
+        ipaddress=alloy.home_assistant_address,
+    )
