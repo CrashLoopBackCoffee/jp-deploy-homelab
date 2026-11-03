@@ -5,7 +5,6 @@ import json
 import pulumi as p
 import pulumi_kubernetes as k8s
 import pulumi_random as random
-import utils.opnsense.dnsmasq.host
 
 from observability import alert_rules, dashboards
 from observability.config import ComponentConfig
@@ -345,13 +344,6 @@ def _expose(
     release: k8s.helm.v3.Release,
 ):
     """Publish Grafana through the existing Traefik with its wildcard certificate."""
-    traefik_service = k8s.core.v1.Service.get('traefik-service', 'traefik/traefik', opts=k8s_opts)
-    utils.opnsense.dnsmasq.host.Host(
-        'grafana',
-        host=component_config.grafana.host,
-        domain=component_config.zone,
-        ipaddress=traefik_service.status.load_balancer.ingress[0].ip,
-    )
     k8s.apiextensions.CustomResource(
         'grafana-ingress',
         api_version='traefik.io/v1alpha1',

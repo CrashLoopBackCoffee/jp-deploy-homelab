@@ -5,7 +5,6 @@ import pulumi as p
 import pulumi_kubernetes as k8s
 import pulumi_random as random
 import utils.cnpg
-import utils.opnsense.dnsmasq.host
 
 from paperless.backup import create_backup_cronjob
 from paperless.config import ComponentConfig
@@ -361,17 +360,6 @@ class Paperless(p.ComponentResource):
                 'selector': sts.spec.selector.match_labels,
             },
             opts=k8s_opts,
-        )
-
-        # Create local DNS record
-        traefik_service = k8s.core.v1.Service.get(
-            'traefik-service', 'traefik/traefik', opts=k8s_opts
-        )
-        utils.opnsense.dnsmasq.host.Host(
-            'paperless',
-            host=paperless_config.host,
-            domain=component_config.zone,
-            ipaddress=traefik_service.status.load_balancer.ingress[0].ip,
         )
 
         k8s.apiextensions.CustomResource(

@@ -16,7 +16,7 @@ adr: 12
 
 ## Status
 
-Accepted on 2026-10-10. **Narrowed on 2026-10-19:** new service names are Cloudflare A records ([[ADR-0029 - Service names as Cloudflare A records]]); the existing dnsmasq records (`paperless`, `g`, `syslog`, `k8s-ingress-prod`) stay until the user decides to move them.
+Accepted on 2026-10-10. **Narrowed on 2026-10-19:** new service names are Cloudflare A records ([[ADR-0029 - Service names as Cloudflare A records]]); the existing dnsmasq records (`paperless`, `g`, `syslog`, `k8s-ingress-prod`) stay until the user decides to move them. **Superseded in part on 2026-11-03 by [[ADR-0048 - Name resolution for 4jp.de on OPNsense]]:** Unbound no longer forwards `4jp.de` to dnsmasq, so dnsmasq records below the apex are not queried. The Pulumi `Host` records for `paperless`, `g`, `k8s-ingress-prod` and `home-assistant` are removed (Cloudflare serves them); `syslog` is an Unbound host override (`utils.opnsense.unbound.host.Host`). dnsmasq stays the DHCP server and holds the VLAN subdomains (`<host>.<vlan>.4jp.de`); `utils.opnsense.dnsmasq.host.Host` remains only for the undeployed `n8n` stack.
 
 ## Context
 
