@@ -74,6 +74,10 @@ class OpnsenseConfig(ChartConfig):
 
 class AlloyConfig(ChartConfig):
     syslog: SyslogConfig
+    # Home Assistant on the HoME VLAN: public DNS answers 10.30.0.10, but OPNsense's Unbound drops
+    # private answers for public names, so k0s needs a local record to probe it (ADR-0046).
+    home_assistant_host: str = 'home-assistant'
+    home_assistant_address: str = '10.30.0.10'
     # Secure Note listing the probe and scrape targets, one `<group> <target>` per line
     targets: utils.model.OnePasswordRef
     ax51: ScrapeCredentials
