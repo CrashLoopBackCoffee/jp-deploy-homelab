@@ -2,7 +2,7 @@
 type: Service
 title: InfluxDB 1.x on k0s (Pulumi, applied; cut over 2026-11-01)
 description: InfluxDB 1.11 on k0s for the power meter and Home Assistant history, how the data was moved and the gap closed, and the remaining steps (ADR-0043).
-timestamp: 2026-11-02T00:00:00Z
+timestamp: 2026-11-04T00:00:00Z
 tags: [homelab, kubernetes, influxdb, grafana, power, migration]
 resource: https://app.pulumi.com/jaypee-solutions/influxdb/prod
 ---
@@ -19,7 +19,7 @@ New Grafana (`g.4jp.de`): datasources `InfluxDB vzlogger` and `InfluxDB home_ass
 
 ```
 Tasmota meter / Shelly BKW / Shelly roller -> HA Mosquitto add-on (192.168.178.122:1883, login `devices`) -> Telegraf `mqtt-bridge` (k0s, 10.30.0.10:1883, login `telegraf`) -> http://influxdb.influxdb.svc:8086 (`vzlogger`)
-Home Assistant (Proxmox, 192.168.178.122) -> InfluxDB integration -> https://influx.4jp.de (k0s)
+Home Assistant -> InfluxDB integration -> https://influx.4jp.de: disabled 2026-11-04T20:43:11Z (ADR-0047); `home_assistant` has been frozen since then
 ```
 
 `mqtt2influxdb` on `dockerhost` was switched on 2026-11-01 08:06 UTC (`host: influx.4jp.de`, `port: 443`, `ssl: true`, `verify_ssl: true`; backup of the old file at `~/config.yml.pre-k0s-influx` on the host). Home Assistant was repointed by the user at 08:50:20Z; the legacy instance has received nothing since. The meter publishes every 5 minutes.
@@ -47,7 +47,7 @@ Left on `dockerhost`: mosquitto and `mqtt2influxdb` (stopped 2026-11-03, not rem
 
 # Remaining
 
-Decide on authentication. `Solax` and `Warmwasser` run in the new Grafana on `home_assistant` (2026-11-03); the old `sensor.<entity>` measurements stop on 2026-03-26 when the new Home Assistant moved to the measurement-per-unit schema, so panels query both (`FROM "W","sensor.solax_house_load" WHERE "entity_id" = 'solax_house_load'`; both schemas carry the tag `entity_id`). Stage 2 for mosquitto and `mqtt2influxdb` (remove containers, images, `/opt/mosquitto`, `/opt/mqtt2influxdb`) needs the user's approval.
+Decide on authentication. `Solax` and `Warmwasser` read the Thanos archive since 2026-11-04 (ADR-0047); the database `home_assistant` (6.3 GB) is frozen, copied to `~/k0s-influxdb-home-assistant-archive/` (portable backup, 4.7 GB, checksums verified) and still browsable through the Grafana datasource `InfluxDB home_assistant`. Open: drop the database (needs the user's approval). The old `sensor.<entity>` measurements stop on 2026-03-26 when the new Home Assistant moved to the measurement-per-unit schema (both carry the tag `entity_id`). Stage 2 for mosquitto and `mqtt2influxdb` (remove containers, images, `/opt/mosquitto`, `/opt/mqtt2influxdb`) needs the user's approval.
 
 # Still to verify
 

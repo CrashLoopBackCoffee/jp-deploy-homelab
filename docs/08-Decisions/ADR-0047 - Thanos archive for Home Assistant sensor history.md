@@ -9,7 +9,7 @@ type: adr
 status: accepted
 date: 2026-11-03
 created: 2026-11-03
-updated: 2026-11-03
+updated: 2026-11-04
 adr: 47
 ---
 
@@ -17,7 +17,7 @@ adr: 47
 
 ## Status
 
-Accepted on 2026-11-03. Spike, stack, scrape and backfill are done and verified on 2026-11-03; repointing the dashboards and switching off HA's InfluxDB integration (step 4) are open.
+Accepted on 2026-11-03. Spike, stack, scrape, backfill and the migration (step 4: dashboards, SOC, InfluxDB integration, archive copy) are done and verified on 2026-11-03 and 2026-11-04.
 
 ## Context
 
@@ -48,7 +48,12 @@ Of the 1330 entities, 204 have a `state_class`; by device class: power 56, energ
 1. **Spike (done 2026-11-03):** HA's `prometheus` integration is enabled with the allowlist (`config/prometheus_entities.yaml`, 144 entities; `deploy-home-assistant` commit 9f5fa97, deployed with a restart of about one minute). Results in "Spike results". Still open from this step: the bucket and access key in QuObjects (QNAP).
 2. **Stack and scrape (done 2026-11-03, PR #130, #131):** `services/thanos` (Receive, Store Gateway, Compactor, Query on the bucket `ha-archive`), Alloy scrape of HA every 15 s into Receive only, Grafana datasource "Thanos archive". About 278 series arrive.
 3. **Backfill (done 2026-11-03):** the 139 archive-tier entities from `home_assistant` (2023-10-04 to 2026-11-03, both Influx schemas) as 314 million samples in 2253 blocks, forward-filled onto the 15 s grid for at most 7 days, uploaded with the live external labels so the Compactor merges them; 480 sampled values matched InfluxDB exactly; Query returns the history through the Store Gateway. Details and pitfalls in `.okf/ha-archive.md`.
-4. Repoint the `Solax` and `Warmwasser` dashboards (and later ones) to the Thanos datasource; then switch off HA's InfluxDB integration and decide what happens to the `home_assistant` database (freeze, then drop after an archive copy).
+4. **Dashboards, freeze and archive copy (done 2026-11-04, PR #133):**
+   - `Solax` and `Warmwasser` read the Thanos datasource (PromQL, selected by `entity`); only the BKW and `meter1` targets stay on InfluxDB `vzlogger`. `Power` has no HA entities and is unchanged.
+   - `sensor.solax_battery_capacity` (the SOC panels) was added to HA's allowlist and backfilled (6.49 million samples, 2023-10-04 to the first live sample). This is an exception to "battery stays in the recorder": the inverter SOC is energy data, not the battery of a device.
+   - HA's InfluxDB config entry was disabled (not deleted) at 2026-11-04T20:43:11Z; `deploy-home-assistant` ADR 0014. The database is frozen de facto: auth is off, but HA was the only writer on `home_assistant`, and no points arrive after the switch-off. It is not dropped.
+   - Archive: a portable backup on the workstation, `~/k0s-influxdb-home-assistant-archive/` (4.7 GB, `SHA256SUMS` equal to the source, restore command in `README.txt`); the nightly Longhorn backup of the PVC also holds the data. The Grafana datasource `InfluxDB home_assistant` stays so the frozen data remains browsable in Explore until the database is retired.
+   - Open: dropping the `home_assistant` database, and OPNsense HoME egress rule 130 (TCP 443 to `10.10.88.1`), which HA no longer needs.
 
 ## Spike results (2026-11-03)
 
