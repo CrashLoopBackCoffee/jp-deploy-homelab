@@ -2,7 +2,7 @@
 type: Service
 title: Home Assistant sensor archive on Thanos (Pulumi, prod)
 description: Curated long-term archive of Home Assistant sensors on k0s - data path, labels, queries, retention, the InfluxDB backfill procedure with its parameters and verification, and the pitfalls found while building it (ADR-0047).
-timestamp: 2026-11-03T00:00:00Z
+timestamp: 2026-11-04T00:00:00Z
 tags: [homelab, kubernetes, thanos, home-assistant, archive, backfill, influxdb]
 resource: https://app.pulumi.com/jaypee-solutions/thanos/prod
 ---
@@ -50,6 +50,12 @@ Verification: 480 random (entity, time) pairs in three windows (October 2026, Ma
 - The Store Gateway syncs the bucket every 15 minutes (the chart default), so uploaded blocks appear in Query up to 15 minutes later; `/api/v1/stores` shows its min and max time.
 - Gen1 Shelly CoIoT pushes stopped reaching HA after the dual-NIC change (ADR 0013 in deploy-home-assistant): not an archive issue, found while the backfill ran.
 
+# SOC added and cutover (2026-11-04)
+
+`sensor.solax_battery_capacity` was not archived (the spike kept batteries in the recorder); it feeds the SOC panels, so it was added to the allowlist (HA restart, live series `homeassistant_sensor_battery_percent`, first sample 2026-11-04T20:10:53Z) and backfilled with the same procedure and `UNTIL_MS` set to the first live sample (exclusive; `plan.py` writes `plan.json` for all entities, `PLAN=` selects a subset): 6,492,026 samples, 2255 blocks (36 MB), 2023-10-04 to 2026-11-04, generated in 17 minutes (one entity, 163k Influx points) and uploaded in 5 minutes, visible in Query after about 6 minutes. Verified: Thanos equals Influx at 2024-01-15, 2025-03-10, 2026-06-01 and an hour before the cut; `count_over_time[1h]` = 240 on the 15 s grid; 120 in the 30 minutes around the cut (no overlap); no store error.
+
+`Solax` and `Warmwasser` now read this datasource (`avg_over_time({__name__=~"homeassistant_sensor_.+", entity="sensor.x"}[$__interval])`, raw selector for the gauges). HA's InfluxDB integration was disabled at 2026-11-04T20:43:11Z; no point has arrived in `home_assistant` since. Workstation copy of the database: `~/k0s-influxdb-home-assistant-archive/`.
+
 # Open
 
-Dashboards still read InfluxDB; repointing them and switching off HA's InfluxDB integration are the last steps of ADR-0047.
+Dropping the frozen InfluxDB `home_assistant` database, and OPNsense HoME egress rule 130 (TCP 443 to `10.10.88.1`), which HA no longer needs (both need the user's approval).
