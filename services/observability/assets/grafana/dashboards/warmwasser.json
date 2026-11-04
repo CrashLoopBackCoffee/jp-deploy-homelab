@@ -23,8 +23,8 @@
   "panels": [
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-home-assistant"
+        "type": "prometheus",
+        "uid": "thanos-archive"
       },
       "description": "",
       "fieldConfig": {
@@ -114,16 +114,16 @@
       },
       "targets": [
         {
-          "alias": "Wassertemperatur",
           "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-home-assistant"
+            "type": "prometheus",
+            "uid": "thanos-archive"
           },
+          "editorMode": "code",
+          "expr": "avg_over_time({__name__=~\"homeassistant_sensor_.+\", entity=\"sensor.mypv_water_temperature\"}[$__interval])",
           "hide": false,
-          "query": "SELECT mean(\"value\") FROM \"\u00b0C\" WHERE \"entity_id\" = 'mypv_water_temperature' AND $timeFilter GROUP BY time($__interval) fill(none)",
-          "rawQuery": true,
-          "refId": "A",
-          "resultFormat": "time_series"
+          "legendFormat": "Wassertemperatur",
+          "range": true,
+          "refId": "A"
         }
       ],
       "title": "Wassertemperatur",
@@ -131,8 +131,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-home-assistant"
+        "type": "prometheus",
+        "uid": "thanos-archive"
       },
       "description": "",
       "fieldConfig": {
@@ -187,16 +187,16 @@
       "pluginVersion": "10.0.2",
       "targets": [
         {
-          "alias": "Wassertemperatur",
           "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-home-assistant"
+            "type": "prometheus",
+            "uid": "thanos-archive"
           },
+          "editorMode": "code",
+          "expr": "{__name__=~\"homeassistant_sensor_.+\", entity=\"sensor.mypv_water_temperature\"}",
           "hide": false,
-          "query": "SELECT \"value\" FROM \"\u00b0C\" WHERE \"entity_id\" = 'mypv_water_temperature' AND $timeFilter",
-          "rawQuery": true,
-          "refId": "A",
-          "resultFormat": "time_series"
+          "legendFormat": "Wassertemperatur",
+          "range": true,
+          "refId": "A"
         }
       ],
       "title": "Wassertemperatur",
@@ -204,8 +204,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-home-assistant"
+        "type": "prometheus",
+        "uid": "thanos-archive"
       },
       "description": "",
       "fieldConfig": {
@@ -287,16 +287,16 @@
       },
       "targets": [
         {
-          "alias": "Power",
           "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-home-assistant"
+            "type": "prometheus",
+            "uid": "thanos-archive"
           },
+          "editorMode": "code",
+          "expr": "avg_over_time({__name__=~\"homeassistant_sensor_.+\", entity=\"sensor.mypv_power_act\"}[$__interval])",
           "hide": false,
-          "query": "SELECT mean(\"value\") FROM \"W\" WHERE \"entity_id\" = 'mypv_power_act' AND $timeFilter GROUP BY time($__interval) fill(none)",
-          "rawQuery": true,
-          "refId": "A",
-          "resultFormat": "time_series"
+          "legendFormat": "Power",
+          "range": true,
+          "refId": "A"
         }
       ],
       "title": "Power",
@@ -304,8 +304,8 @@
     },
     {
       "datasource": {
-        "type": "influxdb",
-        "uid": "influxdb-home-assistant"
+        "type": "prometheus",
+        "uid": "thanos-archive"
       },
       "description": "",
       "fieldConfig": {
@@ -359,16 +359,16 @@
       "pluginVersion": "10.0.2",
       "targets": [
         {
-          "alias": "Power",
           "datasource": {
-            "type": "influxdb",
-            "uid": "influxdb-home-assistant"
+            "type": "prometheus",
+            "uid": "thanos-archive"
           },
+          "editorMode": "code",
+          "expr": "{__name__=~\"homeassistant_sensor_.+\", entity=\"sensor.mypv_power_act\"}",
           "hide": false,
-          "query": "SELECT \"value\" FROM \"W\" WHERE \"entity_id\" = 'mypv_power_act' AND $timeFilter",
-          "rawQuery": true,
-          "refId": "A",
-          "resultFormat": "time_series"
+          "legendFormat": "Power",
+          "range": true,
+          "refId": "A"
         }
       ],
       "title": "Power",
