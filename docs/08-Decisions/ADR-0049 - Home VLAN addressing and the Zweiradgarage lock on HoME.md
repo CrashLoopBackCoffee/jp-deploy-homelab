@@ -34,8 +34,8 @@ Read-only findings on 2026-11-05:
 
 - **The lock moves to the HoME VLAN (30).** Wi-Fi 1 on the device becomes `ADA30_HoME`, Wi-Fi 2 stays `ada30_24` as a fallback, so an HoME Wi-Fi problem does not silence the lock alarm. The user changes this in the Shelly web UI; the passphrase is not handled by an agent.
 - **Addressing scheme on HoME: `10.30.<place>.<device>`.** The second octet is the VLAN tag. The third octet is the place: `0` basement, `1` first floor, `2` second floor, `3` attic (existing), and for outdoors `100 + compass bearing / 10`: north `100`, east `109`, south `118`, west `127`. The fourth octet starts at `10` for the first device of a place (Home Assistant `10.30.0.10`, `Washing` `10.30.1.10`). Existing exceptions (`SLZB-06P10` `10.30.2.7`) stay.
-- **The garden is outside south: `10.30.118.0`.** The i4 gets the reservation `zweiradgarage` = `10.30.118.10` (dnsmasq, MAC `08:3a:f2:01:2e:48`, created 2026-11-05 through the API, uuid `58c80a00-ad1a-41f5-89df-95b5e32c4f7f`). A garage gets its own bearing or a later decision; nothing is reserved for it.
-- **Scraping:** after the move the k0s Alloy probes the device itself, independent of Home Assistant: group `http`, target `http://10.30.118.10/rpc/Shelly.GetDeviceInfo`, so the critical `probe-failing` rule (emergency Pushover) fires when the device is unreachable. Home Assistant stays the owner of the unlocked alert (ADR-0046); the archive keeps `binary_sensor.bike_storage_unlocked`. The legacy `blackbox-slow` probe is not carried over.
+- **The Zweiradgarage is outside north: `10.30.100.0`.** The i4 gets the reservation `zweiradgarage` = `10.30.100.10` (dnsmasq, MAC `08:3a:f2:01:2e:48`, created 2026-11-05 through the API, uuid `58c80a00-ad1a-41f5-89df-95b5e32c4f7f`; first set to `10.30.118.10` by mistake and corrected the same day). The garden (south, `118`) and any other place get their own devices later; nothing else is reserved.
+- **Scraping:** after the move the k0s Alloy probes the device itself, independent of Home Assistant: group `http`, target `http://10.30.100.10/rpc/Shelly.GetDeviceInfo`, so the critical `probe-failing` rule (emergency Pushover) fires when the device is unreachable. Home Assistant stays the owner of the unlocked alert (ADR-0046); the archive keeps `binary_sensor.bike_storage_unlocked`. The legacy `blackbox-slow` probe is not carried over.
 
 ## Rejected
 
@@ -46,9 +46,9 @@ Read-only findings on 2026-11-05:
 
 ## Migration
 
-1. **Done 2026-11-05:** dnsmasq reservation `zweiradgarage` = `10.30.118.10`. Read the device first: its address, MAC and Wi-Fi settings.
-2. The user swaps the Wi-Fi on the device (HoME first, `ada30_24` second). Check: the lease for the MAC appears with `10.30.118.10`, `Wifi.GetStatus` shows `ADA30_HoME`, the RSSI is better than -70 dBm.
-3. In `deploy-home-assistant`: reconfigure the `Zweiradgarage` Shelly entry to `10.30.118.10` (it is `zeroconf`; the host changes by itself only when mDNS reaches HA on `enp0s19`, so set it explicitly) and set the device's MQTT server to `10.30.0.10:1883` (the legacy `192.168.178.122` is not reachable from HoME). Verify `binary_sensor.zweiradgarage_input` is available and `binary_sensor.bike_storage_unlocked` follows a lock toggle. Record the reservation in that repo's `.okf/systems/opnsense.md`.
+1. **Done 2026-11-05:** dnsmasq reservation `zweiradgarage` = `10.30.100.10`. Read the device first: its address, MAC and Wi-Fi settings.
+2. The user swaps the Wi-Fi on the device (HoME first, `ada30_24` second). Check: the lease for the MAC appears with `10.30.100.10`, `Wifi.GetStatus` shows `ADA30_HoME`, the RSSI is better than -70 dBm.
+3. In `deploy-home-assistant`: reconfigure the `Zweiradgarage` Shelly entry to `10.30.100.10` (it is `zeroconf`; the host changes by itself only when mDNS reaches HA on `enp0s19`, so set it explicitly) and set the device's MQTT server to `10.30.0.10:1883` (the legacy `192.168.178.122` is not reachable from HoME). Verify `binary_sensor.zweiradgarage_input` is available and `binary_sensor.bike_storage_unlocked` follows a lock toggle. Record the reservation in that repo's `.okf/systems/opnsense.md`.
 4. Add the probe line to the Secure Note `Monitoring Targets` and apply `observability` from `main`; verify `probe_success` is `1`. Test the alert path once by unplugging or disabling the device Wi-Fi for longer than the rule's `for`.
 5. Remove the `blackbox-slow` target `http://192.168.178.222/` (and its `ServiceDownSlow` coverage) from the legacy Prometheus; update ADR-0023 and the OKF notes.
 
