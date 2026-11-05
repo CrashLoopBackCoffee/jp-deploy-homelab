@@ -57,6 +57,8 @@ Verification: 480 random (entity, time) pairs in three windows (October 2026, Ma
 
 `Solax` and `Warmwasser` now read this datasource (`avg_over_time({__name__=~"homeassistant_sensor_.+", entity="sensor.x"}[$__interval])`, raw selector for the gauges). HA's InfluxDB integration was disabled at 2026-11-04T20:43:11Z; no point has arrived in `home_assistant` since. Workstation copy of the database: `~/k0s-influxdb-home-assistant-archive/`.
 
+`North vs. South` uses `lastNotNull`, so it is empty while both strings report 0 W (night); this is expected.
+
 # Retired (2026-11-05)
 
 With the user's approval: the InfluxDB database `home_assistant` was dropped (portable backup in `~/k0s-influxdb-home-assistant-archive/`, checksums re-verified before the drop; PVC 8.9 to 2.6 GB used), the Grafana datasource `InfluxDB home_assistant` was removed (needs a `deleteDatasources` entry in the provisioning) and the OPNsense HoME egress rule 130 was deleted (`delRule` and `apply`; HA stayed reachable).
