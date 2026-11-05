@@ -93,6 +93,15 @@ See the **`python-pulumi-patterns`** skill for Kubernetes typed-dict notation an
 
 `mp-deploy-homelab` and `th-deploy-homelab` (sibling directories of this repository) are the reference for new work, and they change daily. **Run `scripts/pull-donors` at least once a day and before reading them.** It fast-forwards both on `main`, skips any that are dirty or on another branch, and lists the changed services and commits. Never judge a donor from a stale clone: on 2026-10-15 an outdated clone hid MP's Paperless client blueprint for Authentik and TH's working Paperless 3.x settings.
 
+### 10. Home Assistant Repository
+
+Home Assistant is configured in `/Users/alten/GitHub/deploy-home-assistant` (its own repo, outside this one). **Whenever a task touches Home Assistant** (automations and alerts, entities, integrations, MQTT, the `prometheus:` allowlist `config/prometheus_entities.yaml`, dashboards that read HA entities, Shelly/MyPV/Solax devices, HA network or firewall), check that repo first and make HA-side changes there, never only here:
+
+- Read its `AGENTS.md`, `HANDOFF.md`, `.okf/` and `docs/adr/` before concluding what HA does or does not do. Its ADRs are numbered separately from this repo's; cross-reference both ways (example: ADR-0046 here, commits in the HA repo).
+- `git -C /Users/alten/GitHub/deploy-home-assistant pull --ff-only` before reading, if the clone is clean and on `main`. Never judge HA from a stale clone or from this repo's OKF alone: on 2026-11-05 this repo's OKF still listed `ZweiradGarage` and `WarmWaterOutage` as legacy-only although HA had owned them since 2026-11-03.
+- Its changes follow its own workflow (`just check`, `just doctor`, drift guard, PR). Use its `just` recipes for HA state, logs and deploys (`just states`, `just logs`, `just ssh`).
+- Changes that cross both repos (a new archived entity, a renamed sensor, an alert moved to HA) land as one PR per repo with a link in each description.
+
 ## Common Commands
 
 ```bash
