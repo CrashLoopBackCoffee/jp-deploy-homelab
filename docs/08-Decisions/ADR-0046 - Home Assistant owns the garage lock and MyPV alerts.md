@@ -58,7 +58,7 @@ Findings on 2026-11-03:
 ## Consequences
 
 - Lock and hot-water alerts depend on HA and the Shelly integration; HA unavailability pages through LGTM instead.
-- Open: what the AC•THOR does when `control.html?power=` updates stop (HA down). The my-PV "Documentation of Controls" (EN241205) describes the http control (`power`, `pid_power`, `boost`) but states no timeout or fallback, so it stays unverified; the water still reached about 48.6 °C a day without surplus on 2026-11-03 to 11-05.
+- **Answered 2026-11-05 (user observation):** the AC•THOR keeps the last power value it was given when `control.html?power=` updates stop (the my-PV "Documentation of Controls", EN241205, states no timeout or fallback). [INFERENCE] If HA stops while a high setpoint is active, the device keeps heating at that power until HA or the device UI changes it; the HA `warm_water_low` alert would not notice that. Hot water is also heated by the gas heating, which takes over in winter, so days with `power_act` at 0 W are low surplus, not a fault, and `warm_water_low` only fires if the gas heating fails too. Details: `systems/mypv-acthor.md` in `deploy-home-assistant`.
 - Retiring jexporter removed the last LAN consumer of the legacy Prometheus besides the dockerhost exporters; the `Target unreachable` alert for `192.168.178.171:9303` that fired since 2026-11-03 is gone.
 
 ## Related notes
