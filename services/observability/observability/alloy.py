@@ -12,6 +12,10 @@ from observability.thanos_archive import HOME_ASSISTANT_HOST, RECEIVE_REMOTE_WRI
 
 ALLOY_CONFIG = pathlib.Path(__file__).parent.parent / 'assets' / 'alloy' / 'config.alloy'
 
+# The QNAP's node exporter (QTS, port 9100) is reached through its CoRE address; LAN `192.168.178.60`
+# is not routable from the cluster (ADR-0023, ADR-0050).
+QNAP_NODE_EXPORTER_TARGET = 'qnap.4jp.de:9100'
+
 # The QNAP can send RFC 5424 or RFC 3164, and Alloy needs one listener per format, so each
 # format has its own port. OPNsense gets its own RFC 5424 port so that its lines get their own
 # labels. Every port is served over TCP and UDP.
@@ -43,6 +47,7 @@ def create_alloy(
     config = config.replace(
         'OPNSENSE_NODE_EXPORTER_TARGET', component_config.opnsense.node_exporter_target
     )
+    config = config.replace('QNAP_NODE_EXPORTER_TARGET', QNAP_NODE_EXPORTER_TARGET)
     config = config.replace('THANOS_RECEIVE_URL', RECEIVE_REMOTE_WRITE_URL)
     config = config.replace('HOME_ASSISTANT_HOST', HOME_ASSISTANT_HOST)
     config = config.replace('TARGETS_PATH', MOUNT_PATH)

@@ -14,9 +14,11 @@ EXPRESSION_DATASOURCE = {'type': '__expr__', 'uid': '__expr__'}
 
 # Longhorn exposes volume robustness as one 0/1 series per state, and its backup target as a
 # 0/1 `unavailable` condition.
-# Node filesystems below k0s' kubelet directory are per-pod mounts, not capacity concerns.
+# Node filesystems below k0s' kubelet directory are per-pod mounts, not capacity concerns; the QNAP's
+# `/mnt/ext` is a 436 MB firmware partition that always sits above 90%.
 _NODE_FILESYSTEM = (
-    'fstype=~"ext4|xfs|btrfs", mountpoint!~"/var/lib/(k0s|kubelet)/.*", mountpoint!~"/run/.*"'
+    'fstype=~"ext4|xfs|btrfs", mountpoint!~"/var/lib/(k0s|kubelet)/.*", mountpoint!~"/run/.*",'
+    ' mountpoint!="/mnt/ext"'
 )
 
 # Each finished Hybrid Backup Sync job logs one line; the job name is extracted for distinct counting.
