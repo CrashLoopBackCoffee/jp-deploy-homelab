@@ -17,7 +17,7 @@ adr: 51
 
 ## Status
 
-Accepted on 2026-11-05. **Executed:** the dnsmasq reservation and the code. **Open:** the cable move (user), the Home Assistant URLs, the apply, the alert tests; steps below.
+Accepted on 2026-11-05. **Executed on 2026-11-05:** all migration steps; the real critical-alert test is not done (it needs Home Assistant down while the heater runs).
 
 ## Context
 
@@ -50,9 +50,9 @@ Findings on 2026-11-05:
 
 1. **Done 2026-11-05:** dnsmasq reservation `acthor` = `10.30.0.11`; exporter, Alloy scrape, config and both rules written (not applied).
 2. The AC•THOR is wired to **port 15 of the Netgear `Main Switch` (JGS524, NetBox `GigabitEthernet/15`)**; the user reconfigures that port to VLAN 30 (HoME) untagged. **NetBox (done 2026-11-05, desired state):** device `AC-THOR` (new manufacturer `my-PV`, type `AC•THOR` with interface template `eth0`, role `Water Heater`, site `Home`, location `Heating`, serial `2001002304050010`, active), interface `eth0` with MAC `98:6D:35:C0:8B:AE` and `10.30.0.11/16` (primary IPv4), cable #12 to `Main Switch` `GigabitEthernet/15`, and that port set to description `AC-THOR`, mode access, untagged VLAN `HoME` (30). The cable is modelled as direct; a wall socket or patch panel in between is not known. Check after the port change: the lease for `98:6d:35:c0:8b:ae` shows `10.30.0.11`, `http://10.30.0.11/data.jsn` answers, `control.html` still accepts a setpoint.
-3. In `deploy-home-assistant`, in the same minute, change the three URLs to `10.30.0.11` (the `rest` resource and `rest_command`), deploy, verify `sensor.mypv_*` and the setpoint; the 15-minute `unavailable` warning bridges the gap. Set the device's Ctrl IP to `10.30.0.10`.
-4. Preview and apply `observability` from `main`; verify `up{job="acthor"}` is 1 and the series exist; the new rules are `ok`/`inactive`.
-5. Test: evaluate both expressions against live data (they must be 0 while HA is up and the heater is idle); a real test of the critical rule needs HA down and the heater on and is not done on purpose.
+3. **Done 2026-11-05:** `deploy-home-assistant` commit c178246 changed the `rest` resource and `rest_command` to `10.30.0.11` and was deployed without a restart. `sensor.mypv_*` updated; after the restart of the device it showed `No Control` and went back to `HTTP Control` after the first setpoint call. The Ctrl IP already read `10.30.0.10`.
+4. **Done 2026-11-05:** `observability` applied from `main` (3 created, 2 updated, 1 replaced); `up{job="acthor"}` is 1, the five `acthor_*` series exist, both Grafana rules are `inactive`/`ok`.
+5. **Done 2026-11-05:** both expressions evaluate to 0 on live data (HA up, heater idle). A real test of the critical rule needs HA down and the heater on and is not done on purpose.
 
 ## Consequences
 
