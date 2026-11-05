@@ -1,0 +1,35 @@
+<svg viewBox="0 0 960 350" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif" font-size="13">
+  <title>ADR-0047 step 4: data flow before</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#334155"/></marker>
+  </defs>
+  <rect width="960" height="350" fill="#ffffff"/>
+  <rect x="20" y="105" width="150" height="90" rx="8" fill="#f8fafc" stroke="#2563eb" stroke-width="2"/>
+  <text x="95" y="145" text-anchor="middle" font-size="13" fill="#0f172a" font-weight="bold">Home Assistant</text>
+  <text x="95" y="165" text-anchor="middle" font-size="13" fill="#64748b">10.30.0.10</text>
+  <rect x="300" y="35" width="210" height="64" rx="8" fill="#f8fafc" stroke="#d97706" stroke-width="2"/>
+  <rect x="300" y="165" width="210" height="64" rx="8" fill="#f8fafc" stroke="#059669" stroke-width="2" stroke-dasharray="5 4"/>
+  <rect x="300" y="270" width="210" height="56" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+  <path d="M170 135L298 70" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M298 200L172 170" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#a)" stroke-dasharray="5 4"/>
+  <path d="M510 67L608 125" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#a)"/>
+  <path d="M510 197L608 175" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#a)" stroke-dasharray="5 4"/>
+  <path d="M510 298L608 185" fill="none" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a)"/>
+  <rect x="610" y="105" width="150" height="90" rx="8" fill="#f8fafc" stroke="#7c3aed" stroke-width="2"/>
+  <rect x="810" y="105" width="130" height="90" rx="8" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <path d="M760 150L808 150" fill="none" stroke="#334155" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="685" y="145" text-anchor="middle" font-size="13" fill="#0f172a" font-weight="bold">Grafana</text>
+  <text x="685" y="165" text-anchor="middle" font-size="13" fill="#64748b">3 datasources</text>
+  <text x="875" y="145" text-anchor="middle" font-size="13" fill="#0f172a" font-weight="bold">Solax</text>
+  <text x="875" y="165" text-anchor="middle" font-size="13" fill="#0f172a" font-weight="bold">Warmwasser</text>
+  <text x="405" y="62" text-anchor="middle" font-size="13" fill="#0f172a" font-weight="bold">InfluxDB home_assistant</text>
+  <text x="405" y="82" text-anchor="middle" font-size="13" fill="#64748b">k0s, written by HA</text>
+  <text x="405" y="192" text-anchor="middle" font-size="13" fill="#0f172a" font-weight="bold">Thanos archive</text>
+  <text x="405" y="212" text-anchor="middle" font-size="13" fill="#64748b">Alloy, Receive, QNAP bucket</text>
+  <text x="405" y="295" text-anchor="middle" font-size="13" fill="#0f172a" font-weight="bold">InfluxDB vzlogger</text>
+  <text x="405" y="313" text-anchor="middle" font-size="13" fill="#64748b">Telegraf, meter, BKW</text>
+  <text x="205" y="68" text-anchor="middle" font-size="11" fill="#64748b" transform="rotate(-20 205 68)">InfluxDB integration</text>
+  <text x="165" y="238" text-anchor="start" font-size="11" fill="#64748b">Alloy pulls /api/prometheus</text>
+  <text x="165" y="252" text-anchor="start" font-size="11" fill="#64748b">(filling, not used by dashboards)</text>
+  <text x="40" y="340" text-anchor="start" font-size="11" fill="#64748b">solid = read by dashboards, dashed = running but unused; OPNsense rule 130 lets HA reach influx</text>
+</svg>

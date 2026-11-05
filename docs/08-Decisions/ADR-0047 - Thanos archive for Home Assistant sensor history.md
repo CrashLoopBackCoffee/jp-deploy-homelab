@@ -55,6 +55,16 @@ Of the 1330 entities, 204 have a `state_class`; by device class: power 56, energ
    - Archive: a portable backup on the workstation, `~/k0s-influxdb-home-assistant-archive/` (4.7 GB, `SHA256SUMS` equal to the source, restore command in `README.txt`); the nightly Longhorn backup of the PVC also holds the data.
    - Retired on 2026-11-05 with the user's approval: `DROP DATABASE home_assistant` (the PVC fell from 8.9 to 2.6 GB used), the Grafana datasource `InfluxDB home_assistant` (provisioning `deleteDatasources`, PR #136) and the OPNsense HoME egress rule 130 (TCP 443 to `10.10.88.1`, deleted through the API and applied). A later Solax fix (PR #135): the panels' `merge` transformation collapsed the Prometheus series (all named `Value`) into one and was removed.
 
+## Data flow of step 4
+
+Before (2026-11-04): the dashboards read InfluxDB `home_assistant`; the Thanos archive was filling but unused.
+
+![Data flow before](../02-Architecture/adr-0047-dataflow-before.svg)
+
+After (2026-11-05): the dashboards read Thanos; the InfluxDB integration, database and firewall rule are gone.
+
+![Data flow after](../02-Architecture/adr-0047-dataflow-after.svg)
+
 ## Spike results (2026-11-03)
 
 - **Scrape:** `GET https://home-assistant.4jp.de/api/prometheus` with a Bearer token: HTTP 200, 46 ms, 123 KB, 856 series in total. From a Pod the path works (DNS to `10.30.0.10` through OPNsense, TLS verifies, 401 without the token).
