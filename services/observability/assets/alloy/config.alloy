@@ -1020,6 +1020,20 @@ prometheus.scrape "opnsense_node" {
 }
 
 // ---------------------------------------------------------------------------
+// QNAP (ADR-0050)
+// ---------------------------------------------------------------------------
+
+// Node exporter of the NAS, over its CoRE address. The instance label matches the legacy one, so the
+// generic node rules and dashboards apply. About 3,000 series, mostly per-snapshot filesystems.
+prometheus.scrape "qnap_node" {
+	targets         = [{"__address__" = "QNAP_NODE_EXPORTER_TARGET", "instance" = "qnap"}]
+	forward_to      = [prometheus.remote_write.mimir.receiver]
+	job_name        = "qnap-node"
+	scrape_interval = "30s"
+	scrape_timeout  = "10s"
+}
+
+// ---------------------------------------------------------------------------
 // Home Assistant archive (ADR-0047)
 // ---------------------------------------------------------------------------
 

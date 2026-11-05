@@ -87,6 +87,10 @@ Decision: ADR-0038, runbook in `docs/03-Services/OPNsense.md`. **Applied 2026-10
 
 Verified: both jobs up, 0 endpoint errors, about 970 new series (Mimir 100,666 of 150,000), synthetic IPv4/IPv6 filterlog lines parsed as intended, real lines arrive from `10.10.0.1`, every dashboard panel returns data (WireGuard handshake is a Unix timestamp; `opnsense_firewall_*_packets` are monotonic counters, `rate()` works), rules `ok`/`inactive`. Pitfalls found: (1) **gateway metrics exist only for gateways with monitoring enabled**; all four were unmonitored, and the default monitor IP (PPPoE peer) did not answer ICMP (100% loss, status 0), so `WAN_GW` now monitors `9.9.9.9`; (2) **never pipe `pulumi up` into `head`**: SIGPIPE killed the engine mid-update, left the stack locked (`pulumi cancel`) and three pending creates (fixed with `pulumi refresh --clear-pending-creates`); (3) Loki structured metadata is groupable (`sum by (src)` works), so no query-time `| regexp` was needed; (4) syslog severity labels are the long names (`informational`, `notice`, `warning`, `error`, ...).
 
+# QNAP node metrics (ADR-0050)
+
+Alloy scrapes the QNAP node exporter at `qnap.4jp.de:9100` (`10.10.0.10`, CoRE) as job `qnap-node`, instance `qnap` (the legacy instance name), every 30 s; the legacy LAN address `192.168.178.60` is not reachable from the cluster. About 3,000 series, 23 of 44 filesystems are per-snapshot FUSE mounts. The generic node rules select by `instance`, so they cover the QNAP; the filesystem rule ignores the 436 MB firmware partition `/mnt/ext` (93% used), as the legacy rule did. The data volume `/share/CACHEDEV1_DATA` is 18.7 TB, 60% used (2026-11-05). RAID scrubs push the CPU above 90% for hours, so `node-cpu-high` can notify on Thursday nights.
+
 # Pitfalls found
 
 - **Longhorn ships NetworkPolicies** (`longhorn-system`, chart 1.13) that admit only Longhorn pods to the manager, so Alloy, a probe pod and the API server proxy all got `connection refused` on port 9500. `longhorn_access.py` adds an additive policy letting only Alloy reach port 9500.
