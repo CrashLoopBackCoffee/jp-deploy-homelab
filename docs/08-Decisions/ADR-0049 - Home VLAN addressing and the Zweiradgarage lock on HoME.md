@@ -17,7 +17,7 @@ adr: 49
 
 ## Status
 
-Accepted on 2026-11-05. **Executed:** the dnsmasq reservation. **Open:** the Wi-Fi swap on the device (done by the user), then steps 3 to 6 of the migration.
+Accepted on 2026-11-05. **Executed on 2026-11-05:** steps 1 to 5. **Open:** the weak signal (-82 dBm, below the device's roaming threshold of -80 dBm) and the end-to-end test of the probe alert.
 
 ## Context
 
@@ -47,10 +47,10 @@ Read-only findings on 2026-11-05:
 ## Migration
 
 1. **Done 2026-11-05:** dnsmasq reservation `zweiradgarage` = `10.30.100.10`. Read the device first: its address, MAC and Wi-Fi settings.
-2. The user swaps the Wi-Fi on the device (HoME first, `ada30_24` second). Check: the lease for the MAC appears with `10.30.100.10`, `Wifi.GetStatus` shows `ADA30_HoME`, the RSSI is better than -70 dBm.
-3. In `deploy-home-assistant`: reconfigure the `Zweiradgarage` Shelly entry to `10.30.100.10` (it is `zeroconf`; the host changes by itself only when mDNS reaches HA on `enp0s19`, so set it explicitly) and set the device's MQTT server to `10.30.0.10:1883` (the legacy `192.168.178.122` is not reachable from HoME). Verify `binary_sensor.zweiradgarage_input` is available and `binary_sensor.bike_storage_unlocked` follows a lock toggle. Record the reservation in that repo's `.okf/systems/opnsense.md`.
-4. Add the probe line to the Secure Note `Monitoring Targets` and apply `observability` from `main`; verify `probe_success` is `1`. Test the alert path once by unplugging or disabling the device Wi-Fi for longer than the rule's `for`.
-5. Remove the `blackbox-slow` target `http://192.168.178.222/` (and its `ServiceDownSlow` coverage) from the legacy Prometheus; update ADR-0023 and the OKF notes.
+2. **Done 2026-11-05:** the user moved the device (`Wifi.GetStatus`: `ADA30_HoME`, `10.30.100.10`, static lease). Deviation: Wi-Fi 1 and 2 both name `ADA30_HoME` and the legacy `ada30_24` is no longer configured, so there is no fallback; the RSSI is **-82 dBm**, worse than the -78 dBm on `ada30_24`.
+3. **Done 2026-11-05:** in `deploy-home-assistant` the Shelly integration followed by itself (log `Connected to 10.30.100.10`, device `configuration_url` `http://10.30.100.10:80`, `binary_sensor.zweiradgarage_input` available). The device MQTT server was set to `10.30.0.10:1883` over RPC (`Mqtt.SetConfig`, then a reboot; `Mqtt.GetStatus` `connected: true`). The reservation is recorded in that repo's `.okf/systems/opnsense.md`. Not tested: a physical lock toggle against `binary_sensor.bike_storage_unlocked`.
+4. **Done 2026-11-05:** the line `http http://10.30.100.10/rpc/Shelly.GetDeviceInfo` is in the Secure Note `Monitoring Targets`, `observability` was applied from `main` (1 Secret replaced). `probe_success{job="blackbox"}` is `1`, HTTP 200 in 23 ms. Not tested: the alert itself (device Wi-Fi off for longer than 10 minutes).
+5. **Done 2026-11-05:** the legacy `blackbox-slow` job (its only target was `http://192.168.178.222/`, `ServiceDownSlow` was already pending) was removed from the template and from `/opt/monitoring/config/prometheus/prometheus.yml` on `dockerhost` (backup `prometheus.yml.pre-i4-move`, `promtool` valid, `SIGHUP`, reload successful, alert gone). The rule `ServiceDownSlow` stays in place without data.
 
 ## Consequences
 
