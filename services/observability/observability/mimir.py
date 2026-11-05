@@ -70,6 +70,8 @@ def create_mimir(
                     'limits': {
                         'compactor_blocks_retention_period': f'{mimir_config.retention_days}d',
                         'max_global_series_per_user': mimir_config.max_global_series_per_user,
+                        # Legacy Prometheus backfill (ADR-0023, ADR-0054); removed again after the backfill.
+                        'compactor_block_upload_enabled': True,
                     },
                     'compactor': {'data_dir': '/data'},
                 },

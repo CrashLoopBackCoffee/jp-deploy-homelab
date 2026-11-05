@@ -106,6 +106,8 @@ Capabilities still requiring Wazuh dashboard: agent management/groups, IT Hygien
 
 **[User decision]** Initially allow agent traffic from `10.10.0.0/16` plus the dockerhost `/32`, and leave pod egress open; tighten after observed flows and the approved host list. The dashboard is LAN-only. Internal Authentik SAML is optional after core rollout; retain local basic authentication as break-glass. **[Verified (upstream)]** Wazuh documents this SAML/basicauth arrangement: https://documentation.wazuh.com/current/user-manual/user-administration/single-sign-on/authentik.html
 
+The dockerhost `/32` was removed from the agent source ranges on 2026-11-05 when dockerhost was decommissioned ([[ADR-0054 - Decommission dockerhost]]).
+
 ## Operational lifecycle
 
 **[Inference]** Upgrade by reviewing release notes, backing up both volumes, previewing/applying Pulumi, verifying, then upgrading agents. Retain alert indices for 60 days and do not store archive streams. Local QuObjects backups are acceptable initially; restore tests are required, while off-site replication is not a go-live gate. A 5.x move is a separate deployment/migration. Wazuh downtime is accepted and agents buffer events.

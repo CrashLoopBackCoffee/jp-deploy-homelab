@@ -9,7 +9,7 @@ type: adr
 status: accepted
 date: 2026-10-17
 created: 2026-10-17
-updated: 2026-10-17
+updated: 2026-11-05
 adr: 23
 ---
 
@@ -18,6 +18,8 @@ adr: 23
 ## Status
 
 Accepted on 2026-10-17; amended 2026-10-26. Stage 1 is **under way**: phases 1 to 3 (Mimir retention, QNAP syslog, probes and scrapes, speed test and dashboards) were applied on 2026-10-17 ([[ADR-0024 - QNAP syslog into Loki]] to [[ADR-0027 - Speedtest exporter and legacy dashboards]]). After live replacement checks, the user approved ending the planned two-week dual run early on 2026-10-26 and cutting over the migrated scrape jobs. The Grafana login, name cutover, history backfill and stage 2 remain open. See `.okf/legacy-monitoring-migration.md`.
+
+Stage 2 decided on 2026-11-05, see [[ADR-0054 - Decommission dockerhost]].
 
 ## Context
 
@@ -69,6 +71,12 @@ The legacy stack scrapes 13 jobs (about 55 targets, 32 of them HTTP probes). Man
 ## Update 2026-10-27 (legacy Pulumi workspace removed)
 
 - The remote-Docker Pulumi workspace `services/monitoring/` (Alloy, cAdvisor, Grafana, speedtest; stacks `dev` and `prod`) is deleted from the repository. Its replacements run in `services/observability/`. Git history keeps the code; the Ansible-managed legacy stack on `dockerhost` is unaffected.
+
+## Update 2026-11-05 (stage 2 decided, ADR-0054)
+
+- The loss of the LAN-only monitoring is accepted (fritz-exporter, `wireguard:9100`, ICMP `192.168.178.1`, dockerhost's own metrics), except the three probes `tandoor.4jp.de`, `netbox.4jp.de` and `dev.kinderreich-augsburg.de`, which move to Alloy through `Monitoring Targets`.
+- `grafana.4jp.de` is deleted instead of redirected; the `g.4jp.de` canonical name stays.
+- The backfill uploads straight to the `mimir-compactor` service, so the gateway body size is irrelevant.
 
 ## Alternatives considered
 
