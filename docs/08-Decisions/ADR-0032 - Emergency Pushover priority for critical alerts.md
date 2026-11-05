@@ -40,6 +40,7 @@ The critical rule UIDs are:
 - `probe-failing`
 - `probe-failing-slow`
 - `qnap-hbs-jobs-missing`
+- `acthor-heating-while-ha-down` (added 2026-11-05, ADR-0051)
 
 ## Consequences
 

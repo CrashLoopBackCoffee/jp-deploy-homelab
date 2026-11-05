@@ -91,6 +91,10 @@ Verified: both jobs up, 0 endpoint errors, about 970 new series (Mimir 100,666 o
 
 Alloy scrapes the QNAP node exporter at `qnap.4jp.de:9100` (`10.10.0.10`, CoRE) as job `qnap-node`, instance `qnap` (the legacy instance name), every 30 s; the legacy LAN address `192.168.178.60` is not reachable from the cluster. About 3,000 series, 23 of 44 filesystems are per-snapshot FUSE mounts. The generic node rules select by `instance`, so they cover the QNAP; the filesystem rule ignores the 436 MB firmware partition `/mnt/ext` (93% used), as the legacy rule did. The data volume `/share/CACHEDEV1_DATA` is 18.7 TB, 60% used (2026-11-05). RAID scrubs push the CPU above 90% for hours, so `node-cpu-high` can notify on Thursday nights.
 
+# AC•THOR heating alerts (ADR-0051)
+
+The my-PV AC•THOR keeps the last setpoint it was given when Home Assistant stops (user observation), so LGTM watches the heater itself. Alloy scrapes `acthor-exporter` (json-exporter v0.8.0, module `acthor`, target `http://<host>/data.jsn`, config `observability/acthor.py`) every 30 s as job `acthor`, instance `acthor`: `acthor_power_act_watts`, `acthor_load_nom_watts`, `acthor_temp1_decicelsius` (0.1 °C), `acthor_boost_active`, `acthor_error_state`. Only always-numeric fields are listed because a `null` fails the whole probe (`surplus` and the meter fields are `null`); `uptime` is not exported, its unit is unknown. Rules: `acthor-heating-while-ha-down` (critical, 10 min: `power_act` above 100 W while `probe_success` of the Home Assistant probe is 0) and `acthor-heating-at-night` (warning, 30 min: above 100 W between 20:00 and 03:00 UTC with the boost backup off). The device is on HoME as `10.30.0.11` after the cable move; the exporter was tested against a captured `data.jsn` of the real device (a container on macOS cannot reach the LAN, so a local web server served the file).
+
 # Pitfalls found
 
 - **Longhorn ships NetworkPolicies** (`longhorn-system`, chart 1.13) that admit only Longhorn pods to the manager, so Alloy, a probe pod and the API server proxy all got `connection refused` on port 9500. `longhorn_access.py` adds an additive policy letting only Alloy reach port 9500.

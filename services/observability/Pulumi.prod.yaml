@@ -82,6 +82,11 @@ config:
     speedtest-exporter:
       # renovate: datasource=github-releases packageName=billimek/prometheus-speedtest-exporter versioning=semver
       version: 1.3.1
+    acthor:
+      # renovate: datasource=docker packageName=quay.io/prometheuscommunity/json-exporter versioning=semver
+      version: v0.8.0
+      # my-PV AC•THOR on HoME, basement (ADR-0049, ADR-0051); dnsmasq reservation `acthor`
+      host: 10.30.0.11
     opnsense:
       # renovate: datasource=docker packageName=ghcr.io/athennamind/opnsense-exporter versioning=semver
       version: 0.0.19

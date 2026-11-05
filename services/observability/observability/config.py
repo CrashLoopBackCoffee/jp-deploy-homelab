@@ -72,6 +72,16 @@ class OpnsenseConfig(ChartConfig):
     api_secret: utils.model.OnePasswordRef
 
 
+class AcThorConfig(ChartConfig):
+    """my-PV AC•THOR hot water heater, scraped directly so that it is watched without Home Assistant.
+
+    `version` is the image tag of quay.io/prometheuscommunity/json-exporter (ADR-0051).
+    """
+
+    # Address of the AC•THOR on HoME; its `data.jsn` is polled by the exporter
+    host: str
+
+
 class AlloyConfig(ChartConfig):
     syslog: SyslogConfig
     # Secure Note listing the probe and scrape targets, one `<group> <target>` per line
@@ -95,6 +105,7 @@ class ComponentConfig(utils.model.LocalBaseModel):
     kube_state_metrics: ChartConfig
     node_exporter: ChartConfig
     speedtest_exporter: ChartConfig
+    acthor: AcThorConfig
     opnsense: OpnsenseConfig
 
 
