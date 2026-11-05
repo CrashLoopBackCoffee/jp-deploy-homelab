@@ -744,12 +744,6 @@
         }
       ],
       "title": "PV Power",
-      "transformations": [
-        {
-          "id": "merge",
-          "options": {}
-        }
-      ],
       "type": "timeseries"
     },
     {
@@ -902,12 +896,6 @@
         }
       ],
       "title": "House load",
-      "transformations": [
-        {
-          "id": "merge",
-          "options": {}
-        }
-      ],
       "type": "timeseries"
     },
     {
@@ -1078,12 +1066,6 @@
         }
       ],
       "title": "Power per Phase",
-      "transformations": [
-        {
-          "id": "merge",
-          "options": {}
-        }
-      ],
       "type": "timeseries"
     },
     {
@@ -1204,12 +1186,6 @@
         }
       ],
       "title": "Battery Power",
-      "transformations": [
-        {
-          "id": "merge",
-          "options": {}
-        }
-      ],
       "type": "timeseries"
     },
     {
@@ -1330,12 +1306,6 @@
         }
       ],
       "title": "SOC",
-      "transformations": [
-        {
-          "id": "merge",
-          "options": {}
-        }
-      ],
       "type": "timeseries"
     },
     {
@@ -1493,12 +1463,6 @@
         }
       ],
       "title": "Grid",
-      "transformations": [
-        {
-          "id": "merge",
-          "options": {}
-        }
-      ],
       "type": "timeseries"
     },
     {
