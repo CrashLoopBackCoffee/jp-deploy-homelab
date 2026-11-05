@@ -17,7 +17,7 @@ adr: 53
 
 ## Status
 
-Accepted and applied on 2026-11-05, amended the same day (isolation, AdGuard, NTP, static lease). Open: the host must renew its DHCP lease, then the temporary DNS rules 270 and 271 go; the user has not yet confirmed that the host reaches the internet.
+Accepted and applied on 2026-11-05, amended the same day (isolation, AdGuard, NTP, static lease). The user confirmed that the host works. Open: layer-2 isolation (switch and access point settings).
 
 ## Context
 
@@ -39,15 +39,15 @@ Rules on `opt8` (in, IPv4, source `GaST net`), created through the OPNsense API 
 | Seq | Match | Note |
 |-----|-------|------|
 | 261 | removed | guests could reach `10.40.0.1` |
-| 270 | UDP 53 to this firewall | **temporary**, see below |
-| 271 | TCP 53 to this firewall | **temporary** |
+| 270 | UDP 53 to this firewall | removed 2026-11-05 after the host renewed its lease |
+| 271 | TCP 53 to this firewall | removed 2026-11-05 |
 | 272 | UDP 53 to `10.10.53.1` (AdGuard) | |
 | 273 | TCP 53 to `10.10.53.1` | |
 | 280 | TCP 443 to anything except `RFC1918` | |
 | 281 | TCP 80 to anything except `RFC1918` | the user said "maybe" |
 | 290 | UDP 123 to any | NTP, as on HoME |
 
-- **DNS goes to AdGuard.** DHCP option 6 for `opt8` is `10.10.53.1` (description `GaST DNS: AdGuard (ADR-0053)`), like PeRS. Rules 270 and 271 stay only until the host has renewed its lease: it still holds `10.40.0.1` as DNS. After the renewal (`networkctl renew <interface>` or `dhclient`, or a reconnect), delete 270 and 271 so that guests cannot bypass AdGuard through the firewall.
+- **DNS goes to AdGuard.** DHCP option 6 for `opt8` is `10.10.53.1` (description `GaST DNS: AdGuard (ADR-0053)`), like PeRS. Rules 270 and 271 (DNS to the firewall) were kept only until the host renewed its lease and were deleted on 2026-11-05: the lease expiry had moved (1793970810 to 1793977667, a new 24 h lease) and the user confirmed that it works. Guests can no longer bypass AdGuard through the firewall.
 - **Static lease:** dnsmasq host `zuul-rust-worker` = `10.40.83.75`, MAC `a8:a1:59:2a:41:fb`, `client_id` `01:a8:a1:59:2a:41:fb` (uuid `c6da0bad-099b-4b7b-ba5a-5a6ff6b4eb33`). The current address is kept; no scheme exists for VLAN 40 (ADR-0049 covers HoME).
 - **SSH from PeRS needs no new rule** (rule 221 above). CoRE reaches the host the same way; HoME has no rule towards GaST.
 - **Client isolation:** removing rule 261 closes the router address; guests still reach each other at layer 2, which OPNsense cannot filter. That needs port isolation on the switch port and client isolation on the guest SSID (UniFi) for VLAN 40; where the host is attached is not known.
