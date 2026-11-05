@@ -26,7 +26,16 @@ def create_loki(component_config: ComponentConfig, k8s_opts: p.ResourceOptions):
                     'delete_request_store': 'filesystem',
                     'retention_enabled': True,
                 },
-                'limits_config': {'retention_period': f'{loki_config.retention_days}d'},
+                'limits_config': {
+                    'retention_period': f'{loki_config.retention_days}d',
+                    'retention_stream': [
+                        {
+                            'selector': '{log_type="access"}',
+                            'priority': 1,
+                            'period': f'{loki_config.access_log_retention_days * 24}h',
+                        },
+                    ],
+                },
                 # Pinned: the chart's test schema may change between versions and orphan data.
                 'schemaConfig': {
                     'configs': [

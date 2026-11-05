@@ -8,6 +8,7 @@ class ChartConfig(utils.model.LocalBaseModel):
 class LokiConfig(ChartConfig):
     retention_days: int
     storage_size_gb: int
+    access_log_retention_days: int
 
 
 class MimirConfig(ChartConfig):
@@ -50,6 +51,17 @@ class SyslogConfig(utils.model.LocalBaseModel):
     allowed_sources: list[str]
 
 
+class PushReceiverConfig(utils.model.LocalBaseModel):
+    """Push-only Loki receiver for AX51 logs on a fixed MetalLB address."""
+
+    # Fixed address from the MetalLB pool
+    address: str
+    # TCP port of Alloy's loki.source.api listener
+    port: int
+    # CIDRs allowed to push; enforced by kube-proxy for the LoadBalancer address
+    allowed_sources: list[str]
+
+
 class ScrapeCredentials(utils.model.LocalBaseModel):
     """Basic-auth login of a metrics endpoint that Alloy scrapes over HTTPS."""
 
@@ -83,6 +95,7 @@ class AcThorConfig(ChartConfig):
 
 
 class AlloyConfig(ChartConfig):
+    push: PushReceiverConfig
     syslog: SyslogConfig
     # Secure Note listing the probe and scrape targets, one `<group> <target>` per line
     targets: utils.model.OnePasswordRef
