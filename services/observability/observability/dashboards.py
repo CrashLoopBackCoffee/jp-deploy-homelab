@@ -14,7 +14,6 @@ import typing as t
 MIMIR_DATASOURCE_UID = 'mimir'
 LOKI_DATASOURCE_UID = 'loki'
 INFLUXDB_VZLOGGER_UID = 'influxdb-vzlogger'
-INFLUXDB_HOME_ASSISTANT_UID = 'influxdb-home-assistant'
 WAZUH_VULNERABILITIES_UID = 'wazuh-live-vulnerabilities'
 WAZUH_INVENTORY_UID = 'wazuh-live-inventory'
 WAZUH_PROCESSES_UID = 'wazuh-live-processes'

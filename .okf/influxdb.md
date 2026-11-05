@@ -47,7 +47,7 @@ Left on `dockerhost`: mosquitto and `mqtt2influxdb` (stopped 2026-11-03, not rem
 
 # Remaining
 
-Decide on authentication. `Solax` and `Warmwasser` read the Thanos archive since 2026-11-04 (ADR-0047); the database `home_assistant` (6.3 GB) is frozen, copied to `~/k0s-influxdb-home-assistant-archive/` (portable backup, 4.7 GB, checksums verified) and still browsable through the Grafana datasource `InfluxDB home_assistant`. Open: drop the database (needs the user's approval). The old `sensor.<entity>` measurements stop on 2026-03-26 when the new Home Assistant moved to the measurement-per-unit schema (both carry the tag `entity_id`). Stage 2 for mosquitto and `mqtt2influxdb` (remove containers, images, `/opt/mosquitto`, `/opt/mqtt2influxdb`) needs the user's approval.
+Decide on authentication. `Solax` and `Warmwasser` read the Thanos archive since 2026-11-04 (ADR-0047). The database `home_assistant` was copied to `~/k0s-influxdb-home-assistant-archive/` (portable backup, 4.7 GB, checksums verified) and dropped on 2026-11-05; the Grafana datasource `InfluxDB home_assistant` is gone too, restore into a new name with `influxd restore -portable -db home_assistant -newdb home_assistant_restored` if needed. The old `sensor.<entity>` measurements stopped on 2026-03-26 when the new Home Assistant moved to the measurement-per-unit schema. Stage 2 for mosquitto and `mqtt2influxdb` (remove containers, images, `/opt/mosquitto`, `/opt/mqtt2influxdb`) needs the user's approval.
 
 # Still to verify
 
