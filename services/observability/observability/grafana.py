@@ -181,6 +181,7 @@ def create_grafana(
                         {'name': 'Wazuh vulnerabilities', 'orgId': 1},
                         {'name': 'Wazuh inventory', 'orgId': 1},
                         {'name': 'Wazuh alerts', 'orgId': 1},
+                        {'name': 'InfluxDB home_assistant', 'orgId': 1},
                     ],
                     'datasources': [
                         {
@@ -207,24 +208,14 @@ def create_grafana(
                             'url': thanos_archive.QUERY_URL,
                             'jsonData': {'httpMethod': 'POST', 'timeInterval': '15s'},
                         },
-                        *[
-                            {
-                                'name': name,
-                                'uid': uid,
-                                'type': 'influxdb',
-                                'access': 'proxy',
-                                'url': INFLUXDB_URL,
-                                'jsonData': {'dbName': database, 'httpMode': 'GET'},
-                            }
-                            for name, uid, database in (
-                                ('InfluxDB vzlogger', dashboards.INFLUXDB_VZLOGGER_UID, 'vzlogger'),
-                                (
-                                    'InfluxDB home_assistant',
-                                    dashboards.INFLUXDB_HOME_ASSISTANT_UID,
-                                    'home_assistant',
-                                ),
-                            )
-                        ],
+                        {
+                            'name': 'InfluxDB vzlogger',
+                            'uid': dashboards.INFLUXDB_VZLOGGER_UID,
+                            'type': 'influxdb',
+                            'access': 'proxy',
+                            'url': INFLUXDB_URL,
+                            'jsonData': {'dbName': 'vzlogger', 'httpMode': 'GET'},
+                        },
                         *[
                             {
                                 'name': name,

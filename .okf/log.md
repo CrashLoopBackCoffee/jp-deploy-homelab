@@ -1,5 +1,9 @@
 # Update Log
 
+## 2026-11-05
+* **Change**: With the user's approval the frozen InfluxDB `home_assistant` was dropped (backup checksums re-verified first; PVC 8.9 to 2.6 GB), the Grafana datasource `InfluxDB home_assistant` removed (PR #136) and OPNsense HoME egress rule 130 deleted and applied; HA stayed reachable — [Home Assistant sensor archive](ha-archive.md), [InfluxDB on k0s](influxdb.md).
+* **Fix**: Solax showed a zig-zag in `PV Power` because the `merge` transformation collapsed the Prometheus frames into one series; removed from six panels (PR #135).
+
 ## 2026-11-04
 * **Change**: ADR-0047 step 4 done: `Solax` and `Warmwasser` read the Thanos archive (PR #133, only the BKW and `meter1` targets stay on InfluxDB `vzlogger`); `sensor.solax_battery_capacity` added to HA's allowlist and backfilled (6.49 million samples, verified against InfluxDB); HA's InfluxDB integration disabled at 20:43:11Z, `home_assistant` frozen (auth stays off, HA was the only writer) and copied to `~/k0s-influxdb-home-assistant-archive/` (4.7 GB, checksums equal) — [Home Assistant sensor archive](ha-archive.md), [InfluxDB on k0s](influxdb.md).
 * **Finding**: No charge-start Pushover at 17:05 CET: `sensor.solaxhac_hac_run_mode` was `Charging` for only 31 s (up to 4.47 kW, 0.0 kWh) and then `Finishing`; the automation needs 1 minute (ADR 0011 in `deploy-home-assistant`). The user keeps the behaviour.

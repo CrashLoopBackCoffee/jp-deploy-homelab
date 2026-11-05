@@ -51,9 +51,9 @@ Of the 1330 entities, 204 have a `state_class`; by device class: power 56, energ
 4. **Dashboards, freeze and archive copy (done 2026-11-04, PR #133):**
    - `Solax` and `Warmwasser` read the Thanos datasource (PromQL, selected by `entity`); only the BKW and `meter1` targets stay on InfluxDB `vzlogger`. `Power` has no HA entities and is unchanged.
    - `sensor.solax_battery_capacity` (the SOC panels) was added to HA's allowlist and backfilled (6.49 million samples, 2023-10-04 to the first live sample). This is an exception to "battery stays in the recorder": the inverter SOC is energy data, not the battery of a device.
-   - HA's InfluxDB config entry was disabled (not deleted) at 2026-11-04T20:43:11Z; `deploy-home-assistant` ADR 0014. The database is frozen de facto: auth is off, but HA was the only writer on `home_assistant`, and no points arrive after the switch-off. It is not dropped.
-   - Archive: a portable backup on the workstation, `~/k0s-influxdb-home-assistant-archive/` (4.7 GB, `SHA256SUMS` equal to the source, restore command in `README.txt`); the nightly Longhorn backup of the PVC also holds the data. The Grafana datasource `InfluxDB home_assistant` stays so the frozen data remains browsable in Explore until the database is retired.
-   - Open: dropping the `home_assistant` database, and OPNsense HoME egress rule 130 (TCP 443 to `10.10.88.1`), which HA no longer needs.
+   - HA's InfluxDB config entry was disabled (not deleted) at 2026-11-04T20:43:11Z; `deploy-home-assistant` ADR 0014. HA was the only writer on `home_assistant`, so the disabled entry was the freeze (auth is off); no points arrived afterwards (checked 5 minutes and 8 hours later).
+   - Archive: a portable backup on the workstation, `~/k0s-influxdb-home-assistant-archive/` (4.7 GB, `SHA256SUMS` equal to the source, restore command in `README.txt`); the nightly Longhorn backup of the PVC also holds the data.
+   - Retired on 2026-11-05 with the user's approval: `DROP DATABASE home_assistant` (the PVC fell from 8.9 to 2.6 GB used), the Grafana datasource `InfluxDB home_assistant` (provisioning `deleteDatasources`, PR #136) and the OPNsense HoME egress rule 130 (TCP 443 to `10.10.88.1`, deleted through the API and applied). A later Solax fix (PR #135): the panels' `merge` transformation collapsed the Prometheus series (all named `Value`) into one and was removed.
 
 ## Spike results (2026-11-03)
 

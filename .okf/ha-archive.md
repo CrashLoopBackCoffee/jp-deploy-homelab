@@ -49,6 +49,7 @@ Verification: 480 random (entity, time) pairs in three windows (October 2026, Ma
 - Influx `SHOW SERIES WHERE "entity_id"=...` lists both schemas' measurements for one entity; query both in one `FROM` to stitch the history.
 - The Store Gateway syncs the bucket every 15 minutes (the chart default), so uploaded blocks appear in Query up to 15 minutes later; `/api/v1/stores` shows its min and max time.
 - Gen1 Shelly CoIoT pushes stopped reaching HA after the dual-NIC change (ADR 0013 in deploy-home-assistant): not an archive issue, found while the backfill ran.
+- A Grafana `merge` transformation joins Prometheus frames by the field name `Value`, so several targets of one panel collapse into a single zig-zag series; Prometheus frames need no `merge` (the Influx-era Solax panels had it).
 
 # SOC added and cutover (2026-11-04)
 
@@ -56,6 +57,10 @@ Verification: 480 random (entity, time) pairs in three windows (October 2026, Ma
 
 `Solax` and `Warmwasser` now read this datasource (`avg_over_time({__name__=~"homeassistant_sensor_.+", entity="sensor.x"}[$__interval])`, raw selector for the gauges). HA's InfluxDB integration was disabled at 2026-11-04T20:43:11Z; no point has arrived in `home_assistant` since. Workstation copy of the database: `~/k0s-influxdb-home-assistant-archive/`.
 
+# Retired (2026-11-05)
+
+With the user's approval: the InfluxDB database `home_assistant` was dropped (portable backup in `~/k0s-influxdb-home-assistant-archive/`, checksums re-verified before the drop; PVC 8.9 to 2.6 GB used), the Grafana datasource `InfluxDB home_assistant` was removed (needs a `deleteDatasources` entry in the provisioning) and the OPNsense HoME egress rule 130 was deleted (`delRule` and `apply`; HA stayed reachable).
+
 # Open
 
-Dropping the frozen InfluxDB `home_assistant` database, and OPNsense HoME egress rule 130 (TCP 443 to `10.10.88.1`), which HA no longer needs (both need the user's approval).
+Nothing for ADR-0047.
