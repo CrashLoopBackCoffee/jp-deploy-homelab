@@ -17,7 +17,7 @@ adr: 46
 
 ## Status
 
-Accepted on 2026-11-03. Migration not started; steps below.
+Accepted on 2026-11-03. Migration done on 2026-11-05 (step 5 on 2026-11-05, see below); the AC•THOR failure behaviour stays an open question.
 
 ## Context
 
@@ -53,13 +53,13 @@ Findings on 2026-11-03:
 2. `deploy-home-assistant` (done 2026-11-03, commits 8828a1f, db74767): enabled the Shelly input, template sensors, alert automations, offline warnings.
 3. This repo (PR #122): HA record and probe target; apply `observability` after the merge.
 4. Parallel run with the legacy alerts; test unlock for 10 min (both Pushover messages) and an offline i4.
-5. After the user accepts: remove the legacy rules and job, stop jexporter; rebuild `Warmwasser`; update ADR-0023 and the OKF notes.
+5. **Done 2026-11-05** (user: jexporter is replaced by other solutions; the service on `wireguard` had been stopped by the user since 2026-11-03 15:38Z): the legacy rules `ZweiradGarage` and `WarmWaterOutage` and the `jexporter` job were removed from the Ansible templates and from `/opt/monitoring/config` on `dockerhost` (backups `*.pre-jexporter-removal`, `promtool` valid, 16 rules, `SIGHUP`, reload ok). Replacements: the lock and hot-water alerts are Home Assistant automations (ADR-0046), the i4 itself is probed from k0s (ADR-0049), the only `mypv_*` series any dashboard or rule used (`mypv_temp1`, `mypv_power_act`; `mypv_surplus` was always 0) map to `sensor.mypv_water_temperature` and `sensor.mypv_power_act` in the archive, and `Warmwasser` was rebuilt on them. The other 100 or so `mypv_*` series (meters, fan, error state, boost flags) had no consumer and are not replaced; add Home Assistant `rest` sensors and archive them if one is wanted.
 
 ## Consequences
 
 - Lock and hot-water alerts depend on HA and the Shelly integration; HA unavailability pages through LGTM instead.
-- Open: the AC•THOR's behaviour when `control.html?power=` updates stop (HA down) is unverified; check the my-PV documentation before step 5.
-- Retiring jexporter removes the last LAN consumer of the legacy Prometheus besides dockerhost, node and QNAP exporters.
+- Open: what the AC•THOR does when `control.html?power=` updates stop (HA down). The my-PV "Documentation of Controls" (EN241205) describes the http control (`power`, `pid_power`, `boost`) but states no timeout or fallback, so it stays unverified; the water still reached about 48.6 °C a day without surplus on 2026-11-03 to 11-05.
+- Retiring jexporter removed the last LAN consumer of the legacy Prometheus besides the dockerhost exporters; the `Target unreachable` alert for `192.168.178.171:9303` that fired since 2026-11-03 is gone.
 
 ## Related notes
 
