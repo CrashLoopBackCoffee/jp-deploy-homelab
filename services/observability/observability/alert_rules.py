@@ -460,6 +460,37 @@ RULES = [
         summary='The pf state table of OPNsense is above 80% of its limit',
         for_='10m',
     ),
+    # The AC•THOR keeps the last power it was given when Home Assistant stops (ADR-0051), so Home
+    # Assistant cannot guard against its own outage; these two rules read the device directly.
+    AlertRule(
+        uid='acthor-heating-while-ha-down',
+        title='AC•THOR keeps heating while Home Assistant is down',
+        expr=(
+            '(acthor_power_act_watts{job="acthor"} > bool 100)'
+            ' * on() (probe_success{job="blackbox",'
+            'instance="https://home-assistant.4jp.de/manifest.json"} == bool 0)'
+        ),
+        summary=(
+            'Home Assistant does not answer and the AC•THOR still heats with more than 100 W; '
+            'it keeps the last setpoint, so lower it on the device itself'
+        ),
+        for_='10m',
+        severity='critical',
+    ),
+    AlertRule(
+        uid='acthor-heating-at-night',
+        title='AC•THOR heats at night',
+        expr=(
+            '(acthor_power_act_watts{job="acthor"} > bool 100)'
+            ' * (acthor_boost_active{job="acthor"} == bool 0)'
+            ' * on() ((hour() >= bool 20) + (hour() < bool 3))'
+        ),
+        summary=(
+            'The AC•THOR has heated with more than 100 W for 30 minutes between 20:00 and 03:00 UTC '
+            'without the boost backup; check the setpoint automation in Home Assistant'
+        ),
+        for_='30m',
+    ),
 ]
 
 

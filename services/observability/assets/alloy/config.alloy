@@ -1034,6 +1034,27 @@ prometheus.scrape "qnap_node" {
 }
 
 // ---------------------------------------------------------------------------
+// my-PV AC•THOR (ADR-0051)
+// ---------------------------------------------------------------------------
+
+// The heater is read directly through a JSON exporter, so that its power is known while Home Assistant
+// is down (it keeps the last setpoint it was given). The exporter turns `data.jsn` into metrics.
+prometheus.scrape "acthor" {
+	targets = [{
+		"__address__"      = "acthor-exporter.observability.svc:7979",
+		"__metrics_path__" = "/probe",
+		"__param_module"   = "acthor",
+		"__param_target"   = "http://ACTHOR_HOST/data.jsn",
+		"instance"         = "acthor",
+	}]
+
+	forward_to      = [prometheus.remote_write.mimir.receiver]
+	job_name        = "acthor"
+	scrape_interval = "30s"
+	scrape_timeout  = "10s"
+}
+
+// ---------------------------------------------------------------------------
 // Home Assistant archive (ADR-0047)
 // ---------------------------------------------------------------------------
 

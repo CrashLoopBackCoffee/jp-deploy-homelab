@@ -1,6 +1,7 @@
 import pulumi as p
 import pulumi_kubernetes as k8s
 
+from observability.acthor import create_acthor_exporter
 from observability.alloy import create_alloy, create_node_proxy_access, create_syslog_service
 from observability.config import ComponentConfig
 from observability.exporters import create_kube_state_metrics, create_node_exporter
@@ -35,6 +36,7 @@ def main():
     create_node_exporter(component_config, k8s_opts)
     create_speedtest_exporter(component_config, k8s_opts)
     create_opnsense_exporter(component_config, k8s_opts)
+    create_acthor_exporter(component_config, k8s_opts)
     targets = create_targets_secret(component_config, k8s_opts)
     alloy = create_alloy(component_config, k8s_opts, depends_on=[loki, mimir, targets])
     create_node_proxy_access(k8s_opts, alloy)

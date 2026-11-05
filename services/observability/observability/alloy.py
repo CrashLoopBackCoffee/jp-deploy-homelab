@@ -48,6 +48,7 @@ def create_alloy(
         'OPNSENSE_NODE_EXPORTER_TARGET', component_config.opnsense.node_exporter_target
     )
     config = config.replace('QNAP_NODE_EXPORTER_TARGET', QNAP_NODE_EXPORTER_TARGET)
+    config = config.replace('ACTHOR_HOST', component_config.acthor.host)
     config = config.replace('THANOS_RECEIVE_URL', RECEIVE_REMOTE_WRITE_URL)
     config = config.replace('HOME_ASSISTANT_HOST', HOME_ASSISTANT_HOST)
     config = config.replace('TARGETS_PATH', MOUNT_PATH)
