@@ -745,6 +745,31 @@ loki.process "opnsense_syslog" {
 }
 
 // ---------------------------------------------------------------------------
+// Logs pushed by AX51's Alloy through the ax51-wazuh tunnel (ADR-0055)
+// ---------------------------------------------------------------------------
+
+// Only AX51 can reach this listener, so every entry is pinned to host="ax51".
+loki.relabel "ax51_push" {
+	forward_to = []
+
+	rule {
+		target_label = "host"
+		replacement  = "ax51"
+	}
+}
+
+loki.source.api "ax51" {
+	http {
+		listen_address = "0.0.0.0"
+		listen_port    = LOKI_API_PORT
+	}
+	// Keep AX51's timestamps: entries arrive late after a tunnel outage.
+	use_incoming_timestamp = true
+	relabel_rules          = loki.relabel.ax51_push.rules
+	forward_to             = [loki.write.loki.receiver]
+}
+
+// ---------------------------------------------------------------------------
 // Probes and scrapes of external targets
 // ---------------------------------------------------------------------------
 

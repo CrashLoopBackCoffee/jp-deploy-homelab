@@ -44,6 +44,7 @@ def create_alloy(
     config = config.replace('SYSLOG_RFC5424_PORT', str(SYSLOG_PORTS['syslog5424']))
     config = config.replace('SYSLOG_RFC3164_PORT', str(SYSLOG_PORTS['syslog3164']))
     config = config.replace('OPNSENSE_SYSLOG_PORT', str(SYSLOG_PORTS['opnsense']))
+    config = config.replace('LOKI_API_PORT', str(component_config.alloy.push.port))
     config = config.replace(
         'OPNSENSE_NODE_EXPORTER_TARGET', component_config.opnsense.node_exporter_target
     )
@@ -138,4 +139,35 @@ def create_syslog_service(
         domain=component_config.zone,
         ipaddress=syslog.address,
         description='ADR-0048 internal-only',
+    )
+
+
+def create_push_service(
+    component_config: ComponentConfig,
+    k8s_opts: p.ResourceOptions,
+    alloy: k8s.helm.v3.Release,
+):
+    """Expose Alloy's Loki push endpoint only to the AX51 WireGuard peer."""
+    address = component_config.alloy.push.address
+    k8s.core.v1.Service(
+        'alloy-push',
+        metadata={'name': 'alloy-push', 'annotations': {'metallb.io/loadBalancerIPs': address}},
+        spec={
+            'type': 'LoadBalancer',
+            'external_traffic_policy': 'Local',
+            'load_balancer_source_ranges': component_config.alloy.push.allowed_sources,
+            'allocate_load_balancer_node_ports': False,
+            'selector': {'app.kubernetes.io/name': 'alloy', 'app.kubernetes.io/instance': 'alloy'},
+            'ports': [
+                {
+                    'name': 'loki-push',
+                    'port': component_config.alloy.push.port,
+                    'target_port': component_config.alloy.push.port,
+                    'protocol': 'TCP',
+                }
+            ],
+        },
+        opts=p.ResourceOptions.merge(
+            k8s_opts, p.ResourceOptions(depends_on=[alloy], delete_before_replace=True)
+        ),
     )
