@@ -67,7 +67,7 @@ Dashboards, decided by the user on 2026-10-17: **keep and port** the UI-only `Pr
 
 dockerhost `node-exporter`, cAdvisor and its Traefik (`:8080`) with the `Traefik2` dashboard and `InternalServerErrors`, QNAP node metrics, `fritz-exporter` for the Fritz!Box (the modem device is reachable), `ohmgraphite` and the `Ohm Windows Desktop` dashboard, `jexporter` on `wireguard` with the `Solax` and `Warmwasser` dashboards, Watchtower, the `Power` and `Power small` dashboards (InfluxDB), the five `*.4jp.de` and the LAN probes (`192.168.178.222`, `192.168.178.1`), Promtail logs of dockerhost, and the `BackupNAS` syslog with its two Loki rules and the `Backup` dashboard (needs a syslog receiver such as Alloy `loki.source.syslog`, tied to the HBS 3 work).
 
-**Alerts that exist only on the legacy stack until the LAN work: `ZweiradGarage` (the lock is open), `WarmWaterOutage` and the Grafana rule `Low Water Level`.** The user accepted on 2026-10-17 that the first two stay there. Switching the legacy stack off is therefore stage 2, after the LAN decision.
+**Alerts that existed only on the legacy stack until the LAN work: `ZweiradGarage` (the lock is open), `WarmWaterOutage` and the Grafana rule `Low Water Level`.** `ZweiradGarage` and `WarmWaterOutage` moved to Home Assistant on 2026-11-03 (automations `Alert bike storage unlocked` and `Alert warm water outage` in `deploy-home-assistant`, ADR-0046); the legacy rules are still defined but inert (checked 2026-11-05: both `inactive`, target `jexporter` down, 0 `mypv_*` series). `Low Water Level` was dropped on 2026-10-17 with the coffee dashboard. Removing the two legacy rules and the `jexporter` job needs the user's acceptance (ADR-0046 migration step 5).
 
 # Backfilling the history
 
