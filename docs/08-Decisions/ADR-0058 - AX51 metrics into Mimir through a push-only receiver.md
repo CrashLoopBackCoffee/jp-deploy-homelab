@@ -45,6 +45,7 @@ AX41 [ADR 0018](https://github.com/CrashLoopBackCoffee/AX41/blob/main/docs/adr/0
 
 - Any process on AX51 can now write arbitrary series as `host="ax51"` into Mimir; the series budget (250,000, [[ADR-0041 - Mimir series limit raised to 250000]]) is the shared limit. CrowdSec adds about 700 series.
 - Behavior after a long tunnel outage (retry from AX51's WAL, Mimir's acceptance window for old samples) was not tested.
+- **Country map (2026-11-06, AX41 ADR 0019):** the dashboard got a Geomap and a top-countries table from Loki (`{job="crowdsec-alerts"}`, label `country`, no IPs). The lines reach Loki through the ADR-0055 receiver, so nothing changed in this repository; Loki keeps them 30 days. The map counts ban alerts in the range, not active bans.
 
 ## Rollback
 
