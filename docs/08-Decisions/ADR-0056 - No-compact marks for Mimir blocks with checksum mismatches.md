@@ -66,7 +66,7 @@ All are compactor-written (`thanos.source=compactor`). Logged errors: `01M519WTC
 
 ## Consequences
 
-- Marked blocks are never merged further and stay as small blocks until retention (400 days) removes them. Chunks in a zero-filled part have no samples; the first rerun of `count(up)` at 2026-11-05T06:00Z, 2026-10-19T18:00Z, 2026-10-15T12:00Z and 2026-10-20T12:00Z returned data (99, 121, 85, 121 series), so queries still answer, but the affected series are incomplete there.
+- Marked blocks are never merged further and stay as small blocks until retention (400 days) removes them. Chunks in a zero-filled part have no samples. `count(up)` at 2026-11-05T06:00Z, 2026-10-19T18:00Z, 2026-10-15T12:00Z and 2026-10-20T12:00Z returned data (99, 121, 85, 121 series), and range queries of `up` over each damaged block's window succeeded. **But the damage is wider than the zero part:** a range query of `cnpg_collector_last_available_backup_timestamp{pod="tandoor-db-1"}` over 2026-10-29 to 2026-11-06 failed with `unsupported chunk encoding 225` at offset 12896089 of `01M6P096JQ…` (part 0). Series whose chunks sit in damaged bytes make the whole query fail; narrow the range to avoid the block (for example start after 2026-11-05T12:00Z) until the block's fate is decided.
 - Verified after marking: no `checksum mismatch` in the compactor log for 40 minutes, the compactor merges the other groups again.
 
 ## Rollback
