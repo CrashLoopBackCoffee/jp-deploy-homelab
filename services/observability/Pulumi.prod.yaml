@@ -29,9 +29,10 @@ config:
       # renovate: datasource=helm registryUrl=https://grafana.github.io/helm-charts packageName=alloy versioning=helm
       version: 1.13.1
       push:
-        # AX51's Alloy pushes its logs here through the ax51-wazuh WireGuard tunnel (ADR-0055).
+        # AX51's Alloy pushes its logs (ADR-0055) and metrics (ADR-0058) here through the ax51-wazuh WireGuard tunnel.
         address: 10.10.88.4
         port: 3100
+        metrics-port: 9090
         allowed-sources:
           - 10.60.0.2/32
       syslog:

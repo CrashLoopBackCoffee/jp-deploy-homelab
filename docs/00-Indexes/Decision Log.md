@@ -54,3 +54,4 @@ updated: 2026-10-26
 | [[ADR-0042 - AX51 reaches Wazuh through its own WireGuard instance]] | accepted | Dedicated WireGuard instance, one peer and one narrow rule for the AX51 Wazuh agent |
 | [[ADR-0043 - InfluxDB 1.x on k0s for power and Home Assistant history]] | accepted | InfluxDB 1.11 on k0s behind Traefik, portable backup and restore of `vzlogger` and `home_assistant`, DNS cutover, Power dashboard in the new Grafana |
 | [[ADR-0055 - AX51 logs into Loki through a push-only receiver]] | accepted | AX51 pushes journal, Docker and access logs through Alloy; access logs retained 7 days, other logs 30 days |
+| [[ADR-0058 - AX51 metrics into Mimir through a push-only receiver]] | accepted | AX51 pushes CrowdSec metrics through Alloy's `prometheus.receive_http` on `10.10.88.4:9090`; host label pinned, no Mimir read access |
