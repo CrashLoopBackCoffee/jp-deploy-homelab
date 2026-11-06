@@ -1,8 +1,8 @@
 ---
 type: Runbook
 title: Retiring the legacy dockerhost monitoring stack
-description: Inventory of the old Ansible-managed monitoring on dockerhost, how each part maps to the k0s observability stack, what is stale or blocked, and the gated migration plan (ADR-0023).
-timestamp: 2026-10-26T00:00:00Z
+description: Inventory of the old Ansible-managed monitoring on dockerhost, how each part maps to the k0s observability stack, the findings, the stage-2 execution (archive, Mimir backfill method and results, retirement, ADR-0054) and the gated plan (ADR-0023).
+timestamp: 2026-11-06T00:00:00Z
 tags: [homelab, observability, migration, prometheus, grafana, loki, mimir, dockerhost]
 resource: /Users/alten/Documents/dockerhost
 ---
@@ -98,6 +98,17 @@ Each phase ends with a verification; destructive steps need the user's approval;
 5. **Cut over stage-1 monitoring jobs: done 2026-10-26.** After live replacement checks, the user approved ending the dual run early. Removed legacy `ax51`, `pretix`, `check_teamspeak` and migrated public probe targets; retained five local `*.4jp.de` probes, `dev.kinderreich-augsburg.de`, and LAN-only slow/ICMP targets with their legacy alerts. Prometheus config/rules passed `promtool` and reloaded with `SIGHUP`. DNS/name cutover (dnsmasq, Cloudflare, IngressRoute host, redirect) remains pending.
 6. **Backfill test** with one week; if queries match the legacy Prometheus, continue later in stage 2.
 7. **Stage 2 (later, after the LAN decision):** move the LAN targets, then stop the legacy stack, archive `data/prometheus` and `data/grafana` to the QNAP, run the full backfill, and, after the user's approval, remove `/opt/monitoring`, the `jpspeedtest` unit, the role and playbook import in the Ansible repository, the legacy DNS records and the vaulted secrets that are no longer used. The user also said the Home Assistant role on dockerhost is dead and can be deleted (no container runs; SwitchBot now lives in Home Assistant on Proxmox): remove the role, `/opt/home-assistant`, the `InfluxDBHomeAssistant` datasource, the blackbox target `home-assistant.4jp.de` and, after archiving, the InfluxDB database `home_assistant`, each with approval. Also decide the fate of the donor-derived `services/monitoring` Pulumi workspace in this repository (it targets `tobiash.net` and Synology values and is not the same thing).
+
+# Stage 2 executed (2026-11-06, ADR-0054)
+
+Done. The legacy stack was stopped on 2026-11-05 19:00 UTC, the TSDB archived and backfilled, and `dockerhost` powered off on 2026-11-06. Results and deviations are in ADR-0054 (update 2026-11-06).
+
+- **Reference values** were taken from the legacy Prometheus before the stop (`count(up)`, `node_memory_MemTotal_bytes`, and `increase` of idle CPU, at 19 timestamps).
+- **Method that worked.** Hardlink the 26 source blocks, then `mimirtool blocks split --max-block-duration 24h --full --verify-blocks` on the host (392 daily UTC-aligned blocks, about 95 GB, about 1 h). Upload with `mimirtool backfill --address=http://localhost:18080 --id=anonymous` to the compactor through `kubectl port-forward pod/mimir-compactor-0` plus `ssh -R` to the host; `limits.compactor_block_upload_enabled: true` was set for the duration and removed afterwards. A test week (7 blocks) went first.
+- **Pitfalls.** `kubectl port-forward` to `svc/mimir-compactor` dropped connections (EOF, connection reset): forward the pod and wrap it in a watchdog that restarts it when `/ready` fails. The compactor allows one upload validation at a time (429). New blocks became queryable only after the next bucket-index update and store-gateway sync (the test week was still empty about 10 minutes after its upload and matched on the next check, 30 to 40 minutes after it). A block whose upload was cut by a QNAP S3 503 stays at `validation failed` forever; re-upload it under a new ULID. The store-gateway PVC grew only 388 MB for all 392 blocks (5 Gi is enough).
+- **Result.** 392/392 blocks, 57 reference comparisons with 0 mismatches. Mimir's 400-day retention deletes the oldest backfilled days from 2026-12-04.
+- **Dropped, not ported:** fritz-exporter (Fritz!Box and modem), `wireguard:9100`, ICMP `192.168.178.1`, dockerhost host, container and Traefik metrics. Ported to Alloy: the probes `https://tandoor.4jp.de` and `https://netbox.4jp.de`. `dev.kinderreich-augsburg.de` was removed by the user (emergency cutover). `grafana.4jp.de` and the other legacy names are deleted from Cloudflare (no redirect).
+- **Open:** Mimir compactor `checksum mismatch` on two merge groups (see ADR-0054, [INFERENCE] QNAP S3).
 
 # Open questions for the user
 

@@ -1,5 +1,13 @@
 # Update Log
 
+## 2026-11-06
+* **Change**: ADR-0054 executed: `dockerhost` decommissioned. G1 (2026-11-05): Watchtower and the monitoring stack stopped. G2: units disabled, restart policies `no`, containers stopped; a 33-minute tcpdump saw no inbound client. G3: the 10 Cloudflare records `→ 192.168.178.125` deleted (listing archived). G4: powered off. G5: NetBox device offline, IP removed. G6: `~/dockerhost-legacy-*`, the SSH block and `known_hosts` lines removed — [Services on dockerhost](dockerhost-services.md).
+* **Creation**: Archive of the host on the QNAP share `backups/dockerhost` (`host/` 44.6 GB, `workstation-legacy/`, `ansible/` bundle), all SHA-256 manifests `OK`, written through the SMB mount because SSH to the QNAP was denied — [Services on dockerhost](dockerhost-services.md).
+* **Change**: Legacy Prometheus history backfilled into Mimir: 392 daily blocks, 57 reference comparisons with 0 mismatches; `compactor_block_upload_enabled` set for the backfill and removed again — [Retiring the legacy dockerhost monitoring stack](legacy-monitoring-migration.md).
+* **Change**: Probes `tandoor.4jp.de` and `netbox.4jp.de` added to `Monitoring Targets` (Alloy), `192.168.178.125/32` removed from the Wazuh agent source ranges (PR #155).
+* **Verification**: Mimir compactor logs `checksum mismatch` on two merge groups (2026-10-19, 2026-11-05) that predate or overlap the backfill; queries over both days succeed; cause open, [INFERENCE] QNAP S3 — see ADR-0054.
+* **Observation**: The Fritz!Box still reported `dockerhost` as home after its entry was deleted; HA entities `device_tracker.dockerhost` and `switch.dockerhost_internet_access` remain, to be cleaned up with the HA branch `docs/dockerhost-decommissioned`.
+
 ## 2026-11-05
 * **Decision**: ADR-0055: expose AX51's log push to Alloy only at `10.10.88.4:3100` through `ax51-wazuh`, source-restricted to `10.60.0.2/32`; do not expose Loki reads. Pin `host="ax51"`, retain access logs (`log_type="access"`) for 7 days per the privacy notices and other logs for 30 days — [Observability stack](observability-stack.md).
 * **Change**: GaST: the user confirmed the host works; the lease had renewed (expiry moved to a new 24 h lease), so the temporary firewall DNS rules 270 and 271 were deleted and applied. `opt8` now has 272/273 (DNS to AdGuard), 280/281 (TCP 443 and 80 to non-private) and 290 (NTP). Not re-tested from the guest after the deletion except by the user's "works". Open: layer-2 client isolation on the switch and access point.
