@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-06
+* **Change**: Retro of the dockerhost decommission: pre-commit hook `okf-validate` (`scripts/okf-validate`, needs the APM skill, fails with "run: apm install" when it is missing), a "Preflight external access" lesson in [Operational lessons](operational-lessons.md) with a pointer in `AGENTS.md`, and `AGENTS.md` pruned of the dead MCP `interactive_feedback` rule, the "Documentation Maintenance" section and the generic commands.
 * **Change**: ADR-0054 executed: `dockerhost` decommissioned. G1 (2026-11-05): Watchtower and the monitoring stack stopped. G2: units disabled, restart policies `no`, containers stopped; a 33-minute tcpdump saw no inbound client. G3: the 10 Cloudflare records `→ 192.168.178.125` deleted (listing archived). G4: powered off. G5: NetBox device offline, IP removed. G6: `~/dockerhost-legacy-*`, the SSH block and `known_hosts` lines removed — [Services on dockerhost](dockerhost-services.md).
 * **Creation**: Archive of the host on the QNAP share `backups/dockerhost` (`host/` 44.6 GB, `workstation-legacy/`, `ansible/` bundle), all SHA-256 manifests `OK`, written through the SMB mount because SSH to the QNAP was denied — [Services on dockerhost](dockerhost-services.md).
 * **Change**: Legacy Prometheus history backfilled into Mimir: 392 daily blocks, 57 reference comparisons with 0 mismatches; `compactor_block_upload_enabled` set for the backfill and removed again — [Retiring the legacy dockerhost monitoring stack](legacy-monitoring-migration.md).
