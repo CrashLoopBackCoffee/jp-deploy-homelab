@@ -41,7 +41,7 @@ services/
 
 - **`docs/`**: Contains example code and documentation for common patterns (e.g., `cnpg_postgres.py`)
 - **`utils/`**: Shared utility modules for common functionality across services
-- **`dockerhost`** (legacy Docker host) is configured from `/Users/alten/Documents/dockerhost/ansible`. `~/GitHub/stefan_raspberry` is not part of this homelab; never use it for homelab work.
+- **`dockerhost`** (legacy Docker host `192.168.178.125`) was decommissioned on 2026-11-06 (ADR-0054): powered off, disk kept as cold fallback, archive on the QNAP share `backups/dockerhost`; its Ansible repo `/Users/alten/Documents/dockerhost` is kept read-only as history. `~/GitHub/stefan_raspberry` is not part of this homelab; never use it for homelab work.
 - **`scripts/`**: Helper scripts for development and maintenance
 - **`renovate.json5`**: Automated dependency update configuration
 

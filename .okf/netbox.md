@@ -64,4 +64,6 @@ NetBox now holds 53 devices and 4 VMs (cluster `pve`), 75 IP addresses and 42 MA
 
 Update 2026-11-05: the dnsmasq host `sodola` is the single Sodola switch (`SL-SWTGW2C48NS`, confirmed by the user); its `mgmt` interface, MAC `1C:2A:A3:1E:E6:B5` and `10.1.0.12/32` are on that device (76 IPs and 43 MACs in total).
 
+Update 2026-11-06 (ADR-0054): `dockerhost` (device 55) is `offline` and its IP `192.168.178.125/24` is deleted; interface `eth0` and its MAC stay as hardware facts. The host is powered off.
+
 Related: ADR-0030, ADR-0028, ADR-0029, [Tandoor](./tandoor.md), [dockerhost-services](./dockerhost-services.md), [Observability stack](./observability-stack.md).

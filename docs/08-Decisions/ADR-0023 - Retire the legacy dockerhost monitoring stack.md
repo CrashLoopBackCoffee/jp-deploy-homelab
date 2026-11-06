@@ -9,7 +9,7 @@ type: adr
 status: accepted
 date: 2026-10-17
 created: 2026-10-17
-updated: 2026-11-05
+updated: 2026-11-06
 adr: 23
 ---
 
@@ -19,7 +19,7 @@ adr: 23
 
 Accepted on 2026-10-17; amended 2026-10-26. Stage 1 is **under way**: phases 1 to 3 (Mimir retention, QNAP syslog, probes and scrapes, speed test and dashboards) were applied on 2026-10-17 ([[ADR-0024 - QNAP syslog into Loki]] to [[ADR-0027 - Speedtest exporter and legacy dashboards]]). After live replacement checks, the user approved ending the planned two-week dual run early on 2026-10-26 and cutting over the migrated scrape jobs. The Grafana login, name cutover, history backfill and stage 2 remain open. See `.okf/legacy-monitoring-migration.md`.
 
-Stage 2 decided on 2026-11-05, see [[ADR-0054 - Decommission dockerhost]].
+Stage 2 completed on 2026-11-06, see [[ADR-0054 - Decommission dockerhost]].
 
 ## Context
 

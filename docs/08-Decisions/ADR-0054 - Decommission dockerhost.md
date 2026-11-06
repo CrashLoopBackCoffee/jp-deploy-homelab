@@ -9,7 +9,7 @@ type: adr
 status: accepted
 date: 2026-11-05
 created: 2026-11-05
-updated: 2026-11-05
+updated: 2026-11-06
 adr: 54
 ---
 
@@ -17,7 +17,7 @@ adr: 54
 
 ## Status
 
-Accepted on 2026-11-05. Execution is gated: every destructive or service-stopping step (G1 to G6) waits for the user's explicit approval in chat. Completes stage 2 of [[ADR-0023 - Retire the legacy dockerhost monitoring stack]].
+Accepted on 2026-11-05; executed on 2026-11-06 (see the update at the end). Every destructive or service-stopping step (G1 to G6) waited for the user's explicit approval in chat. Completes stage 2 of [[ADR-0023 - Retire the legacy dockerhost monitoring stack]]. Open: Home Assistant entities `device_tracker.dockerhost` and `switch.dockerhost_internet_access`, and the HA pull request (see the update).
 
 ## Context
 
@@ -80,3 +80,31 @@ Findings on 2026-11-05:
 - [[ADR-0019 - LGTM observability stack on k0s]]
 - [[ADR-0016 - QuObjects backup target and encrypted offsite copy]]
 - `deploy-home-assistant` ADR-0010 (single Mosquitto broker)
+
+## Update 2026-11-06 (executed)
+
+Deviations from the plan above:
+
+- **Archive route.** SSH key login to `qnap.4jp.de` was denied, so the host files were pulled from dockerhost to the workstation and written to the SMB mount `/Volumes/backups/dockerhost/` (about 33 MB/s). Verification is `shasum -a 256 -c` on the mount, not `sha256sum` on the QNAP. The temporary key `/root/.ssh/archive_ed25519` was never installed on the QNAP and was deleted at G2.
+- **Probes.** Two probes were ported, not three: `https://tandoor.4jp.de` and `https://netbox.4jp.de` (both 1 in Mimir). `dev.kinderreich-augsburg.de` was removed by the user after an emergency cutover and is not monitored.
+- **Vault edit.** The `op` service account here cannot write; the user edited `Monitoring Targets` by hand.
+- **Backfill upload.** `mimirtool blocks split` needs `--max-block-duration` (not `--block-duration`) and produced 392 UTC-aligned blocks (all at most 24 h, none crossing 00:00 UTC) from 26 sources. Uploads ran in 2 shards. `kubectl port-forward` to the service dropped connections; a watchdog on `pod/mimir-compactor-0` fixed it. The compactor validates one upload at a time (HTTP 429 otherwise). A QNAP S3 outage (HTTP 503) on 2026-11-05 around 22:00 UTC left block `01M6PHA700EY9SY86PKB9N80SD` in a `validation failed` state; the same data was uploaded again under the new ULID `01M6R0GYPHDYK5VBJAX64DG36C`. The dead partial block stays in the bucket for the cleaner.
+
+Results:
+
+|Step|Result|
+|---|---|
+|Archive|`prometheus-tsdb.tar.zst` 42.9 GB, 9 tarballs and inventory in `host/` (about 44.6 GB); `host/` 22/22, `workstation-legacy/` 820/820 and `ansible/` 1/1 `OK`; `zstd -t` passed on all tarballs|
+|Backfill|392/392 blocks (`already_exists=392 failed=0` in the final pass); test week 21 comparisons and all 19 reference timestamps (57 comparisons, `count(up)`, MemTotal, CPU `increase`) with 0 mismatches and 0 empty|
+|Mimir storage|store-gateway PVC 388 MB of 5 Gi after the backfill; no expansion needed|
+|tcpdump|33 minutes after G2: 0 inbound packets from any client except the workstation and the Fritz!Box|
+|Cloudflare|exactly the 10 expected records deleted; 0 left; every name empty on 1.1.1.1, AdGuard `.171` and OPNsense `10.1.0.1`|
+|NetBox|device 55 `offline`, IP 30 deleted, interface 114 and MAC 43 kept|
+
+Gate dates (UTC): G1 2026-11-05 19:00 (stop of the monitoring stack); G2 2026-11-06 10:16 (tcpdump start); G3 and G4 the same morning after the capture was stopped at 10:49 (poweroff: 100 % ping loss, port 22 closed); G5 and G6 the same day. The user did the Fritz!Box and OPNsense steps by hand and reported hits removed without detail.
+
+Open items:
+
+- **Home Assistant.** After the Fritz!Box entry was deleted, the Fritz cleanup button and a config-entry reload left `device_tracker.dockerhost` (`home`) and `switch.dockerhost_internet_access` in place. The branch `docs/dockerhost-decommissioned` (ADR 0010 update) is pushed to `code.jaypee.solutions`; no PR tool or token is available here, so the user opens it. Entity cleanup and `just snapshot-ha` follow once the Fritz!Box no longer lists the host.
+- **Mimir compaction.** The compactor logs `checksum mismatch` on merge jobs for the 2026-10-19 group (blocks `01M5A78HXC…`, `01M5BGNMPA…`) and the 2026-11-05 group (`01M6P096JQ…`, `01M6PAEFWV…`). [INFERENCE] The failing source chunks sit in Mimir's own blocks (`01M5BGNMPA…`, `01M6P096JQ…`; judged by their ULID time, not checked in the bucket). The first failure predates the backfill. Queries over both days still succeed. The cause is not found; [INFERENCE] the QNAP S3 returns damaged chunk data. Needs its own investigation.
+- **Backfilled history** exists only in `mimir-metrics` on the QNAP, next to the raw TSDB archive on the same device. Mimir's retention starts deleting the oldest backfilled days on 2026-12-04.
