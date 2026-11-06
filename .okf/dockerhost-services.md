@@ -35,7 +35,7 @@ So the rule "no application database migrates before the HBS 3 off-site copy is 
 
 # Decommissioned (2026-11-06, ADR-0054)
 
-`dockerhost` (`192.168.178.125`) is **powered off**; its disk is intact as a cold fallback and the user wipes it later. Nothing points at it any more: the 10 Cloudflare records, the Wazuh `/32`, the NetBox IP, the workstation SSH block and `known_hosts` lines are gone; the NetBox device is `offline`.
+`dockerhost` (`192.168.178.125`) is **powered off**; the user reported on 2026-11-06 that the disk wipe is done or under way (not verified by the agent), so the cold fallback is gone and the QNAP archive is the only copy. Nothing points at the host any more: the 10 Cloudflare records, the Wazuh `/32`, the NetBox IP, the workstation SSH block and `known_hosts` lines are gone; the NetBox device is `offline`.
 
 Archive: QNAP share `backups`, directory `dockerhost` (SMB mount `/Volumes/backups/dockerhost/` on the workstation), about 51 GB with SHA-256 manifests (all `OK`):
 
@@ -47,7 +47,7 @@ The archive holds plaintext secrets (compose environment, `acme.json`, `.netrc`)
 
 # Risks
 
-- The archive, the backfilled history in Mimir's `mimir-metrics` bucket and the raw TSDB all sit on the same QNAP; there is no off-site copy (ADR-0054).
+- The archive, the backfilled history in Mimir's `mimir-metrics` bucket and the raw TSDB all sit on the same QNAP; there is no off-site copy and the user declined one (ADR-0057). The QNAP S3 also produced damaged Mimir blocks (ADR-0056).
 - Each migration needs its own decision on how state moves (dump and restore, volume copy, or fresh install) and must keep the legacy instance stopped but intact until the new one is verified.
 
 Related: [Tandoor](./tandoor.md), [Retiring the legacy dockerhost monitoring stack](./legacy-monitoring-migration.md), ADR-0018, ADR-0023, ADR-0028.

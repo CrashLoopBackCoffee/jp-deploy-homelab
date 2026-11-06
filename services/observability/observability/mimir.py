@@ -7,6 +7,8 @@ MIMIR_RELEASE = 'mimir'
 MIMIR_S3_SECRET = 'mimir-s3-credentials'
 # Release name equals the chart name, so the chart names its gateway Service `mimir-gateway`.
 MIMIR_GATEWAY_URL = 'http://mimir-gateway.observability.svc.cluster.local'
+# Merged-away blocks stay this long: the QNAP S3 has written damaged compaction results (ADR-0056).
+MIMIR_COMPACTOR_DELETION_DELAY = '48h'
 
 
 def _persistent_volume(size_gb: int) -> dict:
@@ -71,7 +73,10 @@ def create_mimir(
                         'compactor_blocks_retention_period': f'{mimir_config.retention_days}d',
                         'max_global_series_per_user': mimir_config.max_global_series_per_user,
                     },
-                    'compactor': {'data_dir': '/data'},
+                    'compactor': {
+                        'data_dir': '/data',
+                        'deletion_delay': MIMIR_COMPACTOR_DELETION_DELAY,
+                    },
                 },
             },
             'minio': {'enabled': False},

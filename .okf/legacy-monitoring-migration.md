@@ -108,7 +108,7 @@ Done. The legacy stack was stopped on 2026-11-05 19:00 UTC, the TSDB archived an
 - **Pitfalls.** `kubectl port-forward` to `svc/mimir-compactor` dropped connections (EOF, connection reset): forward the pod and wrap it in a watchdog that restarts it when `/ready` fails. The compactor allows one upload validation at a time (429). New blocks became queryable only after the next bucket-index update and store-gateway sync (the test week was still empty about 10 minutes after its upload and matched on the next check, 30 to 40 minutes after it). A block whose upload was cut by a QNAP S3 503 stays at `validation failed` forever; re-upload it under a new ULID. The store-gateway PVC grew only 388 MB for all 392 blocks (5 Gi is enough).
 - **Result.** 392/392 blocks, 57 reference comparisons with 0 mismatches. Mimir's 400-day retention deletes the oldest backfilled days from 2026-12-04.
 - **Dropped, not ported:** fritz-exporter (Fritz!Box and modem), `wireguard:9100`, ICMP `192.168.178.1`, dockerhost host, container and Traefik metrics. Ported to Alloy: the probes `https://tandoor.4jp.de` and `https://netbox.4jp.de`. `dev.kinderreich-augsburg.de` was removed by the user (emergency cutover). `grafana.4jp.de` and the other legacy names are deleted from Cloudflare (no redirect).
-- **Open:** Mimir compactor `checksum mismatch` on two merge groups (see ADR-0054, [INFERENCE] QNAP S3).
+- **Open:** Mimir compactor `checksum mismatch` came from six compactor-written blocks with a zero-filled 16 MiB chunk part, now no-compact marked; damage is ongoing and `deletion_delay` is 2h (ADR-0056).
 
 # Open questions for the user
 
