@@ -48,9 +48,7 @@ services/
 ## Critical Development Rules
 
 ### 1. Shell Commands
-- **NEVER** use `cd foo && command` as this changes the current working directory of the shell.
-- **ALWAYS** use subshells instead: `(cd foo && command)` to isolate directory changes.
-- **VIOLATION OF THIS RULE IS CRITICAL** - changing the working directory breaks the shell session for other commands.
+Run commands in another directory with the bash tool's `cwd` parameter or a subshell, `(cd foo && command)`; the shell session keeps its working directory.
 
 ### 2. Code Quality & Linting
 - **ALWAYS** run `uv run ./scripts/run-all-checks.sh` before making any commit to ensure code quality.
@@ -66,6 +64,8 @@ services/
 ### 3. Pulumi Commands & Safety
 
 See the **`pulumi-operations`** skill for safety rules, all deployment commands, stack management, and resource rename patterns.
+
+A preview that shows changes you did not make (another PR merged meanwhile): apply your own resource with `--target <urn>` and report the rest. See "Pulumi preview drift" in `.okf/operational-lessons.md`.
 
 ### 4. Python Code Style
 
@@ -99,8 +99,9 @@ Home Assistant is configured in `/Users/alten/GitHub/deploy-home-assistant` (its
 
 - Read its `AGENTS.md`, `HANDOFF.md`, `.okf/` and `docs/adr/` before concluding what HA does or does not do. Its ADRs are numbered separately from this repo's; cross-reference both ways (example: ADR-0046 here, commits in the HA repo).
 - `git -C /Users/alten/GitHub/deploy-home-assistant pull --ff-only` before reading, if the clone is clean and on `main`. Never judge HA from a stale clone or from this repo's OKF alone: on 2026-11-05 this repo's OKF still listed `ZweiradGarage` and `WarmWaterOutage` as legacy-only although HA had owned them since 2026-11-03.
-- Its changes follow its own workflow (`just check`, `just doctor`, drift guard, PR). Use its `just` recipes for HA state, logs and deploys (`just states`, `just logs`, `just ssh`).
-- Changes that cross both repos (a new archived entity, a renamed sensor, an alert moved to HA) land as one PR per repo with a link in each description.
+- Its changes follow its own workflow (`just check`, `just doctor`, drift guard). Use its `just` recipes for HA state, logs and deploys (`just states`, `just logs`, `just ssh`).
+- Its remote is Forgejo (`code.jaypee.solutions`), not GitHub: `gh` does not work there, and no PR tool or token was found on 2026-11-06 (its history is direct commits to `main`). Push the branch and ask the user to open the PR.
+- Changes that cross both repos (a new archived entity, a renamed sensor, an alert moved to HA) land as one branch per repo with a link in each description.
 
 ## Common Commands
 
