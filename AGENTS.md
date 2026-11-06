@@ -104,21 +104,7 @@ Home Assistant is configured in `/Users/alten/GitHub/deploy-home-assistant` (its
 
 ## Common Commands
 
-```bash
-# Install/sync dependencies
-uv sync
-
-# Add a new dependency
-uv add <package_name>
-
-# Generate configuration schemas
-uv run ./scripts/generate-config-schema
-
-# CRITICAL: Run all linting and code quality checks (many tools auto-fix)
-uv run ./scripts/run-all-checks.sh
-```
-
-For Pulumi deployment commands, see the **`pulumi-operations`** skill.
+`uv run ./scripts/generate-config-schema` regenerates the config schemas; `uv sync` and `uv add <package>` manage dependencies.
 
 ## Environment Management (Pulumi Stacks)
 
@@ -133,15 +119,4 @@ For Pulumi deployment commands, see the **`pulumi-operations`** skill.
 3.  **Understand Service Context**: Each service in `services/` is self-contained but may have dependencies.
 4.  **Follow Patterns**: Use the topic-specific skills for Pulumi, container images, Helm, and Python code style.
 5.  **Configuration**: Remember to configure python runtime options in `Pulumi.yaml` using `uv` and the `venv` in the root of the repository.
-6.  **MCP Interactive Feedback (Copilot)**:
-    - When you want to ask a question, call the MCP `interactive_feedback`.
-    - Before completing a request, call MCP `interactive_feedback`.
-    - Keep calling MCP until the user's feedback is empty, then end the request.
-
-## Documentation Maintenance
-
-These instructions should be periodically validated against the repository state:
-- Verify all services in the `services/` directory are documented
-- Ensure all scripts and tools mentioned actually exist and work
-- Check that code examples follow current project patterns
-- Update tooling versions and commands as the project evolves
+6.  **Preflight**: before a plan that touches several systems goes to the user, probe write access to each target (see "Preflight external access" in `.okf/operational-lessons.md`).

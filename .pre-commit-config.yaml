@@ -42,3 +42,9 @@ repos:
         entry: ./scripts/alloy-fmt
         language: system
         files: \.alloy$
+      - id: okf-validate
+        name: okf-validate
+        entry: ./scripts/okf-validate
+        language: system
+        files: ^\.okf/
+        pass_filenames: false
