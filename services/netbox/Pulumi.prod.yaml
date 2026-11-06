@@ -13,7 +13,7 @@ config:
       media-size: 1Gi
     valkey:
       # renovate: datasource=github-releases packageName=valkey-io/valkey versioning=semver
-      version: 9.1.2
+      version: 9.1.3
     database:
       name: netbox-db
       # renovate: datasource=docker packageName=ghcr.io/cloudnative-pg/postgresql versioning=semver
