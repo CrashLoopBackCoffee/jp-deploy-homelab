@@ -45,6 +45,7 @@ def create_alloy(
     config = config.replace('SYSLOG_RFC3164_PORT', str(SYSLOG_PORTS['syslog3164']))
     config = config.replace('OPNSENSE_SYSLOG_PORT', str(SYSLOG_PORTS['opnsense']))
     config = config.replace('LOKI_API_PORT', str(component_config.alloy.push.port))
+    config = config.replace('METRICS_API_PORT', str(component_config.alloy.push.metrics_port))
     config = config.replace(
         'OPNSENSE_NODE_EXPORTER_TARGET', component_config.opnsense.node_exporter_target
     )
@@ -147,7 +148,7 @@ def create_push_service(
     k8s_opts: p.ResourceOptions,
     alloy: k8s.helm.v3.Release,
 ):
-    """Expose Alloy's Loki push endpoint only to the AX51 WireGuard peer."""
+    """Expose Alloy's Loki and Mimir push endpoints only to the AX51 WireGuard peer."""
     address = component_config.alloy.push.address
     k8s.core.v1.Service(
         'alloy-push',
@@ -164,7 +165,13 @@ def create_push_service(
                     'port': component_config.alloy.push.port,
                     'target_port': component_config.alloy.push.port,
                     'protocol': 'TCP',
-                }
+                },
+                {
+                    'name': 'mimir-push',
+                    'port': component_config.alloy.push.metrics_port,
+                    'target_port': component_config.alloy.push.metrics_port,
+                    'protocol': 'TCP',
+                },
             ],
         },
         opts=p.ResourceOptions.merge(

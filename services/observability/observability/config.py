@@ -52,12 +52,14 @@ class SyslogConfig(utils.model.LocalBaseModel):
 
 
 class PushReceiverConfig(utils.model.LocalBaseModel):
-    """Push-only Loki receiver for AX51 logs on a fixed MetalLB address."""
+    """Push-only receivers for AX51 logs (Loki) and metrics (Mimir) on a fixed MetalLB address."""
 
     # Fixed address from the MetalLB pool
     address: str
     # TCP port of Alloy's loki.source.api listener
     port: int
+    # TCP port of Alloy's prometheus.receive_http listener (remote write)
+    metrics_port: int
     # CIDRs allowed to push; enforced by kube-proxy for the LoadBalancer address
     allowed_sources: list[str]
 

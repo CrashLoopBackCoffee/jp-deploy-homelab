@@ -769,6 +769,25 @@ loki.source.api "ax51" {
 	forward_to             = [loki.write.loki.receiver]
 }
 
+// Metrics pushed by AX51's Alloy (prometheus.remote_write) through the same tunnel (ADR-0058).
+// receive_http serves only the remote-write path, so AX51 cannot read Mimir.
+prometheus.relabel "ax51_push" {
+	forward_to = [prometheus.remote_write.mimir.receiver]
+
+	rule {
+		target_label = "host"
+		replacement  = "ax51"
+	}
+}
+
+prometheus.receive_http "ax51" {
+	http {
+		listen_address = "0.0.0.0"
+		listen_port    = METRICS_API_PORT
+	}
+	forward_to = [prometheus.relabel.ax51_push.receiver]
+}
+
 // ---------------------------------------------------------------------------
 // Probes and scrapes of external targets
 // ---------------------------------------------------------------------------
